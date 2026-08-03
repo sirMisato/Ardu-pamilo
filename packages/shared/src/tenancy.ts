@@ -2,15 +2,17 @@ export type TenantRole = "farmer_owner" | "farmer_operator" | "platform_admin";
 
 export type Permission =
   | "tenant:read"
+  | "farm:read"
+  | "farm:write"
   | "plot:read"
   | "plot:write"
   | "device:provision"
   | "platform:admin";
 
 export const rolePermissions: Record<TenantRole, readonly Permission[]> = {
-  farmer_owner: ["tenant:read", "plot:read", "plot:write", "device:provision"],
-  farmer_operator: ["tenant:read", "plot:read"],
-  platform_admin: ["tenant:read", "plot:read", "plot:write", "device:provision", "platform:admin"]
+  farmer_owner: ["tenant:read", "farm:read", "farm:write", "plot:read", "plot:write", "device:provision"],
+  farmer_operator: ["tenant:read", "farm:read", "plot:read"],
+  platform_admin: ["tenant:read", "farm:read", "farm:write", "plot:read", "plot:write", "device:provision", "platform:admin"]
 };
 
 export interface TenantContext {

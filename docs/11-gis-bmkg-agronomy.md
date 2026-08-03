@@ -14,6 +14,8 @@ Pemilik: Frontend Lead, Backend Lead, Agronomy Reviewer
 
 ## Plot Geometry
 
+Implementasi Fase 3 awal baru menerima GeoJSON `Polygon`. `MultiPolygon` tetap ada sebagai kebutuhan kandidat, tetapi harus diputuskan sebelum editor GIS dan migrasi production difinalkan.
+
 | Field | Catatan |
 | --- | --- |
 | `geometry_geojson` | GeoJSON `Polygon` atau `MultiPolygon`, SRID 4326 |

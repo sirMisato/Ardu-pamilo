@@ -1,3 +1,5 @@
+import type { PolygonGeometry } from "@pamilo/shared";
+
 export interface ApiEnvelope<T> {
   data: T | null;
   meta: {
@@ -34,9 +36,29 @@ export interface MePayload {
 
 export interface PlotPayload {
   id: string;
+  farm_id: string;
   name: string;
+  geometry: PolygonGeometry;
   area_m2: number;
   area_ha: number;
+  centroid: {
+    lat: number;
+    lng: number;
+  };
+  bbox: {
+    west: number;
+    south: number;
+    east: number;
+    north: number;
+  };
+  adm4_code: string | null;
+  mapping_status: string;
+}
+
+export interface FarmPayload {
+  id: string;
+  name: string;
+  timezone: string;
 }
 
 export async function login(input: {
@@ -68,8 +90,53 @@ export async function getMe(): Promise<ApiEnvelope<MePayload>> {
   return request<MePayload>("/api/v1/me");
 }
 
+export async function getFarms(): Promise<ApiEnvelope<FarmPayload[]>> {
+  return request<FarmPayload[]>("/api/v1/farms");
+}
+
+export async function createFarm(input: {
+  name: string;
+  timezone: string;
+  csrfToken: string;
+}): Promise<ApiEnvelope<FarmPayload>> {
+  return request<FarmPayload>("/api/v1/farms", {
+    method: "POST",
+    headers: {
+      "x-csrf-token": input.csrfToken
+    },
+    body: JSON.stringify({
+      name: input.name,
+      timezone: input.timezone
+    })
+  });
+}
+
+export async function getFarmPlots(farmId: string): Promise<ApiEnvelope<PlotPayload[]>> {
+  return request<PlotPayload[]>(`/api/v1/farms/${encodeURIComponent(farmId)}/plots`);
+}
+
 export async function getPlot(plotId: string): Promise<ApiEnvelope<PlotPayload>> {
   return request<PlotPayload>(`/api/v1/plots/${encodeURIComponent(plotId)}`);
+}
+
+export async function createPlot(input: {
+  farmId: string;
+  name: string;
+  adm4Code: string;
+  geometry: PolygonGeometry;
+  csrfToken: string;
+}): Promise<ApiEnvelope<PlotPayload>> {
+  return request<PlotPayload>(`/api/v1/farms/${encodeURIComponent(input.farmId)}/plots`, {
+    method: "POST",
+    headers: {
+      "x-csrf-token": input.csrfToken
+    },
+    body: JSON.stringify({
+      name: input.name,
+      adm4_code: input.adm4Code,
+      geometry: input.geometry
+    })
+  });
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<ApiEnvelope<T>> {

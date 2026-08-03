@@ -41,7 +41,7 @@ body {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr) 420px;
   gap: 16px;
   min-height: calc(100vh - 48px);
 }
@@ -213,6 +213,10 @@ button:disabled {
   margin: 0 0 18px;
 }
 
+.plot-detail {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .data-list div {
   padding: 10px 12px;
   border: 1px solid #d8e2da;
@@ -231,6 +235,103 @@ button:disabled {
   margin: 3px 0 0;
   color: #17211a;
   font-weight: 700;
+}
+
+.workspace-section {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding-top: 14px;
+  border-top: 1px solid #d8e2da;
+}
+
+.section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.section-title h2 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.section-title span {
+  overflow: hidden;
+  color: #56635c;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.compact-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(112px, 0.75fr) auto;
+  gap: 8px;
+}
+
+.compact-form input,
+.compact-form select {
+  min-height: 38px;
+}
+
+.compact-form button {
+  min-height: 38px;
+  padding: 0 12px;
+}
+
+.farm-list,
+.plot-list {
+  display: grid;
+  gap: 8px;
+}
+
+.farm-button,
+.plot-button {
+  display: grid;
+  min-height: 48px;
+  padding: 8px 10px;
+  border: 1px solid #d8e2da;
+  background: #f7faf8;
+  color: #17211a;
+  text-align: left;
+}
+
+.farm-button.active,
+.plot-button.active {
+  border-color: #276749;
+  background: #e6f4ed;
+  box-shadow: inset 3px 0 0 #276749;
+}
+
+.farm-button span,
+.plot-button span {
+  overflow: hidden;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.farm-button small,
+.plot-button small {
+  overflow: hidden;
+  color: #56635c;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty-state {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px dashed #bac8bf;
+  border-radius: 6px;
+  color: #56635c;
+  font-size: 14px;
 }
 
 .metric-list {
@@ -261,6 +362,11 @@ button:disabled {
 
   .map-pane {
     min-height: 360px;
+  }
+
+  .compact-form,
+  .plot-detail {
+    grid-template-columns: 1fr;
   }
 }
 

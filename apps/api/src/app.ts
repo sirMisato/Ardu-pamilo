@@ -4,6 +4,8 @@ import { InMemoryAuditLog, type AuditLog } from "./modules/audit/audit-log.js";
 import { InMemoryIdentityStore, type IdentityStore } from "./modules/auth/identity-store.js";
 import { registerAuthRoutes } from "./modules/auth/routes.js";
 import { InMemorySessionStore, type SessionStore } from "./modules/auth/session-store.js";
+import { InMemoryFarmRepository, type FarmRepository } from "./modules/farms/farm-repository.js";
+import { registerFarmRoutes } from "./modules/farms/routes.js";
 import { InMemoryPlotRepository, type PlotRepository } from "./modules/plots/plot-repository.js";
 import { registerPlotRoutes } from "./modules/plots/routes.js";
 
@@ -15,6 +17,7 @@ export interface HealthPayload {
 
 export interface AppDependencies {
   auditLog: AuditLog;
+  farms: FarmRepository;
   identityStore: IdentityStore;
   plots: PlotRepository;
   sessionStore: SessionStore;
@@ -27,6 +30,7 @@ function now(): string {
 export function createAppDependencies(overrides: Partial<AppDependencies> = {}): AppDependencies {
   return {
     auditLog: overrides.auditLog ?? new InMemoryAuditLog(),
+    farms: overrides.farms ?? new InMemoryFarmRepository(),
     identityStore: overrides.identityStore ?? new InMemoryIdentityStore(),
     plots: overrides.plots ?? new InMemoryPlotRepository(),
     sessionStore: overrides.sessionStore ?? new InMemorySessionStore()
@@ -62,6 +66,7 @@ export function buildApp(overrides: Partial<AppDependencies> = {}): FastifyInsta
 
   void app.register(async (instance) => {
     await registerAuthRoutes(instance, deps);
+    await registerFarmRoutes(instance, deps);
     await registerPlotRoutes(instance, deps);
   });
 

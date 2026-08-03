@@ -9,6 +9,7 @@ describe("tenant contracts", () => {
   it("maps permissions by role", () => {
     expect(roleHasPermission("farmer_owner", "device:provision")).toBe(true);
     expect(roleHasPermission("farmer_operator", "device:provision")).toBe(false);
+    expect(roleHasPermission("farmer_operator", "farm:read")).toBe(true);
   });
 
   it("throws when a role lacks a permission", () => {

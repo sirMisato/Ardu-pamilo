@@ -1,22 +1,51 @@
 import { computed, createApp, onMounted, reactive, ref } from "vue";
-import { metricCodes } from "@pamilo/shared";
-import { getMe, getPlot, login, logout, type MePayload, type PlotPayload } from "./api.js";
+import { metricCodes, type PolygonGeometry } from "@pamilo/shared";
+import {
+  createFarm,
+  createPlot,
+  getFarmPlots,
+  getFarms,
+  getMe,
+  login,
+  logout,
+  type FarmPayload,
+  type MePayload,
+  type PlotPayload
+} from "./api.js";
 import "./styles.css";
 
 const App = {
   setup() {
     const auth = ref<MePayload | null>(null);
-    const plot = ref<PlotPayload | null>(null);
+    const farms = ref<FarmPayload[]>([]);
+    const plots = ref<PlotPayload[]>([]);
+    const activeFarmId = ref("");
+    const selectedPlotId = ref("");
     const loading = ref(true);
     const busy = ref(false);
+    const workspaceBusy = ref(false);
     const error = ref<string | null>(null);
     const form = reactive({
       email: "multi@example.test",
       password: "local-demo-password",
       tenantId: "tenant-a"
     });
+    const farmForm = reactive({
+      name: "Kebun Demonstrasi",
+      timezone: "Asia/Jakarta"
+    });
+    const plotForm = reactive({
+      name: "Plot Baru",
+      adm4Code: ""
+    });
 
     const isSignedIn = computed(() => auth.value !== null);
+    const activeFarm = computed(() => farms.value.find((farm) => farm.id === activeFarmId.value) ?? null);
+    const selectedPlot = computed(() => plots.value.find((plot) => plot.id === selectedPlotId.value) ?? plots.value[0] ?? null);
+    const canWriteMetadata = computed(() => {
+      const role = auth.value?.active_tenant.role;
+      return role === "farmer_owner" || role === "platform_admin";
+    });
     const loginTenantOptions = [
       {
         id: "tenant-a",
@@ -39,7 +68,9 @@ const App = {
         if (response.data) {
           form.email = response.data.user.email;
           form.tenantId = response.data.active_tenant.id;
-          await loadPlotForTenant(response.data.active_tenant.id);
+          await loadTenantWorkspace();
+        } else {
+          resetWorkspace();
         }
       } finally {
         loading.value = false;
@@ -63,7 +94,7 @@ const App = {
         }
 
         auth.value = response.data;
-        await loadPlotForTenant(response.data.active_tenant.id);
+        await loadTenantWorkspace();
       } finally {
         busy.value = false;
       }
@@ -85,7 +116,7 @@ const App = {
         }
 
         auth.value = null;
-        plot.value = null;
+        resetWorkspace();
       } finally {
         busy.value = false;
       }
@@ -101,17 +132,138 @@ const App = {
       await submitLogin();
     }
 
-    async function loadPlotForTenant(tenantId: string): Promise<void> {
-      await loadPlot(tenantId === "tenant-b" ? "plot-b" : "plot-a");
+    async function loadTenantWorkspace(): Promise<void> {
+      workspaceBusy.value = true;
+      error.value = null;
+
+      try {
+        const response = await getFarms();
+        if (!response.data) {
+          error.value = response.error?.message ?? "Gagal memuat farm.";
+          resetWorkspace();
+          return;
+        }
+
+        farms.value = response.data;
+        activeFarmId.value = response.data[0]?.id ?? "";
+
+        if (activeFarmId.value) {
+          await loadPlots(activeFarmId.value);
+        } else {
+          plots.value = [];
+          selectedPlotId.value = "";
+        }
+      } finally {
+        workspaceBusy.value = false;
+      }
     }
 
-    async function loadPlot(plotId: string): Promise<void> {
-      const response = await getPlot(plotId);
-      plot.value = response.data;
+    async function loadPlots(farmId: string): Promise<void> {
+      workspaceBusy.value = true;
+      error.value = null;
 
-      if (response.error) {
-        error.value = response.error.message;
+      try {
+        const response = await getFarmPlots(farmId);
+        if (!response.data) {
+          error.value = response.error?.message ?? "Gagal memuat plot.";
+          plots.value = [];
+          selectedPlotId.value = "";
+          return;
+        }
+
+        plots.value = response.data;
+        selectedPlotId.value = response.data[0]?.id ?? "";
+      } finally {
+        workspaceBusy.value = false;
       }
+    }
+
+    async function selectFarm(farmId: string): Promise<void> {
+      if (farmId === activeFarmId.value) {
+        return;
+      }
+
+      activeFarmId.value = farmId;
+      await loadPlots(farmId);
+    }
+
+    async function submitFarm(): Promise<void> {
+      if (!auth.value || !canWriteMetadata.value) {
+        return;
+      }
+
+      busy.value = true;
+      error.value = null;
+
+      try {
+        const response = await createFarm({
+          name: farmForm.name,
+          timezone: farmForm.timezone,
+          csrfToken: auth.value.csrf_token
+        });
+
+        if (!response.data) {
+          error.value = response.error?.message ?? "Gagal membuat farm.";
+          return;
+        }
+
+        farms.value = [...farms.value, response.data];
+        activeFarmId.value = response.data.id;
+        farmForm.name = "";
+        plots.value = [];
+        selectedPlotId.value = "";
+      } finally {
+        busy.value = false;
+      }
+    }
+
+    async function submitPlot(): Promise<void> {
+      if (!auth.value || !activeFarm.value || !canWriteMetadata.value) {
+        return;
+      }
+
+      busy.value = true;
+      error.value = null;
+
+      try {
+        const response = await createPlot({
+          farmId: activeFarm.value.id,
+          name: plotForm.name,
+          adm4Code: plotForm.adm4Code,
+          geometry: createTemplatePolygon(auth.value.active_tenant.id, plots.value.length),
+          csrfToken: auth.value.csrf_token
+        });
+
+        if (!response.data) {
+          error.value = response.error?.message ?? "Gagal membuat plot.";
+          return;
+        }
+
+        plots.value = [...plots.value, response.data];
+        selectedPlotId.value = response.data.id;
+        plotForm.name = "";
+      } finally {
+        busy.value = false;
+      }
+    }
+
+    function resetWorkspace(): void {
+      farms.value = [];
+      plots.value = [];
+      activeFarmId.value = "";
+      selectedPlotId.value = "";
+    }
+
+    function formatHectares(value: number): string {
+      return `${value.toFixed(4)} ha`;
+    }
+
+    function formatMeters(value: number): string {
+      return `${Math.round(value).toLocaleString("id-ID")} m2`;
+    }
+
+    function formatCoordinate(value: number): string {
+      return value.toFixed(6);
     }
 
     onMounted(() => {
@@ -120,17 +272,32 @@ const App = {
 
     return {
       auth,
+      activeFarm,
+      activeFarmId,
       busy,
+      canWriteMetadata,
       error,
+      farmForm,
+      farms,
+      formatCoordinate,
+      formatHectares,
+      formatMeters,
       form,
       isSignedIn,
       loading,
       loginTenantOptions,
       metrics: metricCodes,
-      plot,
+      plotForm,
+      plots,
+      selectedPlot,
+      selectedPlotId,
+      selectFarm,
       submitLogin,
+      submitFarm,
+      submitPlot,
       submitLogout,
-      switchTenant
+      switchTenant,
+      workspaceBusy
     };
   },
   template: `
@@ -198,13 +365,99 @@ const App = {
               <dt>Tenant</dt>
               <dd>{{ auth.active_tenant.id }}</dd>
             </div>
-            <div v-if="plot">
-              <dt>Plot</dt>
-              <dd>{{ plot.name }}</dd>
+            <div>
+              <dt>Farm</dt>
+              <dd>{{ farms.length }}</dd>
             </div>
-            <div v-if="plot">
+            <div>
+              <dt>Plot</dt>
+              <dd>{{ plots.length }}</dd>
+            </div>
+          </dl>
+
+          <section class="workspace-section" aria-label="Farm tenant">
+            <div class="section-title">
+              <h2>Farm</h2>
+              <span v-if="workspaceBusy">Memuat</span>
+            </div>
+
+            <form v-if="canWriteMetadata" class="compact-form" @submit.prevent="submitFarm">
+              <input v-model="farmForm.name" aria-label="Nama farm" required type="text" />
+              <select v-model="farmForm.timezone" aria-label="Zona waktu farm">
+                <option value="Asia/Jakarta">Asia/Jakarta</option>
+                <option value="Asia/Makassar">Asia/Makassar</option>
+                <option value="Asia/Jayapura">Asia/Jayapura</option>
+              </select>
+              <button class="primary-button" :disabled="busy" type="submit">Tambah</button>
+            </form>
+
+            <div class="farm-list">
+              <button
+                v-for="farm in farms"
+                :key="farm.id"
+                class="farm-button"
+                :class="{ active: farm.id === activeFarmId }"
+                type="button"
+                @click="selectFarm(farm.id)"
+              >
+                <span>{{ farm.name }}</span>
+                <small>{{ farm.timezone }}</small>
+              </button>
+            </div>
+          </section>
+
+          <section class="workspace-section" aria-label="Plot farm">
+            <div class="section-title">
+              <h2>Plot</h2>
+              <span v-if="activeFarm">{{ activeFarm.name }}</span>
+            </div>
+
+            <form v-if="canWriteMetadata && activeFarm" class="compact-form" @submit.prevent="submitPlot">
+              <input v-model="plotForm.name" aria-label="Nama plot" required type="text" />
+              <input v-model="plotForm.adm4Code" aria-label="Kode ADM4" type="text" />
+              <button class="primary-button" :disabled="busy" type="submit">Tambah</button>
+            </form>
+
+            <div v-if="plots.length" class="plot-list">
+              <button
+                v-for="item in plots"
+                :key="item.id"
+                class="plot-button"
+                :class="{ active: item.id === selectedPlotId }"
+                type="button"
+                @click="selectedPlotId = item.id"
+              >
+                <span>{{ item.name }}</span>
+                <small>{{ formatHectares(item.area_ha) }}</small>
+              </button>
+            </div>
+            <p v-else class="empty-state">Belum ada plot.</p>
+          </section>
+
+          <dl v-if="selectedPlot" class="data-list plot-detail">
+            <div>
+              <dt>Plot aktif</dt>
+              <dd>{{ selectedPlot.name }}</dd>
+            </div>
+            <div>
               <dt>Luas</dt>
-              <dd>{{ plot.area_ha }} ha</dd>
+              <dd>{{ formatHectares(selectedPlot.area_ha) }}</dd>
+            </div>
+            <div>
+              <dt>Area</dt>
+              <dd>{{ formatMeters(selectedPlot.area_m2) }}</dd>
+            </div>
+            <div>
+              <dt>Centroid</dt>
+              <dd>{{ formatCoordinate(selectedPlot.centroid.lat) }}, {{ formatCoordinate(selectedPlot.centroid.lng) }}</dd>
+            </div>
+            <div>
+              <dt>BBox</dt>
+              <dd>{{ formatCoordinate(selectedPlot.bbox.west) }} / {{ formatCoordinate(selectedPlot.bbox.south) }}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>{{ selectedPlot.mapping_status }}</dd>
             </div>
           </dl>
 
@@ -218,5 +471,30 @@ const App = {
     </main>
   `
 };
+
+function createTemplatePolygon(tenantId: string, plotIndex: number): PolygonGeometry {
+  const origin = tenantId === "tenant-b"
+    ? { lng: 110.3, lat: -7.8 }
+    : { lng: 106.8, lat: -6.2 };
+  const offset = plotIndex * 0.004;
+  const size = 0.008;
+  const west = origin.lng + offset;
+  const south = origin.lat - offset;
+  const east = west + size;
+  const north = south + size;
+
+  return {
+    type: "Polygon",
+    coordinates: [
+      [
+        [west, south],
+        [east, south],
+        [east, north],
+        [west, north],
+        [west, south]
+      ]
+    ]
+  };
+}
 
 createApp(App).mount("#app");
