@@ -168,7 +168,8 @@ jobs:
 
           topic="pamilo/v1/tenants/tenant-a/devices/device-a/telemetry"
           ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          payload="{\"v\":1,\"device_id\":\"device-a\",\"node_id\":\"vps-sim-01\",\"ts\":\"$ts\",\"seq\":1,\"m\":{\"st\":27.4,\"sm\":43.1},\"q\":{\"calibration_profile\":\"vps-simulation\",\"flags\":[]}}"
+          seq="$(date -u +%s)"
+          payload="{\"v\":1,\"device_id\":\"device-a\",\"node_id\":\"vps-sim-01\",\"ts\":\"$ts\",\"seq\":$seq,\"m\":{\"st\":27.4,\"sm\":43.1},\"q\":{\"calibration_profile\":\"vps-simulation\",\"flags\":[]}}"
 
           cd "$DEPLOY_PATH"
           sudo -n docker compose --env-file staging.env -f compose.staging.yaml up -d mosquitto
@@ -185,9 +186,38 @@ jobs:
             test -s /tmp/pamilo-mqtt-simulation.out
           ' sh "$topic" "$payload"
 
+          sleep 3
+
+          latest="$(sudo -n docker compose --env-file staging.env -f compose.staging.yaml exec -T redis redis-cli HGET pamilo:telemetry:latest:tenant-a:plot-a soil_temperature | tr -d '\r')"
+          printf '%s' "$latest" | grep -F '"nodeId":"vps-sim-01"'
+          printf '%s' "$latest" | grep -F "\"seq\":$seq"
+
+          sudo -n docker compose --env-file staging.env -f compose.staging.yaml exec -T api node -e '
+            (async () => {
+              const ts = process.argv[1];
+              const url = new URL("http://victoriametrics:8428/api/v1/query_range");
+              url.searchParams.set("query", "pamilo_telemetry_value{tenant_id=\"tenant-a\",plot_id=\"plot-a\",metric=\"soil_temperature\"}");
+              url.searchParams.set("start", new Date(Date.parse(ts) - 1000).toISOString());
+              url.searchParams.set("end", new Date(Date.parse(ts) + 1000).toISOString());
+              url.searchParams.set("step", "1s");
+              const response = await fetch(url);
+              const body = await response.json();
+              const result = Array.isArray(body?.data?.result) ? body.data.result : [];
+              const values = result.flatMap((series) => Array.isArray(series.values) ? series.values : []);
+              if (!values.some((point) => Array.isArray(point) && Number(point[1]) === 27.4)) {
+                throw new Error("VictoriaMetrics did not return the MQTT simulation point.");
+              }
+            })().catch((error) => {
+              console.error(error instanceof Error ? error.message : String(error));
+              process.exit(1);
+            });
+          ' "$ts"
+
           echo "MQTT internal loopback passed"
+          echo "MQTT storage write passed"
           echo "topic=$topic"
           echo "payload_ts=$ts"
+          echo "payload_seq=$seq"
           REMOTE
 
       - name: Run optional write UAT
