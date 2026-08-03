@@ -246,7 +246,7 @@ jobs:
             -o PubkeyAuthentication=no \
             -o StrictHostKeyChecking=yes \
             "$VPS_USERNAME@$VPS_HOST" \
-            "mkdir -p '$deploy_path'"
+            "deploy_path='$deploy_path'; sudo -n install -d -m 755 \"\$deploy_path\" && sudo -n chown \"\$(id -un):\$(id -gn)\" \"\$deploy_path\""
 
           sshpass -e scp \
             -P "$VPS_PORT" \
