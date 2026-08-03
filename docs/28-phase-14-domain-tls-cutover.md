@@ -15,7 +15,7 @@ Fase 14 menyiapkan kesiapan domain dan TLS untuk website `sedayafarm.keycloud.id
 - `.github/workflows/domain-tls-readiness.yml` sebagai workflow manual non-deploy.
 - `infra/production/domain-readiness.env.example` sebagai template env non-secret.
 - Report readiness ditulis ke `.local/domain-readiness/`.
-- GitHub Actions dry-run dengan `run_network_checks=true` sudah dijalankan di run `30859422632` dan menghasilkan artifact `domain-tls-readiness`.
+- GitHub Actions dry-run dengan `run_network_checks=true` sudah dijalankan di run `30860521786` dan menghasilkan artifact `domain-tls-readiness`.
 
 ## Batas Aman
 
