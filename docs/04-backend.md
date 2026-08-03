@@ -98,7 +98,7 @@ apps/api/src/modules/
 | Fase | Deliverable backend |
 | --- | --- |
 | 1 | API skeleton, env validation, OpenAPI baseline, DB migration tooling |
-| 2 | Auth/session, tenant context, user/role, audit baseline |
+| 2 | Auth/session, tenant context, user/role, audit baseline. Status awal ada di `docs/16-phase-2-auth-tenancy.md` |
 | 3 | Farm/plot/device metadata, GeoJSON validation, area calculation |
 | 4 | Device provisioning API, MQTT credential lifecycle hooks |
 | 5 | Latest/history telemetry API, SSE, rate limit |

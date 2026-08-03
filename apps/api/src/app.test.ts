@@ -16,7 +16,7 @@ describe("api health endpoints", () => {
     });
   });
 
-  it("returns readiness placeholders for phase 1", async () => {
+  it("returns readiness placeholders for phase 2", async () => {
     const app = buildApp();
     const response = await app.inject({
       method: "GET",
@@ -26,9 +26,9 @@ describe("api health endpoints", () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       dependencies: {
-        mysql: "not_configured_in_phase_1",
-        redis: "not_configured_in_phase_1",
-        telemetry: "not_configured_in_phase_1"
+        mysql: "not_configured_in_phase_2",
+        redis: "not_configured_in_phase_2",
+        telemetry: "not_configured_in_phase_2"
       }
     });
   });

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@pamilo/shared": "0.1.0",
+    "@fastify/cookie": "^11.0.0",
     "fastify": "^5.0.0"
   }
 }

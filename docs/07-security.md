@@ -81,3 +81,9 @@ pamilo/v1/tenants/{tenant_id}/devices/{device_id}/acks
 ## Source Facts Verified
 
 - Mosquitto supports MQTT 5.0, 3.1.1, and 3.1; password files can be managed with `mosquitto_passwd`. Diakses 2026-08-02: https://mosquitto.org/ dan https://mosquitto.org/man/mosquitto_passwd-1.html
+
+## Phase 2 Notes
+
+- Auth skeleton memakai cookie session server-side dan CSRF token untuk mutasi.
+- Data identity/session/audit masih in-memory untuk local/test sampai keputusan database production dikunci.
+- Cross-tenant direct ID test pertama tersedia melalui `GET /api/v1/plots/:plotId`.
