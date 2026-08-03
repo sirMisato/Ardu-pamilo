@@ -58,21 +58,29 @@ flowchart LR
 - Data non-sensitif seperti `VPS_HOST`, `VPS_PORT`, dan `VPS_USERNAME` boleh memakai repository variables.
 - Credential seperti password, token, dan deploy key idealnya memakai repository secrets; workflow VPS saat ini membaca `VPS_PASSWORD` dari secret atau fallback variable sesuai konfigurasi existing.
 - Akses VPS untuk Fase 1 hanya berupa workflow manual read-only connectivity check.
+- Akses VPS untuk Fase 8 memakai workflow manual `Staging Deploy` dengan username/password sesuai konfigurasi existing; workflow ini tidak membutuhkan private key.
 - Deployment production belum boleh dibuat sebelum deployment readiness dan security gate disetujui.
 - Lihat `docs/15-github-actions-vps-access.md` untuk setup aman.
 
-## Commands Placeholder
+## Commands Fase 8 Staging
 
-Commands final dibuat saat repo source code tersedia. Format placeholder:
+Artifact staging Fase 8 tersedia di `infra/staging/compose.staging.yaml` dan dijalankan oleh workflow manual `.github/workflows/staging-deploy.yml`. Perintah operasional di VPS memakai folder deploy staging:
 
 ```text
-docker compose --env-file <env-file> pull
-docker compose --env-file <env-file> up -d
-docker compose --env-file <env-file> ps
-docker compose --env-file <env-file> logs --tail=200 <service>
+cd /opt/pamilo/staging
+docker compose --env-file staging.env -f compose.staging.yaml pull
+docker compose --env-file staging.env -f compose.staging.yaml up -d --remove-orphans
+docker compose --env-file staging.env -f compose.staging.yaml ps
+docker compose --env-file staging.env -f compose.staging.yaml logs --tail=200 api
 ```
 
 Jangan menjalankan command production dari dokumen ini sebelum gate production disetujui.
+
+Smoke staging dari runner atau mesin operator:
+
+```text
+PAMILO_BASE_URL=http://<staging-host>:8080 npm run smoke:staging
+```
 
 ## Deliverables per Fase
 
@@ -83,7 +91,7 @@ Jangan menjalankan command production dari dokumen ini sebelum gate production d
 | 4 | MQTT integration test workflow |
 | 5 | Telemetry load test job |
 | 7 | Secret scan, SBOM/scan, staging gate |
-| 8 | Deploy staging, rollback rehearsal |
+| 8 | Deploy staging, rollback rehearsal. Status awal ada di `docs/22-phase-8-staging-deployment.md` |
 | 10 | Production release workflow dan release notes |
 
 ## Acceptance Criteria DevOps

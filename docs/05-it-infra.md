@@ -45,7 +45,8 @@ DNS hanya diubah setelah Fase 8 staging rehearsal dan production go/no-go disetu
 | 80 | Public | HTTP redirect dan ACME challenge |
 | 443 | Public | Web/API HTTPS |
 | 8883 | Public | MQTT over TLS |
-| 22 | Restricted | SSH key only, idealnya allowlist/VPN |
+| 22 | Restricted | Fase 8 workflow memakai username/password sesuai konfigurasi existing; hardening production tetap perlu user non-root dan allowlist/VPN |
+| 8080 | Temporary public staging | Hanya untuk smoke Fase 8 bila belum ada domain/TLS staging; ganti dengan 443 setelah reverse proxy siap |
 | 1883 | Private Docker only | MQTT internal tanpa TLS tidak diekspos |
 | 3306 | Outbound only | Remote MySQL Hostinger |
 | 6379 | Private Docker only | Redis tidak public |
@@ -76,14 +77,14 @@ DNS hanya diubah setelah Fase 8 staging rehearsal dan production go/no-go disetu
 | 4 | Mosquitto network dan port mapping staging |
 | 5 | Redis/VictoriaMetrics volume dan retention |
 | 7 | Firewall review, backup dry-run, certificate monitoring |
-| 8 | Staging/prod-like host, DNS rehearsal, restore drill |
+| 8 | Staging/prod-like host, DNS rehearsal, restore drill. Status awal ada di `docs/22-phase-8-staging-deployment.md` |
 | 10 | Production DNS/TLS cutover dan hypercare monitoring |
 
 ## Acceptance Criteria Infra
 
 - Public scan hanya menemukan port yang disetujui.
 - Service internal tidak bisa diakses dari internet.
-- SSH tidak menerima password login.
+- Akses SSH workflow memakai credential masked dan restricted; target production hardening dievaluasi sebelum cutover.
 - Remote MySQL hanya menerima IP VPS.
 - Disk alert aktif sebelum 80% usage.
 - Certificate expiry alert aktif minimal 14 hari sebelum kedaluwarsa.

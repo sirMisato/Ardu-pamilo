@@ -12,7 +12,7 @@ Menentukan syarat minimum agar PAMILO layak deploy ke staging dan production. Ch
 - Environment staging tersedia dan prod-like.
 - Semua service berjalan di Docker Compose.
 - DNS staging atau host sementara tersedia.
-- TLS valid untuk web dan MQTT.
+- TLS valid untuk web dan MQTT sebelum production-like external rehearsal; Fase 8 awal boleh memakai host sementara `http://<vps>:<port>` untuk smoke terbatas.
 - MySQL remote staging/test tidak memakai production data mentah.
 - Redis dan VictoriaMetrics punya volume dan retention.
 - CI deploy staging memakai image immutable.
@@ -20,6 +20,14 @@ Menentukan syarat minimum agar PAMILO layak deploy ke staging dan production. Ch
 - API security headers dan safe error envelope lulus smoke test.
 - Smoke test otomatis lulus.
 - Rollback rehearsal berhasil.
+
+## Artifact Fase 8
+
+- Manual workflow: `.github/workflows/staging-deploy.yml`.
+- Staging compose: `infra/staging/compose.staging.yaml`.
+- Smoke command: `npm run smoke:staging`.
+- Detail teknis dan rollback: `docs/22-phase-8-staging-deployment.md`.
+- Akses VPS workflow memakai username/password dari `VPS_USERNAME` dan `VPS_PASSWORD`; private key tidak dipakai.
 
 ## Production Readiness
 

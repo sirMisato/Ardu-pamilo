@@ -22,6 +22,7 @@
     "dev:web": "npm run dev -w @pamilo/web",
     "lint": "eslint .",
     "secret:scan": "node scripts/check-secrets.mjs",
+    "smoke:staging": "node scripts/smoke-staging.mjs",
     "test": "vitest run",
     "typecheck": "tsc -b --pretty false"
   },

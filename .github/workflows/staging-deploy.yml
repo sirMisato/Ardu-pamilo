@@ -1,0 +1,295 @@
+name: Staging Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to publish. Empty value uses the current commit SHA."
+        required: false
+        default: ""
+      staging_web_port:
+        description: "Host port exposed by the staging web container."
+        required: false
+        default: "8080"
+      staging_origin:
+        description: "Public staging origin. Empty value uses http://VPS_HOST:staging_web_port."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy-staging:
+    name: Build and deploy staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      VPS_HOST: ${{ vars.VPS_HOST }}
+      VPS_PORT: ${{ vars.VPS_PORT }}
+      VPS_USERNAME: ${{ vars.VPS_USERNAME }}
+      VPS_PASSWORD: ${{ secrets.VPS_PASSWORD || vars.VPS_PASSWORD }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      STAGING_DEPLOY_PATH: ${{ vars.STAGING_DEPLOY_PATH || '/opt/pamilo/staging' }}
+      INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
+      INPUT_STAGING_WEB_PORT: ${{ inputs.staging_web_port }}
+      INPUT_STAGING_ORIGIN: ${{ inputs.staging_origin }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Validate deploy configuration
+        id: config
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          missing=0
+
+          if [ -n "$VPS_PASSWORD" ]; then
+            echo "::add-mask::$VPS_PASSWORD"
+          fi
+
+          for name in VPS_HOST VPS_PORT VPS_USERNAME VPS_PASSWORD STAGING_DEPLOY_PATH; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name repository secret or variable is required."
+              missing=1
+            fi
+          done
+
+          if [ -n "$VPS_HOST" ] && ! [[ "$VPS_HOST" =~ ^[A-Za-z0-9.-]+$ ]]; then
+            echo "::error::VPS_HOST must be a hostname or IPv4 address."
+            missing=1
+          fi
+
+          if [ -n "$VPS_PORT" ] && ! [[ "$VPS_PORT" =~ ^[0-9]+$ ]]; then
+            echo "::error::VPS_PORT must be numeric."
+            missing=1
+          elif [ -n "$VPS_PORT" ] && { [ "$VPS_PORT" -lt 1 ] || [ "$VPS_PORT" -gt 65535 ]; }; then
+            echo "::error::VPS_PORT must be between 1 and 65535."
+            missing=1
+          fi
+
+          if [ -n "$VPS_USERNAME" ] && ! [[ "$VPS_USERNAME" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::VPS_USERNAME contains unsupported characters."
+            missing=1
+          fi
+
+          if ! [[ "$INPUT_STAGING_WEB_PORT" =~ ^[0-9]+$ ]]; then
+            echo "::error::staging_web_port must be numeric."
+            missing=1
+          elif [ "$INPUT_STAGING_WEB_PORT" -lt 1 ] || [ "$INPUT_STAGING_WEB_PORT" -gt 65535 ]; then
+            echo "::error::staging_web_port must be between 1 and 65535."
+            missing=1
+          fi
+
+          if ! [[ "$STAGING_DEPLOY_PATH" =~ ^/opt/pamilo/[A-Za-z0-9._/-]+$ ]]; then
+            echo "::error::STAGING_DEPLOY_PATH must stay under /opt/pamilo."
+            missing=1
+          elif [[ "$STAGING_DEPLOY_PATH" == *"/../"* || "$STAGING_DEPLOY_PATH" == *"/.." || "$STAGING_DEPLOY_PATH" == *"/./"* || "$STAGING_DEPLOY_PATH" == *"/." ]]; then
+            echo "::error::STAGING_DEPLOY_PATH must not contain relative path segments."
+            missing=1
+          fi
+
+          if [ -n "$INPUT_IMAGE_TAG" ] && ! [[ "$INPUT_IMAGE_TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+            echo "::error::image_tag must be a valid Docker tag."
+            missing=1
+          fi
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          origin="$INPUT_STAGING_ORIGIN"
+          if [ -z "$origin" ]; then
+            origin="http://$VPS_HOST:$INPUT_STAGING_WEB_PORT"
+          fi
+
+          if ! [[ "$origin" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]+)?$ ]]; then
+            echo "::error::staging_origin must be an http(s) origin without path, query, fragment, or credentials."
+            exit 1
+          fi
+
+          echo "origin=$origin" >> "$GITHUB_OUTPUT"
+          echo "web_port=$INPUT_STAGING_WEB_PORT" >> "$GITHUB_OUTPUT"
+          echo "deploy_path=$STAGING_DEPLOY_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Secret scan
+        run: npm run secret:scan
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build app
+        run: npm run build
+
+      - name: Prepare image tags
+        id: images
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          owner="$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          tag="$INPUT_IMAGE_TAG"
+          if [ -z "$tag" ]; then
+            tag="${GITHUB_SHA::12}"
+          fi
+
+          echo "api=ghcr.io/$owner/ardu-pamilo-api:$tag" >> "$GITHUB_OUTPUT"
+          echo "web=ghcr.io/$owner/ardu-pamilo-web:$tag" >> "$GITHUB_OUTPUT"
+          echo "mqtt_ingestor=ghcr.io/$owner/ardu-pamilo-mqtt-ingestor:$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .docker/Dockerfile.api
+          push: true
+          tags: ${{ steps.images.outputs.api }}
+
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .docker/Dockerfile.web
+          push: true
+          tags: ${{ steps.images.outputs.web }}
+
+      - name: Build and push MQTT ingestor image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .docker/Dockerfile.mqtt-ingestor
+          push: true
+          tags: ${{ steps.images.outputs.mqtt_ingestor }}
+
+      - name: Install password SSH client
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends sshpass
+
+      - name: Configure SSH known hosts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          install -m 700 -d ~/.ssh
+
+          if [ -n "$VPS_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            echo "::warning::VPS_KNOWN_HOSTS is not set. Pin the host key before production deploy workflows."
+            ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          fi
+
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Render staging environment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > staging.env <<ENV
+          PAMILO_API_IMAGE=${{ steps.images.outputs.api }}
+          PAMILO_WEB_IMAGE=${{ steps.images.outputs.web }}
+          PAMILO_MQTT_INGESTOR_IMAGE=${{ steps.images.outputs.mqtt_ingestor }}
+          PAMILO_WEB_PORT=${{ steps.config.outputs.web_port }}
+          API_TRUSTED_ORIGINS=${{ steps.config.outputs.origin }}
+          API_BODY_LIMIT_BYTES=262144
+          LOG_LEVEL=info
+          ENV
+
+      - name: Upload staging artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          export SSHPASS="$VPS_PASSWORD"
+          deploy_path="${{ steps.config.outputs.deploy_path }}"
+
+          sshpass -e ssh \
+            -p "$VPS_PORT" \
+            -o BatchMode=no \
+            -o NumberOfPasswordPrompts=1 \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USERNAME@$VPS_HOST" \
+            "mkdir -p '$deploy_path'"
+
+          sshpass -e scp \
+            -P "$VPS_PORT" \
+            -o BatchMode=no \
+            -o NumberOfPasswordPrompts=1 \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
+            -o StrictHostKeyChecking=yes \
+            infra/staging/compose.staging.yaml \
+            infra/staging/mosquitto.self-check.conf \
+            staging.env \
+            "$VPS_USERNAME@$VPS_HOST:$deploy_path/"
+
+      - name: Deploy staging compose
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          export SSHPASS="$VPS_PASSWORD"
+          deploy_path="${{ steps.config.outputs.deploy_path }}"
+
+          printf '%s' "${{ github.token }}" | sshpass -e ssh \
+            -p "$VPS_PORT" \
+            -o BatchMode=no \
+            -o NumberOfPasswordPrompts=1 \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USERNAME@$VPS_HOST" \
+            "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
+
+          sshpass -e ssh \
+            -p "$VPS_PORT" \
+            -o BatchMode=no \
+            -o NumberOfPasswordPrompts=1 \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USERNAME@$VPS_HOST" \
+            "cd '$deploy_path' && docker compose --env-file staging.env -f compose.staging.yaml pull && docker compose --env-file staging.env -f compose.staging.yaml up -d --remove-orphans && docker compose --env-file staging.env -f compose.staging.yaml ps"
+
+      - name: Run staging smoke
+        env:
+          PAMILO_BASE_URL: ${{ steps.config.outputs.origin }}
+          PAMILO_SMOKE_ORIGIN: ${{ steps.config.outputs.origin }}
+        run: npm run smoke:staging

@@ -60,9 +60,23 @@ Membuktikan sistem benar, aman, dan layak deploy melalui test fungsional, integr
 | 5 | Telemetry latency and history tests |
 | 6 | BMKG adapter and alert tests. Status awal ada di `docs/20-phase-6-bmkg-agronomy.md` |
 | 7 | Full regression, load baseline, security regression. Status awal ada di `docs/21-phase-7-hardening-qa.md` |
-| 8 | Staging smoke, rollback validation |
+| 8 | Staging smoke, rollback validation. Status awal ada di `docs/22-phase-8-staging-deployment.md` |
 | 9 | UAT script and pilot acceptance report |
 | 10 | Production smoke and hypercare checklist |
+
+## Smoke Coverage Fase 8
+
+`npm run smoke:staging` menjadi gate awal untuk staging deployment. Coverage minimum:
+
+| Area | Check | Expected |
+| --- | --- | --- |
+| Web/API health | `/health/live` dan `/health/ready` | HTTP `200` |
+| Security headers | `X-Frame-Options`, `X-Content-Type-Options` | Header ada dan bernilai aman |
+| Login | Seeded farmer A login | Cookie session diterima |
+| Tenant data | Farmer A list farms | Data hanya tenant terkait |
+| CSRF mutation | Create farm dengan token dan trusted origin | HTTP `201` |
+| Telemetry latest | Plot A latest telemetry | Payload tersedia |
+| BMKG weather | Plot A weather | Attribution BMKG tersedia |
 
 ## Bug Severity
 

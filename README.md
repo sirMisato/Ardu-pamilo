@@ -1,6 +1,6 @@
 # PAMILO Smart Farming GIS
 
-PAMILO is a multi-tenant smart farming GIS platform. Phase 1 focuses on the local engineering foundation: monorepo structure, shared contracts, API/web/worker skeletons, Docker local services, and CI checks.
+PAMILO is a multi-tenant smart farming GIS platform. The current delivery baseline covers local engineering foundation, auth and tenancy, GIS metadata, device/MQTT contracts, telemetry, BMKG weather, API hardening, and Phase 8 staging deployment readiness.
 
 ## Repository Map
 
@@ -41,7 +41,13 @@ Docker local skeleton:
 docker compose up
 ```
 
-## Phase 1 Boundaries
+Staging smoke:
+
+```text
+PAMILO_BASE_URL=http://<staging-host>:8080 npm run smoke:staging
+```
+
+## Delivery Boundaries
 
 - No production deployment.
 - No DNS changes.
@@ -49,4 +55,4 @@ docker compose up
 - No production MQTT broker connection.
 - No real credentials in repository files.
 
-See [docs/14-phase-1-foundation.md](docs/14-phase-1-foundation.md) for the current phase status.
+See [docs/22-phase-8-staging-deployment.md](docs/22-phase-8-staging-deployment.md) for the current phase status.
