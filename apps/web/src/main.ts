@@ -6,8 +6,13 @@ import {
   getFarmPlots,
   getFarms,
   getMe,
+  getPlotDevices,
   login,
   logout,
+  provisionDevice,
+  revokeDevice,
+  type DevicePayload,
+  type DeviceProvisioningPayload,
   type FarmPayload,
   type MePayload,
   type PlotPayload
@@ -19,6 +24,8 @@ const App = {
     const auth = ref<MePayload | null>(null);
     const farms = ref<FarmPayload[]>([]);
     const plots = ref<PlotPayload[]>([]);
+    const devices = ref<DevicePayload[]>([]);
+    const provisioningCredential = ref<DeviceProvisioningPayload | null>(null);
     const activeFarmId = ref("");
     const selectedPlotId = ref("");
     const loading = ref(true);
@@ -37,6 +44,10 @@ const App = {
     const plotForm = reactive({
       name: "Plot Baru",
       adm4Code: ""
+    });
+    const deviceForm = reactive({
+      serialNo: "ESP32-DEMO-001",
+      label: "Node Tanah"
     });
 
     const isSignedIn = computed(() => auth.value !== null);
@@ -151,6 +162,7 @@ const App = {
           await loadPlots(activeFarmId.value);
         } else {
           plots.value = [];
+          devices.value = [];
           selectedPlotId.value = "";
         }
       } finally {
@@ -173,6 +185,13 @@ const App = {
 
         plots.value = response.data;
         selectedPlotId.value = response.data[0]?.id ?? "";
+        provisioningCredential.value = null;
+
+        if (selectedPlotId.value) {
+          await loadDevices(selectedPlotId.value);
+        } else {
+          devices.value = [];
+        }
       } finally {
         workspaceBusy.value = false;
       }
@@ -185,6 +204,34 @@ const App = {
 
       activeFarmId.value = farmId;
       await loadPlots(farmId);
+    }
+
+    async function selectPlot(plotId: string): Promise<void> {
+      if (plotId === selectedPlotId.value) {
+        return;
+      }
+
+      selectedPlotId.value = plotId;
+      provisioningCredential.value = null;
+      await loadDevices(plotId);
+    }
+
+    async function loadDevices(plotId: string): Promise<void> {
+      workspaceBusy.value = true;
+      error.value = null;
+
+      try {
+        const response = await getPlotDevices(plotId);
+        if (!response.data) {
+          error.value = response.error?.message ?? "Gagal memuat device.";
+          devices.value = [];
+          return;
+        }
+
+        devices.value = response.data;
+      } finally {
+        workspaceBusy.value = false;
+      }
     }
 
     async function submitFarm(): Promise<void> {
@@ -242,6 +289,63 @@ const App = {
         plots.value = [...plots.value, response.data];
         selectedPlotId.value = response.data.id;
         plotForm.name = "";
+        devices.value = [];
+        provisioningCredential.value = null;
+      } finally {
+        busy.value = false;
+      }
+    }
+
+    async function submitDevice(): Promise<void> {
+      if (!auth.value || !selectedPlot.value || !canWriteMetadata.value) {
+        return;
+      }
+
+      busy.value = true;
+      error.value = null;
+      provisioningCredential.value = null;
+
+      try {
+        const response = await provisionDevice({
+          plotId: selectedPlot.value.id,
+          serialNo: deviceForm.serialNo,
+          label: deviceForm.label,
+          csrfToken: auth.value.csrf_token
+        });
+
+        if (!response.data) {
+          error.value = response.error?.message ?? "Gagal provisioning device.";
+          return;
+        }
+
+        provisioningCredential.value = response.data;
+        devices.value = [...devices.value, response.data];
+        deviceForm.serialNo = nextSerial(deviceForm.serialNo);
+      } finally {
+        busy.value = false;
+      }
+    }
+
+    async function revokeProvisionedDevice(deviceId: string): Promise<void> {
+      if (!auth.value || !canWriteMetadata.value) {
+        return;
+      }
+
+      busy.value = true;
+      error.value = null;
+
+      try {
+        const response = await revokeDevice({
+          deviceId,
+          csrfToken: auth.value.csrf_token
+        });
+
+        if (!response.data) {
+          error.value = response.error?.message ?? "Gagal revoke device.";
+          return;
+        }
+
+        devices.value = devices.value.map((device) => device.id === response.data?.id ? response.data : device);
       } finally {
         busy.value = false;
       }
@@ -250,6 +354,8 @@ const App = {
     function resetWorkspace(): void {
       farms.value = [];
       plots.value = [];
+      devices.value = [];
+      provisioningCredential.value = null;
       activeFarmId.value = "";
       selectedPlotId.value = "";
     }
@@ -276,6 +382,8 @@ const App = {
       activeFarmId,
       busy,
       canWriteMetadata,
+      devices,
+      deviceForm,
       error,
       farmForm,
       farms,
@@ -289,9 +397,13 @@ const App = {
       metrics: metricCodes,
       plotForm,
       plots,
+      provisioningCredential,
+      revokeProvisionedDevice,
       selectedPlot,
       selectedPlotId,
       selectFarm,
+      selectPlot,
+      submitDevice,
       submitLogin,
       submitFarm,
       submitPlot,
@@ -373,6 +485,10 @@ const App = {
               <dt>Plot</dt>
               <dd>{{ plots.length }}</dd>
             </div>
+            <div>
+              <dt>Device</dt>
+              <dd>{{ devices.length }}</dd>
+            </div>
           </dl>
 
           <section class="workspace-section" aria-label="Farm tenant">
@@ -425,7 +541,7 @@ const App = {
                 class="plot-button"
                 :class="{ active: item.id === selectedPlotId }"
                 type="button"
-                @click="selectedPlotId = item.id"
+                @click="selectPlot(item.id)"
               >
                 <span>{{ item.name }}</span>
                 <small>{{ formatHectares(item.area_ha) }}</small>
@@ -461,6 +577,53 @@ const App = {
             </div>
           </dl>
 
+          <section v-if="selectedPlot" class="workspace-section" aria-label="Device plot">
+            <div class="section-title">
+              <h2>Device</h2>
+              <span>{{ selectedPlot.name }}</span>
+            </div>
+
+            <form v-if="canWriteMetadata" class="compact-form" @submit.prevent="submitDevice">
+              <input v-model="deviceForm.serialNo" aria-label="Serial device" required type="text" />
+              <input v-model="deviceForm.label" aria-label="Label device" type="text" />
+              <button class="primary-button" :disabled="busy" type="submit">Provision</button>
+            </form>
+
+            <div v-if="devices.length" class="device-list">
+              <div v-for="device in devices" :key="device.id" class="device-row">
+                <div>
+                  <span>{{ device.label || device.serial_no }}</span>
+                  <small>{{ device.status }} - {{ device.client_id }}</small>
+                </div>
+                <button
+                  v-if="canWriteMetadata && device.status !== 'revoked'"
+                  class="ghost-button"
+                  :disabled="busy"
+                  type="button"
+                  @click="revokeProvisionedDevice(device.id)"
+                >
+                  Revoke
+                </button>
+              </div>
+            </div>
+            <p v-else class="empty-state">Belum ada device.</p>
+
+            <dl v-if="provisioningCredential" class="credential-box">
+              <div>
+                <dt>Username</dt>
+                <dd>{{ provisioningCredential.mqtt_username }}</dd>
+              </div>
+              <div>
+                <dt>Password</dt>
+                <dd>{{ provisioningCredential.credential.password }}</dd>
+              </div>
+              <div>
+                <dt>Fingerprint</dt>
+                <dd>{{ provisioningCredential.credential.fingerprint }}</dd>
+              </div>
+            </dl>
+          </section>
+
           <p v-if="error" class="error-message" role="alert">{{ error }}</p>
 
           <ul class="metric-list">
@@ -495,6 +658,20 @@ function createTemplatePolygon(tenantId: string, plotIndex: number): PolygonGeom
       ]
     ]
   };
+}
+
+function nextSerial(current: string): string {
+  const match = current.match(/^(.*?)(\d+)$/);
+  if (!match) {
+    return `${current}-001`;
+  }
+
+  const [, prefix, numeric] = match;
+  if (!prefix || !numeric) {
+    return `${current}-001`;
+  }
+
+  return `${prefix}${String(Number(numeric) + 1).padStart(numeric.length, "0")}`;
 }
 
 createApp(App).mount("#app");

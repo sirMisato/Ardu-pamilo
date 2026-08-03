@@ -61,6 +61,34 @@ export interface FarmPayload {
   timezone: string;
 }
 
+export interface DevicePayload {
+  id: string;
+  plot_id: string;
+  serial_no: string;
+  label: string | null;
+  client_id: string;
+  mqtt_username: string;
+  credential_ref: string;
+  credential_fingerprint: string;
+  status: string;
+  provisioned_at: string;
+  last_seen_at: string | null;
+  revoked_at: string | null;
+  topics: {
+    publish: string[];
+    subscribe: string[];
+  };
+}
+
+export interface DeviceProvisioningPayload extends DevicePayload {
+  credential: {
+    password: string;
+    fingerprint: string;
+    shown_once: true;
+  };
+  mosquitto_acl: string[];
+}
+
 export async function login(input: {
   email: string;
   password: string;
@@ -136,6 +164,41 @@ export async function createPlot(input: {
       adm4_code: input.adm4Code,
       geometry: input.geometry
     })
+  });
+}
+
+export async function getPlotDevices(plotId: string): Promise<ApiEnvelope<DevicePayload[]>> {
+  return request<DevicePayload[]>(`/api/v1/plots/${encodeURIComponent(plotId)}/devices`);
+}
+
+export async function provisionDevice(input: {
+  plotId: string;
+  serialNo: string;
+  label: string;
+  csrfToken: string;
+}): Promise<ApiEnvelope<DeviceProvisioningPayload>> {
+  return request<DeviceProvisioningPayload>(`/api/v1/plots/${encodeURIComponent(input.plotId)}/devices`, {
+    method: "POST",
+    headers: {
+      "x-csrf-token": input.csrfToken
+    },
+    body: JSON.stringify({
+      serial_no: input.serialNo,
+      label: input.label
+    })
+  });
+}
+
+export async function revokeDevice(input: {
+  deviceId: string;
+  csrfToken: string;
+}): Promise<ApiEnvelope<DevicePayload>> {
+  return request<DevicePayload>(`/api/v1/devices/${encodeURIComponent(input.deviceId)}/revoke`, {
+    method: "POST",
+    headers: {
+      "x-csrf-token": input.csrfToken
+    },
+    body: JSON.stringify({})
   });
 }
 

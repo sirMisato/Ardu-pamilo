@@ -46,6 +46,7 @@ Menjaga isolasi tenant, credential lifecycle, secure transport, auditability, da
 - `allow_anonymous false`.
 - Password file atau auth plugin dikelola dari provisioning.
 - ACL source generated dari registry device.
+- Fase 4 awal hanya menampilkan password MQTT sekali pada response provisioning dan memakai `Cache-Control: no-store`.
 - Topic v1:
 
 ```text

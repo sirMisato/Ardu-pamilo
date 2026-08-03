@@ -285,7 +285,8 @@ button:disabled {
 }
 
 .farm-list,
-.plot-list {
+.plot-list,
+.device-list {
   display: grid;
   gap: 8px;
 }
@@ -323,6 +324,66 @@ button:disabled {
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.device-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 54px;
+  padding: 8px 10px;
+  border: 1px solid #d8e2da;
+  border-radius: 6px;
+  background: #f7faf8;
+}
+
+.device-row span,
+.device-row small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.device-row span {
+  font-weight: 800;
+}
+
+.device-row small {
+  margin-top: 3px;
+  color: #56635c;
+  font-size: 12px;
+}
+
+.credential-box {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid #7fb596;
+  border-radius: 6px;
+  background: #f0fff5;
+}
+
+.credential-box div {
+  min-width: 0;
+}
+
+.credential-box dt {
+  color: #276749;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.credential-box dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    monospace;
+  font-size: 12px;
 }
 
 .empty-state {
@@ -365,7 +426,8 @@ button:disabled {
   }
 
   .compact-form,
-  .plot-detail {
+  .plot-detail,
+  .device-row {
     grid-template-columns: 1fr;
   }
 }

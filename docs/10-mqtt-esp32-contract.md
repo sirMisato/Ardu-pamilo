@@ -30,6 +30,19 @@ pamilo/v1/tenants/{tenant_id}/devices/{device_id}/acks
 | Command service | `commands` device yang terotorisasi | `acks` sesuai kebutuhan |
 | Browser | Tidak ada | Tidak ada |
 
+Implementasi Fase 4 awal menghasilkan ACL per device dari shared helper. Contoh bentuk ACL:
+
+```text
+user pamilo.tenant-a.device-a
+topic write pamilo/v1/tenants/tenant-a/devices/device-a/telemetry
+topic write pamilo/v1/tenants/tenant-a/devices/device-a/status
+topic write pamilo/v1/tenants/tenant-a/devices/device-a/events
+topic write pamilo/v1/tenants/tenant-a/devices/device-a/acks
+topic read pamilo/v1/tenants/tenant-a/devices/device-a/commands
+```
+
+ACL ini belum ditulis otomatis ke Mosquitto production.
+
 ## Payload Sensor V1
 
 ```json

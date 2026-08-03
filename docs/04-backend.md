@@ -100,7 +100,7 @@ apps/api/src/modules/
 | 1 | API skeleton, env validation, OpenAPI baseline, DB migration tooling |
 | 2 | Auth/session, tenant context, user/role, audit baseline. Status awal ada di `docs/16-phase-2-auth-tenancy.md` |
 | 3 | Farm/plot metadata, GeoJSON validation, area calculation. Status awal ada di `docs/17-phase-3-gis-metadata.md` |
-| 4 | Device provisioning API, MQTT credential lifecycle hooks |
+| 4 | Device provisioning API, MQTT credential lifecycle hooks. Status awal ada di `docs/18-phase-4-device-mqtt.md` |
 | 5 | Latest/history telemetry API, SSE, rate limit |
 | 6 | BMKG adapter, threshold versioning, alert API |
 | 7 | Security hardening, negative tests, load improvements |
