@@ -92,7 +92,10 @@ PAMILO_BASE_URL=http://<staging-host>:8080 npm run smoke:staging
 | 5 | Telemetry load test job |
 | 7 | Secret scan, SBOM/scan, staging gate |
 | 8 | Deploy staging, rollback rehearsal. Status awal ada di `docs/22-phase-8-staging-deployment.md` |
-| 10 | Production release workflow dan release notes |
+| 10 | Production release gate, release notes, dan hypercare evidence. Status awal ada di `docs/24-phase-10-production-release.md` |
+| 11 | Public VPS simulation workflow dan artifact report. Status awal ada di `docs/25-phase-11-public-vps-simulation.md` |
+| 12 | Ops readiness evidence gate untuk monitoring, alert, backup, rollback, dan incident. Status awal ada di `docs/26-phase-12-ops-readiness.md` |
+| 13 | Handover check untuk command, runbook, evidence, dan sign-off. Status awal ada di `docs/27-phase-13-operations-handover.md` |
 
 ## Acceptance Criteria DevOps
 
@@ -102,6 +105,8 @@ PAMILO_BASE_URL=http://<staging-host>:8080 npm run smoke:staging
 - Rollback berhasil diuji di staging.
 - Healthcheck menjadi syarat deploy sukses.
 - Tidak ada secret di log CI.
+- Production deploy tidak dijalankan dari repo sebelum release approval eksplisit.
+- Simulasi MQTT staging tidak membuka listener plaintext ke public internet.
 
 ## Source Facts Verified
 

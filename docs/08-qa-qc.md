@@ -62,7 +62,10 @@ Membuktikan sistem benar, aman, dan layak deploy melalui test fungsional, integr
 | 7 | Full regression, load baseline, security regression. Status awal ada di `docs/21-phase-7-hardening-qa.md` |
 | 8 | Staging smoke, rollback validation. Status awal ada di `docs/22-phase-8-staging-deployment.md` |
 | 9 | UAT script and pilot acceptance report. Status awal ada di `docs/23-phase-9-pilot-uat.md` |
-| 10 | Production smoke and hypercare checklist |
+| 10 | Production smoke and hypercare checklist. Status awal ada di `docs/24-phase-10-production-release.md` |
+| 11 | Public VPS simulation untuk web, API, telemetry, weather, tenancy, dan MQTT loopback. Status awal ada di `docs/25-phase-11-public-vps-simulation.md` |
+| 12 | Ops readiness checklist untuk alert, incident drill, backup, rollback, dan stale indicators. Status awal ada di `docs/26-phase-12-ops-readiness.md` |
+| 13 | Handover evidence dan sign-off regression gap. Status awal ada di `docs/27-phase-13-operations-handover.md` |
 
 ## Smoke Coverage Fase 8
 
@@ -99,3 +102,11 @@ Membuktikan sistem benar, aman, dan layak deploy melalui test fungsional, integr
 ## UAT Fase 9
 
 `npm run uat:pilot` menghasilkan report Markdown di `.local/pilot-uat/`. Report tersebut wajib dilampirkan bersama evidence manual browser, perangkat lapangan, log operasional, dan sign-off sebelum Fase 10.
+
+## Smoke Fase 10
+
+`npm run smoke:production` hanya boleh dijalankan setelah release approval eksplisit dan production target disetujui. Script membutuhkan `PAMILO_PRODUCTION_SMOKE_APPROVED=true` sebelum melakukan request production.
+
+## Simulasi Fase 11
+
+`npm run simulate:public-vps` menjalankan read-only simulation terhadap public VPS origin. Mutation tetap skip kecuali `PAMILO_PUBLIC_VPS_WRITE=true`, dan MQTT evidence dilampirkan dari loopback internal VPS.

@@ -41,7 +41,10 @@ Dokumen ini menjadi pusat koordinasi tim kecil PAMILO Smart Farming GIS sampai s
 | 7 | Hardening dan QA | Security hardening, E2E, load, backup drill | QA sign-off dan security checklist lulus |
 | 8 | Staging deployment | VPS staging/prod-like, CI/CD, observability | Deploy dan rollback rehearsal lulus |
 | 9 | Pilot | Perangkat lapangan, UAT, monitoring, training. Status awal ada di `docs/23-phase-9-pilot-uat.md` | Pilot acceptance ditandatangani |
-| 10 | Production release | DNS/TLS production, release tagged, hypercare | Go-live checklist selesai |
+| 10 | Production release | DNS/TLS production, release tagged, hypercare. Status awal ada di `docs/24-phase-10-production-release.md` | Go-live checklist selesai |
+| 11 | Public VPS simulation | Simulasi web, API, dan MQTT staging lewat public VPS. Status awal ada di `docs/25-phase-11-public-vps-simulation.md` | Evidence simulasi lulus tanpa secret leak |
+| 12 | Ops readiness | Observability, alert, incident, backup, rollback, on-call. Status awal ada di `docs/26-phase-12-ops-readiness.md` | Ops readiness gate lulus |
+| 13 | Operations handover | Handover pack, sign-off role, support window, backlog. Status awal ada di `docs/27-phase-13-operations-handover.md` | Handover check dan sign-off lengkap |
 
 ## RACI Ringkas
 

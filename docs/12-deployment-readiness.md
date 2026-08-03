@@ -37,6 +37,35 @@ Menentukan syarat minimum agar PAMILO layak deploy ke staging dan production. Ch
 - Final staging UAT harus memakai `PAMILO_UAT_WRITE=true` agar flow create farm/plot dan device provision/revoke terbukti.
 - Script UAT menolak host production; production smoke tetap Fase 10.
 
+## Artifact Fase 10
+
+- Production release gate command: `npm run release:preflight`.
+- Production smoke command: `npm run smoke:production`.
+- Manual workflow non-deploy: `.github/workflows/production-release-gate.yml`.
+- Template preflight lokal: `infra/production/release-gate.env.example`.
+- Detail release dan hypercare: `docs/24-phase-10-production-release.md`.
+- Production smoke membutuhkan `PAMILO_PRODUCTION_SMOKE_APPROVED=true` sebelum melakukan request.
+
+## Artifact Fase 11
+
+- Public VPS simulation command: `npm run simulate:public-vps`.
+- Manual workflow: `.github/workflows/public-vps-simulation.yml`.
+- Template env lokal: `infra/staging/public-vps-simulation.env.example`.
+- Detail runbook: `docs/25-phase-11-public-vps-simulation.md`.
+- MQTT staging simulation berjalan di Docker network internal VPS, bukan public plaintext port.
+
+## Artifact Fase 12
+
+- Ops readiness command: `npm run ops:readiness`.
+- Template env: `infra/ops/ops-readiness.env.example`.
+- Detail readiness: `docs/26-phase-12-ops-readiness.md`.
+
+## Artifact Fase 13
+
+- Handover command: `npm run handover:check`.
+- Template env: `infra/ops/handover.env.example`.
+- Detail handover: `docs/27-phase-13-operations-handover.md`.
+
 ## Production Readiness
 
 - Scope release dan release notes disetujui.
@@ -50,6 +79,8 @@ Menentukan syarat minimum agar PAMILO layak deploy ke staging dan production. Ch
 - DNS change window disetujui.
 - Monitoring dan alert aktif.
 - Hypercare owner dan jadwal standby jelas.
+- `Production Release Gate` lulus dengan image digest immutable.
+- Public VPS simulation dan ops readiness evidence sudah dilampirkan.
 
 ## Smoke Test Production
 

@@ -1,0 +1,145 @@
+name: Production Release Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Immutable release tag, for example v0.1.0."
+        required: true
+      production_origin:
+        description: "Production web origin, for example https://pamilo.keycloud.id."
+        required: true
+      production_mqtt_host:
+        description: "Production MQTT hostname, for example mqtt.keycloud.id."
+        required: true
+      api_image:
+        description: "GHCR API image pinned by digest."
+        required: true
+      web_image:
+        description: "GHCR web image pinned by digest."
+        required: true
+      mqtt_ingestor_image:
+        description: "GHCR MQTT ingestor image pinned by digest."
+        required: true
+      ci_run_url:
+        description: "GitHub Actions CI run evidence URL."
+        required: true
+      staging_run_url:
+        description: "Staging Deploy run evidence URL."
+        required: true
+      pilot_uat_report_ref:
+        description: "Pilot UAT report reference."
+        required: true
+      rollback_evidence_ref:
+        description: "Rollback rehearsal evidence reference."
+        required: true
+      backup_restore_evidence_ref:
+        description: "Backup restore drill evidence reference."
+        required: true
+      mysql_tls_decision:
+        description: "Closed production DB decision."
+        required: true
+        type: choice
+        options:
+          - open
+          - tls-verified
+          - private-db
+          - managed-db
+          - no-production-db-access
+      mqtt_tls_acl_ready:
+        description: "Production MQTT TLS and per-device ACL evidence is ready."
+        required: true
+        type: boolean
+        default: false
+      dns_change_window_ref:
+        description: "Approved DNS change window reference."
+        required: true
+      production_smoke_plan_ref:
+        description: "Production smoke plan reference."
+        required: true
+      hypercare_plan_ref:
+        description: "Hypercare owner and schedule reference."
+        required: true
+      pm_approval_ref:
+        description: "PM approval reference."
+        required: true
+      qa_approval_ref:
+        description: "QA/QC approval reference."
+        required: true
+      security_approval_ref:
+        description: "Security approval reference."
+        required: true
+      infra_approval_ref:
+        description: "IT Infra approval reference."
+        required: true
+      devops_approval_ref:
+        description: "DevOps approval reference."
+        required: true
+      frontend_approval_ref:
+        description: "Frontend approval reference."
+        required: true
+      backend_approval_ref:
+        description: "Backend approval reference."
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  production-release-gate:
+    name: Validate production release gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      PAMILO_RELEASE_MODE: gate
+      PAMILO_RELEASE_TAG: ${{ inputs.release_tag }}
+      PAMILO_RELEASE_COMMIT: ${{ github.sha }}
+      PAMILO_PRODUCTION_ORIGIN: ${{ inputs.production_origin }}
+      PAMILO_PRODUCTION_MQTT_HOST: ${{ inputs.production_mqtt_host }}
+      PAMILO_API_IMAGE: ${{ inputs.api_image }}
+      PAMILO_WEB_IMAGE: ${{ inputs.web_image }}
+      PAMILO_MQTT_INGESTOR_IMAGE: ${{ inputs.mqtt_ingestor_image }}
+      PAMILO_CI_RUN_URL: ${{ inputs.ci_run_url }}
+      PAMILO_STAGING_RUN_URL: ${{ inputs.staging_run_url }}
+      PAMILO_PILOT_UAT_REPORT_REF: ${{ inputs.pilot_uat_report_ref }}
+      PAMILO_ROLLBACK_EVIDENCE_REF: ${{ inputs.rollback_evidence_ref }}
+      PAMILO_BACKUP_RESTORE_EVIDENCE_REF: ${{ inputs.backup_restore_evidence_ref }}
+      PAMILO_MYSQL_TLS_DECISION: ${{ inputs.mysql_tls_decision }}
+      PAMILO_MQTT_TLS_ACL_READY: ${{ inputs.mqtt_tls_acl_ready }}
+      PAMILO_DNS_CHANGE_WINDOW_REF: ${{ inputs.dns_change_window_ref }}
+      PAMILO_PRODUCTION_SMOKE_PLAN_REF: ${{ inputs.production_smoke_plan_ref }}
+      PAMILO_HYPERCARE_PLAN_REF: ${{ inputs.hypercare_plan_ref }}
+      PAMILO_PM_APPROVAL_REF: ${{ inputs.pm_approval_ref }}
+      PAMILO_QA_APPROVAL_REF: ${{ inputs.qa_approval_ref }}
+      PAMILO_SECURITY_APPROVAL_REF: ${{ inputs.security_approval_ref }}
+      PAMILO_INFRA_APPROVAL_REF: ${{ inputs.infra_approval_ref }}
+      PAMILO_DEVOPS_APPROVAL_REF: ${{ inputs.devops_approval_ref }}
+      PAMILO_FRONTEND_APPROVAL_REF: ${{ inputs.frontend_approval_ref }}
+      PAMILO_BACKEND_APPROVAL_REF: ${{ inputs.backend_approval_ref }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: CI
+        run: npm run ci
+
+      - name: Production release preflight
+        run: npm run release:preflight
+
+      - name: Upload release gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-release-preflight
+          path: .local/production-release/

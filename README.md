@@ -1,6 +1,6 @@
 # PAMILO Smart Farming GIS
 
-PAMILO is a multi-tenant smart farming GIS platform. The current delivery baseline covers local engineering foundation, auth and tenancy, GIS metadata, device/MQTT contracts, telemetry, BMKG weather, API hardening, and Phase 8 staging deployment readiness.
+PAMILO is a multi-tenant smart farming GIS platform. The current delivery baseline covers local engineering foundation, auth and tenancy, GIS metadata, device/MQTT contracts, telemetry, BMKG weather, API hardening, staging deployment, pilot/UAT, production release gates, public VPS simulation, ops readiness, and handover preparation.
 
 ## Repository Map
 
@@ -53,6 +53,21 @@ Pilot UAT:
 PAMILO_UAT_BASE_URL=http://<staging-host>:8080 PAMILO_UAT_ORIGIN=http://<staging-host>:8080 npm run uat:pilot
 ```
 
+Production release gate:
+
+```text
+npm run release:preflight
+PAMILO_PRODUCTION_SMOKE_APPROVED=true PAMILO_PRODUCTION_BASE_URL=https://pamilo.keycloud.id npm run smoke:production
+```
+
+Public VPS simulation and ops gates:
+
+```text
+PAMILO_PUBLIC_VPS_BASE_URL=http://43.157.203.226:8080 PAMILO_PUBLIC_VPS_ORIGIN=http://43.157.203.226:8080 npm run simulate:public-vps
+npm run ops:readiness
+npm run handover:check
+```
+
 ## Delivery Boundaries
 
 - No production deployment.
@@ -61,4 +76,4 @@ PAMILO_UAT_BASE_URL=http://<staging-host>:8080 PAMILO_UAT_ORIGIN=http://<staging
 - No production MQTT broker connection.
 - No real credentials in repository files.
 
-See [docs/23-phase-9-pilot-uat.md](docs/23-phase-9-pilot-uat.md) for the current phase status.
+See [docs/27-phase-13-operations-handover.md](docs/27-phase-13-operations-handover.md) for the current phase status.

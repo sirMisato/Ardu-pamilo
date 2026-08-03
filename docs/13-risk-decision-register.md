@@ -64,6 +64,8 @@ Keputusan berikut boleh ditunda dari Fase 1, tetapi tidak boleh melewati gate ya
 | RISK-012 | Privacy data lokasi polygon tidak jelas | High | Export/admin access tanpa consent dan retention policy | QA cek consent, audit log, export authorization | Privacy policy, audit, role guard, retention decision | PM + Security |
 | RISK-013 | Migration gagal atau corrupt metadata | High | Schema migration gagal di staging/prod | Migration dry-run, backup-before-migrate, rollback test | Idempotent migration, backup, staging rehearsal | Backend + DevOps + QA |
 | RISK-014 | Device diprovision ke tenant salah | Critical | Admin/operator memilih tenant/plot salah atau API bug | Provisioning negative test dan audit log menunjukkan tenant benar | Tenant-scoped provisioning, confirmation UI, audit | Backend + Frontend + QA |
+| RISK-015 | Simulasi VPS membuka service internal | High | MQTT/Redis/VictoriaMetrics/API internal dipublish ke public internet | Port scan dan compose review menunjukkan hanya web edge port yang terbuka | Docker network internal, MQTT loopback via SSH, firewall allowlist | IT Infra + Security + DevOps |
+| RISK-016 | Handover tidak cukup operasional | High | Operator tidak bisa rollback, rotate secret, atau triage incident saat hypercare | Handover check gagal atau evidence sign-off tidak lengkap | Handover pack, runbook, on-call roster, incident drill | PM + semua lead |
 
 ## Risk Indicator Checklist
 

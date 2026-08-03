@@ -77,7 +77,10 @@ pamilo/v1/tenants/{tenant_id}/devices/{device_id}/acks
 | 5 | SSE/cache/export tenant tests |
 | 7 | Threat model review, dependency scan, pen-test checklist |
 | 8 | Staging security sign-off |
-| 10 | Production go/no-go security approval |
+| 10 | Production go/no-go security approval. Status awal ada di `docs/24-phase-10-production-release.md` |
+| 11 | Review simulasi public VPS, termasuk batas MQTT internal. Status awal ada di `docs/25-phase-11-public-vps-simulation.md` |
+| 12 | Incident response, alert, log retention, dan secret rotation readiness. Status awal ada di `docs/26-phase-12-ops-readiness.md` |
+| 13 | Handover security sign-off dan residual risk acceptance. Status awal ada di `docs/27-phase-13-operations-handover.md` |
 
 ## Source Facts Verified
 
@@ -96,3 +99,19 @@ pamilo/v1/tenants/{tenant_id}/devices/{device_id}/acks
 - API sudah memakai global safe error envelope untuk unknown route, oversized payload, dan unhandled error.
 - CSRF route mutasi sekarang menolak `Origin` yang tidak dipercaya, dengan allowlist via `API_TRUSTED_ORIGINS`.
 - `Strict-Transport-Security` hanya aktif saat `NODE_ENV=production`.
+
+## Phase 10 Notes
+
+- Production smoke tidak boleh dijalankan tanpa `PAMILO_PRODUCTION_SMOKE_APPROVED=true`.
+- Production DB access tetap diblokir sampai keputusan MySQL TLS/Hostinger tertutup.
+- MQTT production wajib TLS dan ACL per device sebelum release approval.
+- Release gate wajib punya approval ref dari Security dan QA/QC.
+- Report preflight/smoke tidak boleh memuat password, token, cookie, atau private key.
+
+## Phase 11-13 Notes
+
+- Public VPS simulation boleh memakai HTTP sementara hanya untuk staging IP yang disetujui.
+- MQTT staging self-check tetap internal di Docker network dan tidak membuka port broker public.
+- `Public VPS Simulation` workflow memakai username/password VPS sesuai konfigurasi existing dan tidak membutuhkan private key.
+- Ops readiness membedakan freshness indikator operasional dari threshold agronomy.
+- Handover gate wajib mencatat residual risk dan sign-off Security sebelum production release nyata.
