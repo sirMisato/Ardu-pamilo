@@ -286,7 +286,9 @@ button:disabled {
 
 .farm-list,
 .plot-list,
-.device-list {
+.device-list,
+.weather-list,
+.telemetry-list {
   display: grid;
   gap: 8px;
 }
@@ -386,28 +388,61 @@ button:disabled {
   font-size: 12px;
 }
 
+.weather-row,
+.telemetry-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  align-items: baseline;
+  padding: 10px 12px;
+  border: 1px solid #d8e2da;
+  border-radius: 6px;
+  background: #f7faf8;
+}
+
+.weather-row div,
+.telemetry-row div {
+  min-width: 0;
+}
+
+.weather-row span,
+.weather-row small,
+.telemetry-row span,
+.telemetry-row small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.weather-row span,
+.telemetry-row span {
+  font-weight: 800;
+}
+
+.weather-row strong,
+.telemetry-row strong {
+  color: #276749;
+  font-size: 14px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.weather-row small,
+.telemetry-row small {
+  color: #56635c;
+  font-size: 12px;
+}
+
+.weather-row > small,
+.telemetry-row > small {
+  grid-column: 1 / -1;
+}
+
 .empty-state {
   margin: 0;
   padding: 10px 12px;
   border: 1px dashed #bac8bf;
   border-radius: 6px;
   color: #56635c;
-  font-size: 14px;
-}
-
-.metric-list {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.metric-list li {
-  padding: 10px 12px;
-  border: 1px solid #d8e2da;
-  border-radius: 6px;
-  background: #f7faf8;
   font-size: 14px;
 }
 
@@ -427,8 +462,16 @@ button:disabled {
 
   .compact-form,
   .plot-detail,
-  .device-row {
+  .device-row,
+  .weather-row,
+  .telemetry-row {
     grid-template-columns: 1fr;
+  }
+
+  .weather-row strong,
+  .telemetry-row strong {
+    text-align: left;
+    white-space: normal;
   }
 }
 

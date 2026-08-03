@@ -17,7 +17,7 @@ File workflow:
 .github/workflows/vps-connectivity.yml
 ```
 
-## Konfigurasi GitHub yang Benar
+## Konfigurasi GitHub yang Dipakai
 
 Repository variables boleh berisi data non-sensitif:
 
@@ -31,35 +31,21 @@ Repository secrets wajib dipakai untuk data sensitif:
 
 | Name | Tipe | Catatan |
 | --- | --- | --- |
-| `VPS_SSH_PRIVATE_KEY` | Repository secret | Private key khusus deploy/check, tanpa passphrase atau dengan agent support fase lanjut |
+| `VPS_PASSWORD` | Repository secret, fallback repository variable | Password SSH untuk workflow manual. Secret lebih aman karena otomatis dimask oleh GitHub |
 | `VPS_KNOWN_HOSTS` | Repository secret | Output pinned known_hosts untuk VPS; sangat disarankan sebelum deploy production |
 
-Jangan memakai repository variable untuk password, token, private key, atau credential lain.
+Workflow saat ini membaca `VPS_PASSWORD` dari repository secret jika tersedia, lalu fallback ke repository variable supaya konfigurasi existing tetap bisa dipakai. Jangan mencetak password di log workflow.
 
-## Jika Password Sudah Pernah Terlihat
+## Catatan Password
 
-Jika password pernah disimpan sebagai repository variable atau terlihat di screenshot, perlakukan sebagai credential bocor.
+Jika password pernah terlihat di screenshot, perlakukan sebagai credential bocor meskipun workflow tidak mencetak value tersebut.
 
-Langkah wajib:
+Langkah mitigasi yang disarankan:
 
-1. Rotate password user VPS atau disable password login.
-2. Hapus variable `VPS_PASSWORD` dari repository variables.
-3. Gunakan SSH key khusus GitHub Actions.
-4. Batasi key tersebut hanya untuk prosedur deploy/check yang diperlukan.
-5. Setelah production siap, gunakan user non-root dan permission paling sempit.
-
-## Membuat SSH Key untuk GitHub Actions
-
-Contoh di mesin admin, bukan di repository:
-
-```text
-ssh-keygen -t ed25519 -C "github-actions-pamilo" -f pamilo_github_actions
-```
-
-Yang disimpan di GitHub:
-
-- Isi `pamilo_github_actions` masuk ke secret `VPS_SSH_PRIVATE_KEY`.
-- Isi `pamilo_github_actions.pub` ditambahkan ke `~/.ssh/authorized_keys` user VPS yang disetujui.
+1. Rotate password user VPS.
+2. Simpan password baru sebagai repository secret `VPS_PASSWORD` bila memungkinkan.
+3. Jika tetap memakai repository variable, pastikan workflow tidak pernah menjalankan shell debug `set -x`.
+4. Setelah production siap, gunakan user non-root dan permission paling sempit.
 
 ## Known Hosts
 
@@ -84,9 +70,8 @@ Di GitHub:
 
 ## Acceptance Criteria
 
-- `VPS_PASSWORD` tidak ada di repository variables.
-- `VPS_SSH_PRIVATE_KEY` ada sebagai repository secret.
 - `VPS_HOST`, `VPS_PORT`, dan `VPS_USERNAME` ada sebagai repository variables.
+- `VPS_PASSWORD` tersedia sebagai repository secret atau repository variable sesuai konfigurasi yang dipakai.
 - Workflow manual `VPS Connectivity Check` berhasil.
 - Tidak ada secret tercetak di log workflow.
 - Deploy production belum dibuat sampai checklist Fase 8/10 disetujui.

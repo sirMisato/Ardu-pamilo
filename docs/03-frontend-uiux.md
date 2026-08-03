@@ -90,7 +90,7 @@ Membangun aplikasi web GIS yang ringan, jelas, dan aman untuk petani, operator, 
 | 3 | Map, farm/plot CRUD, polygon editor |
 | 4 | Device provisioning UI dan simulator status |
 | 5 | Dashboard latest, history chart, SSE handling |
-| 6 | Weather panel, alert/recommendation view |
+| 6 | Weather panel, alert/recommendation view. Status awal ada di `docs/20-phase-6-bmkg-agronomy.md` |
 | 7 | Accessibility pass, E2E stabilization |
 | 8 | Staging config, error telemetry, production build validation |
 

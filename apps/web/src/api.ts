@@ -89,6 +89,43 @@ export interface DeviceProvisioningPayload extends DevicePayload {
   mosquitto_acl: string[];
 }
 
+export interface TelemetryReadingPayload {
+  device_id: string;
+  node_id: string;
+  metric: string;
+  ts: string;
+  seq: number;
+  value: number | null;
+  unit: string;
+  calibration_profile: string;
+  quality_flags: string[];
+}
+
+export interface WeatherForecastPointPayload {
+  utc_datetime: string;
+  local_datetime: string;
+  temperature_c: number | null;
+  humidity_pct: number | null;
+  weather_desc: string;
+  weather_desc_en: string;
+  wind_speed_kph: number | null;
+  wind_direction: string | null;
+  cloud_cover_pct: number | null;
+  visibility_text: string | null;
+}
+
+export interface WeatherPayload {
+  source: "bmkg";
+  attribution: "BMKG";
+  adm4_code: string | null;
+  mapping_status: string;
+  cache_status: "fresh" | "stale" | "missing";
+  analysis_date: string | null;
+  fetched_at: string | null;
+  stale_after: string | null;
+  forecast: WeatherForecastPointPayload[];
+}
+
 export async function login(input: {
   email: string;
   password: string;
@@ -200,6 +237,14 @@ export async function revokeDevice(input: {
     },
     body: JSON.stringify({})
   });
+}
+
+export async function getPlotLatestTelemetry(plotId: string): Promise<ApiEnvelope<TelemetryReadingPayload[]>> {
+  return request<TelemetryReadingPayload[]>(`/api/v1/plots/${encodeURIComponent(plotId)}/telemetry/latest`);
+}
+
+export async function getPlotWeather(plotId: string): Promise<ApiEnvelope<WeatherPayload>> {
+  return request<WeatherPayload>(`/api/v1/plots/${encodeURIComponent(plotId)}/weather`);
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<ApiEnvelope<T>> {

@@ -13,6 +13,65 @@ export const metricCodes = [
 
 export type MetricCode = (typeof metricCodes)[number];
 
+export type SensorMetricKey = "st" | "sm" | "n" | "p" | "k" | "ec" | "vwc";
+
+export interface MetricDefinition {
+  code: MetricCode;
+  sensorKey: SensorMetricKey;
+  unit: string;
+}
+
+export const metricDefinitions: readonly MetricDefinition[] = [
+  {
+    code: "soil_temperature",
+    sensorKey: "st",
+    unit: "deg_c"
+  },
+  {
+    code: "soil_moisture",
+    sensorKey: "sm",
+    unit: "percent_relative"
+  },
+  {
+    code: "nitrogen",
+    sensorKey: "n",
+    unit: "mg_kg"
+  },
+  {
+    code: "phosphorus",
+    sensorKey: "p",
+    unit: "mg_kg"
+  },
+  {
+    code: "potassium",
+    sensorKey: "k",
+    unit: "mg_kg"
+  },
+  {
+    code: "electrical_conductivity",
+    sensorKey: "ec",
+    unit: "ms_cm"
+  },
+  {
+    code: "volumetric_water_content",
+    sensorKey: "vwc",
+    unit: "percent_v_v"
+  }
+];
+
+export interface NormalizedSensorReading {
+  deviceId: string;
+  nodeId: string;
+  metric: MetricCode;
+  sensorKey: SensorMetricKey;
+  ts: string;
+  seq: number;
+  value: number | null;
+  unit: string;
+  calibrationProfile: string;
+  qualityFlags: string[];
+}
+
 export const sensorPayloadSchema = Type.Object(
   {
     v: Type.Literal(1),
@@ -79,4 +138,29 @@ export function parseSensorPayload(input: unknown): ValidationResult<SensorPaylo
 
 export function makeIdempotencyKey(payload: Pick<SensorPayload, "device_id" | "node_id" | "seq">): string {
   return `${payload.device_id}:${payload.node_id}:${payload.seq}`;
+}
+
+export function normalizeSensorPayload(payload: SensorPayload): NormalizedSensorReading[] {
+  return metricDefinitions.flatMap((definition) => {
+    const value = payload.m[definition.sensorKey];
+
+    if (value === undefined) {
+      return [];
+    }
+
+    return [
+      {
+        deviceId: payload.device_id,
+        nodeId: payload.node_id,
+        metric: definition.code,
+        sensorKey: definition.sensorKey,
+        ts: payload.ts,
+        seq: payload.seq,
+        value,
+        unit: definition.unit,
+        calibrationProfile: payload.q.calibration_profile,
+        qualityFlags: [...payload.q.flags]
+      }
+    ];
+  });
 }

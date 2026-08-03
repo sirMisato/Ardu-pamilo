@@ -10,6 +10,10 @@ import { InMemoryFarmRepository, type FarmRepository } from "./modules/farms/far
 import { registerFarmRoutes } from "./modules/farms/routes.js";
 import { InMemoryPlotRepository, type PlotRepository } from "./modules/plots/plot-repository.js";
 import { registerPlotRoutes } from "./modules/plots/routes.js";
+import { InMemoryTelemetryRepository, type TelemetryRepository } from "./modules/telemetry/telemetry-repository.js";
+import { registerTelemetryRoutes } from "./modules/telemetry/routes.js";
+import { InMemoryWeatherRepository, type WeatherRepository } from "./modules/weather/weather-repository.js";
+import { registerWeatherRoutes } from "./modules/weather/routes.js";
 
 export interface HealthPayload {
   status: "ok";
@@ -24,6 +28,8 @@ export interface AppDependencies {
   identityStore: IdentityStore;
   plots: PlotRepository;
   sessionStore: SessionStore;
+  telemetry: TelemetryRepository;
+  weather: WeatherRepository;
 }
 
 function now(): string {
@@ -37,7 +43,9 @@ export function createAppDependencies(overrides: Partial<AppDependencies> = {}):
     farms: overrides.farms ?? new InMemoryFarmRepository(),
     identityStore: overrides.identityStore ?? new InMemoryIdentityStore(),
     plots: overrides.plots ?? new InMemoryPlotRepository(),
-    sessionStore: overrides.sessionStore ?? new InMemorySessionStore()
+    sessionStore: overrides.sessionStore ?? new InMemorySessionStore(),
+    telemetry: overrides.telemetry ?? new InMemoryTelemetryRepository(),
+    weather: overrides.weather ?? new InMemoryWeatherRepository()
   };
 }
 
@@ -62,9 +70,10 @@ export function buildApp(overrides: Partial<AppDependencies> = {}): FastifyInsta
     service: "api",
     generated_at: now(),
     dependencies: {
-      mysql: "not_configured_in_phase_2",
-      redis: "not_configured_in_phase_2",
-      telemetry: "not_configured_in_phase_2"
+      mysql: "not_configured_local",
+      redis: "not_configured_local",
+      telemetry: "in_memory_local",
+      weather: "in_memory_local"
     }
   }));
 
@@ -73,6 +82,8 @@ export function buildApp(overrides: Partial<AppDependencies> = {}): FastifyInsta
     await registerFarmRoutes(instance, deps);
     await registerPlotRoutes(instance, deps);
     await registerDeviceRoutes(instance, deps);
+    await registerTelemetryRoutes(instance, deps);
+    await registerWeatherRoutes(instance, deps);
   });
 
   return app;

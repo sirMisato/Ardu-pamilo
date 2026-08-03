@@ -1,7 +1,9 @@
 import {
   makeIdempotencyKey,
+  normalizeSensorPayload,
   parseDeviceTopic,
   parseSensorPayload,
+  type NormalizedSensorReading,
   type SensorPayload
 } from "@pamilo/shared";
 
@@ -13,6 +15,7 @@ export type IngestResult =
       nodeId: string;
       idempotencyKey: string;
       payload: SensorPayload;
+      readings: NormalizedSensorReading[];
     }
   | {
       ok: false;
@@ -75,6 +78,7 @@ export function handleIncomingMessage(topic: string, rawPayload: Buffer | string
     deviceId: topicParts.deviceId,
     nodeId: validation.value.node_id,
     idempotencyKey: makeIdempotencyKey(validation.value),
-    payload: validation.value
+    payload: validation.value,
+    readings: normalizeSensorPayload(validation.value)
   };
 }

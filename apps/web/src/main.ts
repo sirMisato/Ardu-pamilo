@@ -1,5 +1,5 @@
 import { computed, createApp, onMounted, reactive, ref } from "vue";
-import { metricCodes, type PolygonGeometry } from "@pamilo/shared";
+import type { PolygonGeometry } from "@pamilo/shared";
 import {
   createFarm,
   createPlot,
@@ -7,6 +7,8 @@ import {
   getFarms,
   getMe,
   getPlotDevices,
+  getPlotLatestTelemetry,
+  getPlotWeather,
   login,
   logout,
   provisionDevice,
@@ -15,7 +17,10 @@ import {
   type DeviceProvisioningPayload,
   type FarmPayload,
   type MePayload,
-  type PlotPayload
+  type PlotPayload,
+  type TelemetryReadingPayload,
+  type WeatherForecastPointPayload,
+  type WeatherPayload
 } from "./api.js";
 import "./styles.css";
 
@@ -25,6 +30,8 @@ const App = {
     const farms = ref<FarmPayload[]>([]);
     const plots = ref<PlotPayload[]>([]);
     const devices = ref<DevicePayload[]>([]);
+    const latestTelemetry = ref<TelemetryReadingPayload[]>([]);
+    const weather = ref<WeatherPayload | null>(null);
     const provisioningCredential = ref<DeviceProvisioningPayload | null>(null);
     const activeFarmId = ref("");
     const selectedPlotId = ref("");
@@ -53,6 +60,28 @@ const App = {
     const isSignedIn = computed(() => auth.value !== null);
     const activeFarm = computed(() => farms.value.find((farm) => farm.id === activeFarmId.value) ?? null);
     const selectedPlot = computed(() => plots.value.find((plot) => plot.id === selectedPlotId.value) ?? plots.value[0] ?? null);
+    const weatherLabel = computed(() => {
+      if (!weather.value) {
+        return selectedPlot.value?.name ?? "";
+      }
+
+      return `${weather.value.attribution} / ${weather.value.cache_status}`;
+    });
+    const weatherEmptyState = computed(() => {
+      if (!weather.value) {
+        return "Belum ada data cuaca.";
+      }
+
+      if (!weather.value.adm4_code) {
+        return "ADM4 belum dipetakan.";
+      }
+
+      if (weather.value.cache_status === "missing") {
+        return "Cache BMKG belum tersedia.";
+      }
+
+      return "Belum ada prakiraan.";
+    });
     const canWriteMetadata = computed(() => {
       const role = auth.value?.active_tenant.role;
       return role === "farmer_owner" || role === "platform_admin";
@@ -163,6 +192,8 @@ const App = {
         } else {
           plots.value = [];
           devices.value = [];
+          latestTelemetry.value = [];
+          weather.value = null;
           selectedPlotId.value = "";
         }
       } finally {
@@ -179,6 +210,9 @@ const App = {
         if (!response.data) {
           error.value = response.error?.message ?? "Gagal memuat plot.";
           plots.value = [];
+          devices.value = [];
+          latestTelemetry.value = [];
+          weather.value = null;
           selectedPlotId.value = "";
           return;
         }
@@ -188,9 +222,11 @@ const App = {
         provisioningCredential.value = null;
 
         if (selectedPlotId.value) {
-          await loadDevices(selectedPlotId.value);
+          await loadPlotRuntime(selectedPlotId.value);
         } else {
           devices.value = [];
+          latestTelemetry.value = [];
+          weather.value = null;
         }
       } finally {
         workspaceBusy.value = false;
@@ -213,7 +249,13 @@ const App = {
 
       selectedPlotId.value = plotId;
       provisioningCredential.value = null;
+      await loadPlotRuntime(plotId);
+    }
+
+    async function loadPlotRuntime(plotId: string): Promise<void> {
       await loadDevices(plotId);
+      await loadLatestTelemetry(plotId);
+      await loadWeather(plotId);
     }
 
     async function loadDevices(plotId: string): Promise<void> {
@@ -229,6 +271,42 @@ const App = {
         }
 
         devices.value = response.data;
+      } finally {
+        workspaceBusy.value = false;
+      }
+    }
+
+    async function loadLatestTelemetry(plotId: string): Promise<void> {
+      workspaceBusy.value = true;
+      error.value = null;
+
+      try {
+        const response = await getPlotLatestTelemetry(plotId);
+        if (!response.data) {
+          error.value = response.error?.message ?? "Gagal memuat telemetry.";
+          latestTelemetry.value = [];
+          return;
+        }
+
+        latestTelemetry.value = response.data;
+      } finally {
+        workspaceBusy.value = false;
+      }
+    }
+
+    async function loadWeather(plotId: string): Promise<void> {
+      workspaceBusy.value = true;
+      error.value = null;
+
+      try {
+        const response = await getPlotWeather(plotId);
+        if (!response.data) {
+          error.value = response.error?.message ?? "Gagal memuat cuaca BMKG.";
+          weather.value = null;
+          return;
+        }
+
+        weather.value = response.data;
       } finally {
         workspaceBusy.value = false;
       }
@@ -258,6 +336,9 @@ const App = {
         activeFarmId.value = response.data.id;
         farmForm.name = "";
         plots.value = [];
+        devices.value = [];
+        latestTelemetry.value = [];
+        weather.value = null;
         selectedPlotId.value = "";
       } finally {
         busy.value = false;
@@ -289,8 +370,8 @@ const App = {
         plots.value = [...plots.value, response.data];
         selectedPlotId.value = response.data.id;
         plotForm.name = "";
-        devices.value = [];
         provisioningCredential.value = null;
+        await loadPlotRuntime(response.data.id);
       } finally {
         busy.value = false;
       }
@@ -355,6 +436,8 @@ const App = {
       farms.value = [];
       plots.value = [];
       devices.value = [];
+      latestTelemetry.value = [];
+      weather.value = null;
       provisioningCredential.value = null;
       activeFarmId.value = "";
       selectedPlotId.value = "";
@@ -370,6 +453,58 @@ const App = {
 
     function formatCoordinate(value: number): string {
       return value.toFixed(6);
+    }
+
+    function formatMetricName(metric: string): string {
+      return metric
+        .split("_")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+    }
+
+    function formatTelemetryValue(reading: TelemetryReadingPayload): string {
+      if (reading.value === null) {
+        return "null";
+      }
+
+      return `${reading.value.toLocaleString("id-ID", {
+        maximumFractionDigits: 2
+      })} ${reading.unit}`;
+    }
+
+    function formatTimestamp(value: string): string {
+      return new Intl.DateTimeFormat("id-ID", {
+        dateStyle: "short",
+        timeStyle: "short"
+      }).format(new Date(value));
+    }
+
+    function formatWeatherTemperature(value: number | null): string {
+      if (value === null) {
+        return "-";
+      }
+
+      return `${value.toLocaleString("id-ID", {
+        maximumFractionDigits: 1
+      })} C`;
+    }
+
+    function formatWeatherDetail(point: WeatherForecastPointPayload): string {
+      return [
+        `RH ${formatNullableNumber(point.humidity_pct, "%")}`,
+        `Angin ${formatNullableNumber(point.wind_speed_kph, "km/j")}`,
+        `Awan ${formatNullableNumber(point.cloud_cover_pct, "%")}`
+      ].join(" / ");
+    }
+
+    function formatNullableNumber(value: number | null, unit: string): string {
+      if (value === null) {
+        return "-";
+      }
+
+      return `${value.toLocaleString("id-ID", {
+        maximumFractionDigits: 1
+      })} ${unit}`;
     }
 
     onMounted(() => {
@@ -390,11 +525,16 @@ const App = {
       formatCoordinate,
       formatHectares,
       formatMeters,
+      formatMetricName,
+      formatTelemetryValue,
+      formatTimestamp,
+      formatWeatherDetail,
+      formatWeatherTemperature,
       form,
       isSignedIn,
+      latestTelemetry,
       loading,
       loginTenantOptions,
-      metrics: metricCodes,
       plotForm,
       plots,
       provisioningCredential,
@@ -409,6 +549,9 @@ const App = {
       submitPlot,
       submitLogout,
       switchTenant,
+      weather,
+      weatherEmptyState,
+      weatherLabel,
       workspaceBusy
     };
   },
@@ -577,6 +720,44 @@ const App = {
             </div>
           </dl>
 
+          <section v-if="selectedPlot" class="workspace-section" aria-label="Cuaca BMKG plot">
+            <div class="section-title">
+              <h2>Weather</h2>
+              <span>{{ weatherLabel }}</span>
+            </div>
+
+            <div v-if="weather && weather.forecast.length" class="weather-list">
+              <div v-for="point in weather.forecast" :key="point.utc_datetime" class="weather-row">
+                <div>
+                  <span>{{ point.weather_desc }}</span>
+                  <small>{{ formatTimestamp(point.utc_datetime) }} / {{ point.wind_direction || "-" }}</small>
+                </div>
+                <strong>{{ formatWeatherTemperature(point.temperature_c) }}</strong>
+                <small>{{ formatWeatherDetail(point) }}</small>
+              </div>
+            </div>
+            <p v-else class="empty-state">{{ weatherEmptyState }}</p>
+          </section>
+
+          <section v-if="selectedPlot" class="workspace-section" aria-label="Telemetry plot">
+            <div class="section-title">
+              <h2>Telemetry</h2>
+              <span>{{ selectedPlot.name }}</span>
+            </div>
+
+            <div v-if="latestTelemetry.length" class="telemetry-list">
+              <div v-for="reading in latestTelemetry" :key="reading.metric" class="telemetry-row">
+                <div>
+                  <span>{{ formatMetricName(reading.metric) }}</span>
+                  <small>{{ reading.device_id }} / {{ reading.node_id }} / seq {{ reading.seq }}</small>
+                </div>
+                <strong>{{ formatTelemetryValue(reading) }}</strong>
+                <small>{{ formatTimestamp(reading.ts) }}</small>
+              </div>
+            </div>
+            <p v-else class="empty-state">Belum ada telemetry.</p>
+          </section>
+
           <section v-if="selectedPlot" class="workspace-section" aria-label="Device plot">
             <div class="section-title">
               <h2>Device</h2>
@@ -625,10 +806,6 @@ const App = {
           </section>
 
           <p v-if="error" class="error-message" role="alert">{{ error }}</p>
-
-          <ul class="metric-list">
-            <li v-for="metric in metrics" :key="metric">{{ metric }}</li>
-          </ul>
         </aside>
       </section>
     </main>

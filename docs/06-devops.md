@@ -56,7 +56,7 @@ flowchart LR
 ## GitHub Actions VPS Access
 
 - Data non-sensitif seperti `VPS_HOST`, `VPS_PORT`, dan `VPS_USERNAME` boleh memakai repository variables.
-- Credential seperti password, private key, token, dan deploy key wajib memakai repository secrets.
+- Credential seperti password, token, dan deploy key idealnya memakai repository secrets; workflow VPS saat ini membaca `VPS_PASSWORD` dari secret atau fallback variable sesuai konfigurasi existing.
 - Akses VPS untuk Fase 1 hanya berupa workflow manual read-only connectivity check.
 - Deployment production belum boleh dibuat sebelum deployment readiness dan security gate disetujui.
 - Lihat `docs/15-github-actions-vps-access.md` untuk setup aman.

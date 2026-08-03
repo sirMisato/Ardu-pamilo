@@ -58,6 +58,15 @@ Rules:
 - `tcc` tutupan awan.
 - `vs_text` jarak pandang.
 
+## Implementasi Fase 6 Awal
+
+- Backend sudah menyediakan `GET /api/v1/plots/:plotId/weather`.
+- Implementasi saat ini memakai in-memory weather repository untuk contract test dan smoke test lokal.
+- Plot tanpa `adm4_code` mengembalikan `cache_status: missing`, bukan error.
+- Snapshot cached memakai status `fresh`, `stale`, atau `missing`.
+- Frontend sudah menampilkan panel Weather untuk plot aktif dengan atribusi BMKG.
+- Live fetch ke BMKG, Redis cache, circuit breaker, dan persistent snapshot belum aktif.
+
 ## Agronomy Governance
 
 Jangan membuat angka threshold universal untuk N, P, K, EC, moisture, VWC, atau suhu. Setiap threshold harus punya:
@@ -76,6 +85,8 @@ Jangan membuat angka threshold universal untuk N, P, K, EC, moisture, VWC, atau 
 - Reviewer.
 - Version.
 - Status: `draft`, `reviewed`, `verified`, `suspended`.
+
+Implementasi Fase 6 awal sudah punya validator threshold di shared package. Validator ini hanya menerima threshold dengan crop spesifik, bound, method, source URL HTTPS, reviewer, version, dan status. API threshold, UI review, dan alert engine masih deferred.
 
 ## Master Data Awal
 

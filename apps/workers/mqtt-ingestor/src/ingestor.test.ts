@@ -26,7 +26,14 @@ describe("MQTT ingestor handler", () => {
       tenantId: "tenant-a",
       deviceId: "device-a",
       nodeId: "soil-01",
-      idempotencyKey: "device-a:soil-01:1"
+      idempotencyKey: "device-a:soil-01:1",
+      readings: [
+        {
+          metric: "soil_temperature",
+          value: 27.4,
+          unit: "deg_c"
+        }
+      ]
     });
   });
 

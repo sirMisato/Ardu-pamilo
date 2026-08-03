@@ -16,7 +16,7 @@ jobs:
       VPS_HOST: ${{ vars.VPS_HOST }}
       VPS_PORT: ${{ vars.VPS_PORT }}
       VPS_USERNAME: ${{ vars.VPS_USERNAME }}
-      VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+      VPS_PASSWORD: ${{ secrets.VPS_PASSWORD || vars.VPS_PASSWORD }}
       VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
 
     steps:
@@ -27,21 +27,28 @@ jobs:
 
           missing=0
 
-          for name in VPS_HOST VPS_PORT VPS_USERNAME; do
+          if [ -n "$VPS_PASSWORD" ]; then
+            echo "::add-mask::$VPS_PASSWORD"
+          fi
+
+          for name in VPS_HOST VPS_PORT VPS_USERNAME VPS_PASSWORD; do
             if [ -z "${!name}" ]; then
-              echo "::error::$name repository variable is required."
+              echo "::error::$name repository secret or variable is required."
               missing=1
             fi
           done
 
-          if [ -z "$VPS_SSH_PRIVATE_KEY" ]; then
-            echo "::error::VPS_SSH_PRIVATE_KEY repository secret is required."
-            missing=1
-          fi
-
           if [ "$missing" -ne 0 ]; then
             exit 1
           fi
+
+      - name: Install password SSH client
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends sshpass
 
       - name: Configure SSH
         shell: bash
@@ -49,8 +56,6 @@ jobs:
           set -euo pipefail
 
           install -m 700 -d ~/.ssh
-          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/pamilo_vps
-          chmod 600 ~/.ssh/pamilo_vps
 
           if [ -n "$VPS_KNOWN_HOSTS" ]; then
             printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
@@ -66,11 +71,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          ssh \
-            -i ~/.ssh/pamilo_vps \
+          export SSHPASS="$VPS_PASSWORD"
+          sshpass -e ssh \
             -p "$VPS_PORT" \
-            -o BatchMode=yes \
-            -o IdentitiesOnly=yes \
+            -o BatchMode=no \
+            -o NumberOfPasswordPrompts=1 \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
             -o StrictHostKeyChecking=yes \
             "$VPS_USERNAME@$VPS_HOST" \
             'set -eu; echo "connected"; whoami; hostname; docker --version || true'
