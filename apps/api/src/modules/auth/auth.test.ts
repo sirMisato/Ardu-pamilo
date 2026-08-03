@@ -20,7 +20,13 @@ describe("auth routes", () => {
         active_tenant: {
           id: "tenant-a",
           role: "farmer_owner"
-        }
+        },
+        available_tenants: [
+          {
+            id: "tenant-a",
+            role: "farmer_owner"
+          }
+        ]
       },
       error: null
     });
@@ -65,6 +71,31 @@ describe("auth routes", () => {
           id: "tenant-a",
           role: "farmer_operator"
         }
+      }
+    });
+  });
+
+  it("lists available tenants for a multi-tenant user", async () => {
+    const app = buildApp();
+    const response = await login(app, "multi@example.test", "tenant-b");
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      data: {
+        active_tenant: {
+          id: "tenant-b",
+          role: "farmer_operator"
+        },
+        available_tenants: [
+          {
+            id: "tenant-a",
+            role: "farmer_owner"
+          },
+          {
+            id: "tenant-b",
+            role: "farmer_operator"
+          }
+        ]
       }
     });
   });

@@ -67,6 +67,12 @@ function defaultUsers(): UserRecord[] {
       email: "platform-admin@example.test",
       passwordHash: hashPassword(password, "local-platform-admin"),
       status: "active"
+    },
+    {
+      id: "user-multi-tenant",
+      email: "multi@example.test",
+      passwordHash: hashPassword(password, "local-multi-tenant"),
+      status: "active"
     }
   ];
 }
@@ -107,6 +113,16 @@ function defaultMemberships(): TenantMembership[] {
       userId: "user-platform-admin",
       tenantId: "tenant-a",
       role: "platform_admin"
+    },
+    {
+      userId: "user-multi-tenant",
+      tenantId: "tenant-a",
+      role: "farmer_owner"
+    },
+    {
+      userId: "user-multi-tenant",
+      tenantId: "tenant-b",
+      role: "farmer_operator"
     }
   ];
 }

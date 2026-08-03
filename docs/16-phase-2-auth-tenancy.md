@@ -22,6 +22,14 @@ Fase 2 membangun fondasi autentikasi dan isolasi tenant. Implementasi awal senga
 - In-memory audit log untuk event `auth.login_success`, `auth.login_failed`, dan `auth.logout`.
 - Tenant-owned plot probe route:
   - `GET /api/v1/plots/:plotId`
+- Frontend login/session integration:
+  - login form
+  - `/api/v1/me` session restore
+  - logout with CSRF header
+  - tenant plot probe display
+  - available tenant list from auth response
+  - local tenant switch flow for multi-tenant demo user
+- Vite dev proxy from `/api` to the local API.
 - Negative test cross-tenant: user tenant A mendapat `404` saat membaca plot tenant B.
 - Draft SQL migration untuk auth/tenancy:
   - `infra/db/migrations/0001_auth_tenancy.sql`
@@ -32,6 +40,7 @@ Fase 2 membangun fondasi autentikasi dan isolasi tenant. Implementasi awal senga
 - Tidak ada migration yang dijalankan ke Hostinger.
 - Tidak ada password/secret nyata.
 - Tidak ada user management UI penuh.
+- Tidak ada production-ready visual dashboard.
 - Tidak ada full CRUD farm/plot; itu Fase 3.
 - Tidak ada platform admin route lintas tenant; itu harus route terpisah dengan MFA/audit reason.
 
@@ -45,6 +54,7 @@ Semua user lokal memakai password demo `local-demo-password`.
 | `operator-a@example.test` | `tenant-a` | `farmer_operator` |
 | `farmer-b@example.test` | `tenant-b` | `farmer_owner` |
 | `platform-admin@example.test` | `tenant-a` | `platform_admin` |
+| `multi@example.test` | `tenant-a`, `tenant-b` | `farmer_owner`, `farmer_operator` |
 
 Data ini hanya untuk local/test. Jangan gunakan sebagai seed production.
 
@@ -74,6 +84,7 @@ Test yang ditambahkan:
 - `npm run ci` hijau.
 - Tidak ada real credential pada repo.
 - Endpoint auth mengembalikan envelope standar.
+- Frontend login bisa memakai cookie session lewat Vite proxy.
 - Mutasi logout menolak request tanpa CSRF token.
 - Cross-tenant direct ID test lulus.
 - Audit event dasar tercatat.
@@ -84,5 +95,6 @@ Test yang ditambahkan:
 - Putuskan adapter database setelah DEC-002 selesai.
 - Ganti in-memory identity/session/audit dengan adapter persistent.
 - Tambahkan migration runner yang idempotent.
-- Tambahkan frontend login dan tenant selection UI.
+- Ganti tenant switch flow dari re-login lokal ke dedicated tenant switch endpoint setelah persistent session adapter tersedia.
+- Tambahkan persistent frontend auth store setelah session adapter final.
 - Tambahkan role matrix detail untuk farm/plot/device CRUD.

@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
+import type { TenantRole } from "@pamilo/shared";
 import { fail, ok } from "../../lib/api-response.js";
 import type { AuditLog } from "../audit/audit-log.js";
 import type { IdentityStore } from "./identity-store.js";
@@ -23,6 +24,12 @@ interface LoginBody {
   email: string;
   password: string;
   tenant_id?: string;
+}
+
+interface AuthTenantPayload {
+  id: string;
+  name: string;
+  role: TenantRole;
 }
 
 export async function registerAuthRoutes(app: FastifyInstance, deps: AuthRouteDependencies): Promise<void> {
@@ -82,7 +89,16 @@ export async function registerAuthRoutes(app: FastifyInstance, deps: AuthRouteDe
       requestId: request.id
     });
 
-    return ok(request, buildMePayload(user, tenant, membership, session.csrfToken));
+    return ok(
+      request,
+      buildMePayload(
+        user,
+        tenant,
+        membership,
+        session.csrfToken,
+        deps.identityStore
+      )
+    );
   });
 
   app.post("/api/v1/auth/logout", async (request, reply) => {
@@ -133,7 +149,8 @@ export async function registerAuthRoutes(app: FastifyInstance, deps: AuthRouteDe
           tenantId: context.tenant.id,
           role: context.session.role
         },
-        context.session.csrfToken
+        context.session.csrfToken,
+        deps.identityStore
       )
     );
   });
@@ -171,7 +188,8 @@ function buildMePayload(
   user: UserRecord,
   tenant: TenantRecord,
   membership: TenantMembership,
-  csrfToken: string
+  csrfToken: string,
+  identityStore: IdentityStore
 ): {
   user: {
     id: string;
@@ -180,10 +198,28 @@ function buildMePayload(
   active_tenant: {
     id: string;
     name: string;
-    role: string;
+    role: TenantRole;
   };
+  available_tenants: AuthTenantPayload[];
   csrf_token: string;
 } {
+  const availableTenants = identityStore
+    .listMembershipsForUser(user.id)
+    .map((candidate) => {
+      const candidateTenant = identityStore.findTenantById(candidate.tenantId);
+
+      if (!candidateTenant || candidateTenant.status !== "active") {
+        return null;
+      }
+
+      return {
+        id: candidateTenant.id,
+        name: candidateTenant.name,
+        role: candidate.role
+      };
+    })
+    .filter((candidate): candidate is AuthTenantPayload => candidate !== null);
+
   return {
     user: {
       id: user.id,
@@ -194,6 +230,7 @@ function buildMePayload(
       name: tenant.name,
       role: membership.role
     },
+    available_tenants: availableTenants,
     csrf_token: csrfToken
   };
 }
