@@ -33,7 +33,7 @@ External
 
 | Record | Name | Target |
 | --- | --- | --- |
-| A | `pamilo.keycloud.id` | `43.157.203.226` |
+| A | `sedayafarm.keycloud.id` | `43.157.203.226` |
 | A | `mqtt.keycloud.id` | `43.157.203.226` |
 
 DNS hanya diubah setelah Fase 8 staging rehearsal dan production go/no-go disetujui.
@@ -79,6 +79,7 @@ DNS hanya diubah setelah Fase 8 staging rehearsal dan production go/no-go disetu
 | 7 | Firewall review, backup dry-run, certificate monitoring |
 | 8 | Staging/prod-like host, DNS rehearsal, restore drill. Status awal ada di `docs/22-phase-8-staging-deployment.md` |
 | 10 | Production DNS/TLS cutover dan hypercare monitoring |
+| 14 | Domain/TLS readiness gate untuk `sedayafarm.keycloud.id`. Status awal ada di `docs/28-phase-14-domain-tls-cutover.md` |
 
 ## Acceptance Criteria Infra
 
@@ -88,3 +89,4 @@ DNS hanya diubah setelah Fase 8 staging rehearsal dan production go/no-go disetu
 - Remote MySQL hanya menerima IP VPS.
 - Disk alert aktif sebelum 80% usage.
 - Certificate expiry alert aktif minimal 14 hari sebelum kedaluwarsa.
+- DNS/TLS readiness tidak mengubah DNS dari repo dan hanya menjalankan network check setelah approval eksplisit.

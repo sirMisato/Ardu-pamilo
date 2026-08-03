@@ -55,6 +55,7 @@ Workflow ini hanya memvalidasi evidence dan tidak menjalankan deploy.
 | `mqtt_tls_acl_ready` | Bukti MQTT TLS dan ACL per device siap |
 | `dns_change_window_ref` | Bukti change window DNS |
 | `production_smoke_plan_ref` | Rencana smoke setelah deploy |
+| `domain_readiness_ref` | Bukti Domain/TLS Readiness Phase 14 |
 | `hypercare_plan_ref` | Owner dan jadwal standby |
 | Approval refs | PM, QA/QC, Security, Infra, DevOps, Frontend, Backend |
 
@@ -79,7 +80,7 @@ Dalam mode gate, command exit nonzero jika ada blocker.
 Smoke production sengaja membutuhkan approval eksplisit sebelum request pertama:
 
 ```text
-PAMILO_PRODUCTION_SMOKE_APPROVED=true PAMILO_PRODUCTION_BASE_URL=https://pamilo.keycloud.id npm run smoke:production
+PAMILO_PRODUCTION_SMOKE_APPROVED=true PAMILO_PRODUCTION_BASE_URL=https://sedayafarm.keycloud.id npm run smoke:production
 ```
 
 Default smoke hanya read-only:

@@ -45,6 +45,7 @@ Dokumen ini menjadi pusat koordinasi tim kecil PAMILO Smart Farming GIS sampai s
 | 11 | Public VPS simulation | Simulasi web, API, dan MQTT staging lewat public VPS. Status awal ada di `docs/25-phase-11-public-vps-simulation.md` | Evidence simulasi lulus tanpa secret leak |
 | 12 | Ops readiness | Observability, alert, incident, backup, rollback, on-call. Status awal ada di `docs/26-phase-12-ops-readiness.md` | Ops readiness gate lulus |
 | 13 | Operations handover | Handover pack, sign-off role, support window, backlog. Status awal ada di `docs/27-phase-13-operations-handover.md` | Handover check dan sign-off lengkap |
+| 14 | Domain/TLS cutover readiness | Gate DNS, TLS, reverse proxy, firewall, dan smoke domain `sedayafarm.keycloud.id`. Status awal ada di `docs/28-phase-14-domain-tls-cutover.md` | Domain readiness gate lulus |
 
 ## RACI Ringkas
 

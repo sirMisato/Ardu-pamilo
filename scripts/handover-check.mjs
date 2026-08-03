@@ -36,7 +36,8 @@ check("HAND-001", "PM", "Dokumen fase utama sampai Phase 13 tersedia.", () => {
     "docs/24-phase-10-production-release.md",
     "docs/25-phase-11-public-vps-simulation.md",
     "docs/26-phase-12-ops-readiness.md",
-    "docs/27-phase-13-operations-handover.md"
+    "docs/27-phase-13-operations-handover.md",
+    "docs/28-phase-14-domain-tls-cutover.md"
   ];
 
   const missing = requiredDocs.filter((file) => !existsSync(file));
@@ -54,6 +55,7 @@ check("HAND-002", "DevOps + QA/QC", "Command operasional utama tersedia di packa
     "ci",
     "smoke:staging",
     "uat:pilot",
+    "domain:readiness",
     "release:preflight",
     "smoke:production",
     "simulate:public-vps",

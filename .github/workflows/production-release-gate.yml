@@ -7,7 +7,7 @@ on:
         description: "Immutable release tag, for example v0.1.0."
         required: true
       production_origin:
-        description: "Production web origin, for example https://pamilo.keycloud.id."
+        description: "Production web origin, for example https://sedayafarm.keycloud.id."
         required: true
       production_mqtt_host:
         description: "Production MQTT hostname, for example mqtt.keycloud.id."
@@ -56,6 +56,9 @@ on:
         required: true
       production_smoke_plan_ref:
         description: "Production smoke plan reference."
+        required: true
+      domain_readiness_ref:
+        description: "Phase 14 domain/TLS readiness evidence reference."
         required: true
       hypercare_plan_ref:
         description: "Hypercare owner and schedule reference."
@@ -109,6 +112,7 @@ jobs:
       PAMILO_MQTT_TLS_ACL_READY: ${{ inputs.mqtt_tls_acl_ready }}
       PAMILO_DNS_CHANGE_WINDOW_REF: ${{ inputs.dns_change_window_ref }}
       PAMILO_PRODUCTION_SMOKE_PLAN_REF: ${{ inputs.production_smoke_plan_ref }}
+      PAMILO_DOMAIN_READINESS_REF: ${{ inputs.domain_readiness_ref }}
       PAMILO_HYPERCARE_PLAN_REF: ${{ inputs.hypercare_plan_ref }}
       PAMILO_PM_APPROVAL_REF: ${{ inputs.pm_approval_ref }}
       PAMILO_QA_APPROVAL_REF: ${{ inputs.qa_approval_ref }}

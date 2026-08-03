@@ -11,7 +11,7 @@ PAMILO Smart Farming GIS adalah platform pemantauan lahan pertanian multi-tenant
 
 | Item | Nilai |
 | --- | --- |
-| Web production | `https://pamilo.keycloud.id` |
+| Web production | `https://sedayafarm.keycloud.id` |
 | MQTT production | `mqtts://mqtt.keycloud.id:8883` |
 | IP publik VPS | `43.157.203.226` |
 | Database control plane | MySQL Hostinger |

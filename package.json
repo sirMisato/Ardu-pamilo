@@ -20,6 +20,7 @@
     "dev:api": "npm run dev -w @pamilo/api",
     "dev:mqtt-ingestor": "npm run dev -w @pamilo/mqtt-ingestor",
     "dev:web": "npm run dev -w @pamilo/web",
+    "domain:readiness": "node scripts/domain-readiness.mjs",
     "handover:check": "node scripts/handover-check.mjs",
     "lint": "eslint .",
     "ops:readiness": "node scripts/ops-readiness.mjs",

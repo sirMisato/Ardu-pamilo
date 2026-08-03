@@ -1,0 +1,129 @@
+name: Domain TLS Readiness
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Run mode. Gate mode fails if blockers remain."
+        required: true
+        type: choice
+        options:
+          - dry-run
+          - gate
+        default: dry-run
+      web_domain:
+        description: "Production web domain."
+        required: true
+        default: "sedayafarm.keycloud.id"
+      production_origin:
+        description: "Production HTTPS origin."
+        required: true
+        default: "https://sedayafarm.keycloud.id"
+      expected_vps_ip:
+        description: "Expected DNS A record target."
+        required: true
+        default: "43.157.203.226"
+      run_network_checks:
+        description: "Resolve DNS and request HTTPS web/API health."
+        required: true
+        type: boolean
+        default: false
+      dns_change_window_ref:
+        description: "DNS change window evidence reference."
+        required: false
+        default: ""
+      tls_certificate_ref:
+        description: "TLS certificate or ACME evidence reference."
+        required: false
+        default: ""
+      reverse_proxy_ref:
+        description: "Reverse proxy configuration evidence reference."
+        required: false
+        default: ""
+      firewall_evidence_ref:
+        description: "Firewall/public port evidence reference."
+        required: false
+        default: ""
+      rollback_ref:
+        description: "Domain rollback plan evidence reference."
+        required: false
+        default: ""
+      qa_smoke_plan_ref:
+        description: "QA smoke plan evidence reference."
+        required: false
+        default: ""
+      pm_approval_ref:
+        description: "PM approval reference."
+        required: false
+        default: ""
+      qa_approval_ref:
+        description: "QA/QC approval reference."
+        required: false
+        default: ""
+      security_approval_ref:
+        description: "Security approval reference."
+        required: false
+        default: ""
+      infra_approval_ref:
+        description: "IT Infra approval reference."
+        required: false
+        default: ""
+      devops_approval_ref:
+        description: "DevOps approval reference."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    name: Check domain and TLS readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      PAMILO_DOMAIN_MODE: ${{ inputs.mode }}
+      PAMILO_DOMAIN_NETWORK_APPROVED: ${{ inputs.run_network_checks }}
+      PAMILO_WEB_DOMAIN: ${{ inputs.web_domain }}
+      PAMILO_WEB_PRODUCTION_ORIGIN: ${{ inputs.production_origin }}
+      PAMILO_EXPECTED_VPS_IP: ${{ inputs.expected_vps_ip }}
+      PAMILO_API_TRUSTED_ORIGINS: ${{ inputs.production_origin }}
+      PAMILO_DOMAIN_DNS_CHANGE_WINDOW_REF: ${{ inputs.dns_change_window_ref }}
+      PAMILO_DOMAIN_TLS_CERTIFICATE_REF: ${{ inputs.tls_certificate_ref }}
+      PAMILO_DOMAIN_REVERSE_PROXY_REF: ${{ inputs.reverse_proxy_ref }}
+      PAMILO_DOMAIN_FIREWALL_EVIDENCE_REF: ${{ inputs.firewall_evidence_ref }}
+      PAMILO_DOMAIN_ROLLBACK_REF: ${{ inputs.rollback_ref }}
+      PAMILO_DOMAIN_QA_SMOKE_PLAN_REF: ${{ inputs.qa_smoke_plan_ref }}
+      PAMILO_DOMAIN_PM_APPROVAL_REF: ${{ inputs.pm_approval_ref }}
+      PAMILO_DOMAIN_QA_APPROVAL_REF: ${{ inputs.qa_approval_ref }}
+      PAMILO_DOMAIN_SECURITY_APPROVAL_REF: ${{ inputs.security_approval_ref }}
+      PAMILO_DOMAIN_INFRA_APPROVAL_REF: ${{ inputs.infra_approval_ref }}
+      PAMILO_DOMAIN_DEVOPS_APPROVAL_REF: ${{ inputs.devops_approval_ref }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Secret scan
+        run: npm run secret:scan
+
+      - name: Run domain readiness
+        run: npm run domain:readiness
+
+      - name: Upload readiness report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: domain-tls-readiness
+          path: .local/domain-readiness/
+          if-no-files-found: warn

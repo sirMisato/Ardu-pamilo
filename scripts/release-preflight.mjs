@@ -25,6 +25,7 @@ const config = {
   mqttTlsAclReady: process.env.PAMILO_MQTT_TLS_ACL_READY ?? "false",
   dnsChangeWindowRef: process.env.PAMILO_DNS_CHANGE_WINDOW_REF ?? "",
   productionSmokePlanRef: process.env.PAMILO_PRODUCTION_SMOKE_PLAN_REF ?? "",
+  domainReadinessRef: process.env.PAMILO_DOMAIN_READINESS_REF ?? "",
   hypercarePlanRef: process.env.PAMILO_HYPERCARE_PLAN_REF ?? "",
   pmApprovalRef: process.env.PAMILO_PM_APPROVAL_REF ?? "",
   qaApprovalRef: process.env.PAMILO_QA_APPROVAL_REF ?? "",
@@ -122,6 +123,11 @@ check("REL-012", "All Leads", "Go/no-go approvals lengkap.", () => {
   expectEvidenceRef(config.frontendApprovalRef, "PAMILO_FRONTEND_APPROVAL_REF");
   expectEvidenceRef(config.backendApprovalRef, "PAMILO_BACKEND_APPROVAL_REF");
   return "lead approval refs present";
+});
+
+check("REL-013", "IT Infra + DevOps + Security + QA/QC", "Domain/TLS readiness Phase 14 tersedia.", () => {
+  expectEvidenceRef(config.domainReadinessRef, "PAMILO_DOMAIN_READINESS_REF");
+  return "domain readiness evidence present";
 });
 
 const reportPath = await writeReport();

@@ -3,11 +3,11 @@ import { join } from "node:path";
 
 const startedAt = new Date();
 const runId = startedAt.toISOString().replace(/[:.]/g, "-");
-const baseUrl = normalizeBaseUrl(process.env.PAMILO_PRODUCTION_BASE_URL ?? "https://pamilo.keycloud.id");
+const baseUrl = normalizeBaseUrl(process.env.PAMILO_PRODUCTION_BASE_URL ?? "https://sedayafarm.keycloud.id");
 const timeoutMs = Number(process.env.PAMILO_PRODUCTION_SMOKE_TIMEOUT_MS ?? "10000");
 const approved = String(process.env.PAMILO_PRODUCTION_SMOKE_APPROVED ?? "false").toLowerCase() === "true";
 const loginEnabled = String(process.env.PAMILO_PRODUCTION_SMOKE_LOGIN ?? "false").toLowerCase() === "true";
-const allowedHosts = new Set((process.env.PAMILO_PRODUCTION_HOST_ALLOWLIST ?? "pamilo.keycloud.id")
+const allowedHosts = new Set((process.env.PAMILO_PRODUCTION_HOST_ALLOWLIST ?? "sedayafarm.keycloud.id")
   .split(",")
   .map((host) => host.trim().toLowerCase())
   .filter(Boolean));

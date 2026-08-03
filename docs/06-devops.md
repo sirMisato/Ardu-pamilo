@@ -96,6 +96,7 @@ PAMILO_BASE_URL=http://<staging-host>:8080 npm run smoke:staging
 | 11 | Public VPS simulation workflow dan artifact report. Status awal ada di `docs/25-phase-11-public-vps-simulation.md` |
 | 12 | Ops readiness evidence gate untuk monitoring, alert, backup, rollback, dan incident. Status awal ada di `docs/26-phase-12-ops-readiness.md` |
 | 13 | Handover check untuk command, runbook, evidence, dan sign-off. Status awal ada di `docs/27-phase-13-operations-handover.md` |
+| 14 | Domain/TLS readiness workflow non-deploy. Status awal ada di `docs/28-phase-14-domain-tls-cutover.md` |
 
 ## Acceptance Criteria DevOps
 
@@ -107,6 +108,7 @@ PAMILO_BASE_URL=http://<staging-host>:8080 npm run smoke:staging
 - Tidak ada secret di log CI.
 - Production deploy tidak dijalankan dari repo sebelum release approval eksplisit.
 - Simulasi MQTT staging tidak membuka listener plaintext ke public internet.
+- Domain/TLS workflow tidak melakukan SSH, deploy, atau DNS mutation.
 
 ## Source Facts Verified
 

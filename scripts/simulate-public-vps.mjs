@@ -480,7 +480,7 @@ function parseOrigin(value, name) {
 
 function isProductionHost(hostname) {
   const normalized = hostname.toLowerCase();
-  return normalized === "pamilo.keycloud.id" || normalized === "mqtt.keycloud.id";
+  return normalized === "sedayafarm.keycloud.id" || normalized === "pamilo.keycloud.id" || normalized === "mqtt.keycloud.id";
 }
 
 function isLocalHost(hostname) {

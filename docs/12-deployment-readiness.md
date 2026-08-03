@@ -66,6 +66,14 @@ Menentukan syarat minimum agar PAMILO layak deploy ke staging dan production. Ch
 - Template env: `infra/ops/handover.env.example`.
 - Detail handover: `docs/27-phase-13-operations-handover.md`.
 
+## Artifact Fase 14
+
+- Domain/TLS readiness command: `npm run domain:readiness`.
+- Manual workflow non-deploy: `.github/workflows/domain-tls-readiness.yml`.
+- Template env: `infra/production/domain-readiness.env.example`.
+- Detail runbook: `docs/28-phase-14-domain-tls-cutover.md`.
+- Network check domain hanya berjalan jika `PAMILO_DOMAIN_NETWORK_APPROVED=true`.
+
 ## Production Readiness
 
 - Scope release dan release notes disetujui.
@@ -81,12 +89,13 @@ Menentukan syarat minimum agar PAMILO layak deploy ke staging dan production. Ch
 - Hypercare owner dan jadwal standby jelas.
 - `Production Release Gate` lulus dengan image digest immutable.
 - Public VPS simulation dan ops readiness evidence sudah dilampirkan.
+- Domain/TLS readiness untuk `https://sedayafarm.keycloud.id` lulus.
 
 ## Smoke Test Production
 
 | Check | Expected |
 | --- | --- |
-| Web HTTPS | `https://pamilo.keycloud.id` valid TLS dan response sehat |
+| Web HTTPS | `https://sedayafarm.keycloud.id` valid TLS dan response sehat |
 | API ready | `/health/ready` sehat |
 | MQTT TLS | `mqtt.keycloud.id:8883` handshake valid |
 | Login | User test bisa login |

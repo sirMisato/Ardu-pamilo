@@ -81,6 +81,7 @@ pamilo/v1/tenants/{tenant_id}/devices/{device_id}/acks
 | 11 | Review simulasi public VPS, termasuk batas MQTT internal. Status awal ada di `docs/25-phase-11-public-vps-simulation.md` |
 | 12 | Incident response, alert, log retention, dan secret rotation readiness. Status awal ada di `docs/26-phase-12-ops-readiness.md` |
 | 13 | Handover security sign-off dan residual risk acceptance. Status awal ada di `docs/27-phase-13-operations-handover.md` |
+| 14 | Domain/TLS readiness, HSTS, trusted origin, dan public exposure review. Status awal ada di `docs/28-phase-14-domain-tls-cutover.md` |
 
 ## Source Facts Verified
 
@@ -115,3 +116,4 @@ pamilo/v1/tenants/{tenant_id}/devices/{device_id}/acks
 - `Public VPS Simulation` workflow memakai username/password VPS sesuai konfigurasi existing dan tidak membutuhkan private key.
 - Ops readiness membedakan freshness indikator operasional dari threshold agronomy.
 - Handover gate wajib mencatat residual risk dan sign-off Security sebelum production release nyata.
+- Domain readiness network check hanya boleh dijalankan setelah approval; production smoke tetap memakai guard approval terpisah.

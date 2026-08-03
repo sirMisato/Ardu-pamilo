@@ -66,6 +66,7 @@ Membuktikan sistem benar, aman, dan layak deploy melalui test fungsional, integr
 | 11 | Public VPS simulation untuk web, API, telemetry, weather, tenancy, dan MQTT loopback. Status awal ada di `docs/25-phase-11-public-vps-simulation.md` |
 | 12 | Ops readiness checklist untuk alert, incident drill, backup, rollback, dan stale indicators. Status awal ada di `docs/26-phase-12-ops-readiness.md` |
 | 13 | Handover evidence dan sign-off regression gap. Status awal ada di `docs/27-phase-13-operations-handover.md` |
+| 14 | Domain/TLS readiness smoke untuk `sedayafarm.keycloud.id`. Status awal ada di `docs/28-phase-14-domain-tls-cutover.md` |
 
 ## Smoke Coverage Fase 8
 
@@ -110,3 +111,7 @@ Membuktikan sistem benar, aman, dan layak deploy melalui test fungsional, integr
 ## Simulasi Fase 11
 
 `npm run simulate:public-vps` menjalankan read-only simulation terhadap public VPS origin. Mutation tetap skip kecuali `PAMILO_PUBLIC_VPS_WRITE=true`, dan MQTT evidence dilampirkan dari loopback internal VPS.
+
+## Domain Readiness Fase 14
+
+`npm run domain:readiness` memastikan evidence domain/TLS siap. DNS/HTTPS check hanya berjalan jika `PAMILO_DOMAIN_NETWORK_APPROVED=true`.

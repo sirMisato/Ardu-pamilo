@@ -42,8 +42,8 @@ Checklist otomatis:
 
 | ID | Area | Evidence |
 | --- | --- | --- |
-| `HAND-001` | Dokumen | Roadmap, readiness, risk register, Phase 10-13 |
-| `HAND-002` | Commands | CI, smoke, UAT, release, simulation, ops, handover |
+| `HAND-001` | Dokumen | Roadmap, readiness, risk register, Phase 10-14 |
+| `HAND-002` | Commands | CI, smoke, UAT, domain, release, simulation, ops, handover |
 | `HAND-003` | Safety | Production gate non-deploy dan tanpa private key |
 | `HAND-004` | Handover pack | Release notes, runbook, training, asset inventory |
 | `HAND-005` | Risk | Blocker register dan residual risk acceptance |
@@ -80,13 +80,13 @@ Checklist otomatis:
 - Handover pack tersedia dan bisa dipakai operator lain.
 - Semua role inti sign-off.
 - Residual risk yang tersisa punya owner, severity, target date, dan acceptance.
-- Next-phase backlog dibuat untuk ingestion durable, DB production decision, TLS/DNS production, dan Playwright E2E.
+- Next-phase backlog dibuat untuk ingestion durable, DB production decision, domain/TLS production, dan Playwright E2E.
 
 ## Backlog Setelah Phase 13
 
 - MQTT ingestor daemon durable yang benar-benar subscribe ke broker dan menulis ke storage.
 - Production DB path setelah MySQL TLS/Hostinger decision tertutup.
-- Domain/TLS production dengan change window yang disetujui.
+- Domain/TLS production dengan change window yang disetujui. Status awal ada di `docs/28-phase-14-domain-tls-cutover.md`.
 - Playwright E2E desktop/mobile untuk dashboard.
 - Observability dashboard otomatis dari metric source final.
 - Backup/restore automation untuk data services final.

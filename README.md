@@ -57,13 +57,14 @@ Production release gate:
 
 ```text
 npm run release:preflight
-PAMILO_PRODUCTION_SMOKE_APPROVED=true PAMILO_PRODUCTION_BASE_URL=https://pamilo.keycloud.id npm run smoke:production
+PAMILO_PRODUCTION_SMOKE_APPROVED=true PAMILO_PRODUCTION_BASE_URL=https://sedayafarm.keycloud.id npm run smoke:production
 ```
 
 Public VPS simulation and ops gates:
 
 ```text
 PAMILO_PUBLIC_VPS_BASE_URL=http://43.157.203.226:8080 PAMILO_PUBLIC_VPS_ORIGIN=http://43.157.203.226:8080 npm run simulate:public-vps
+npm run domain:readiness
 npm run ops:readiness
 npm run handover:check
 ```
@@ -76,4 +77,4 @@ npm run handover:check
 - No production MQTT broker connection.
 - No real credentials in repository files.
 
-See [docs/27-phase-13-operations-handover.md](docs/27-phase-13-operations-handover.md) for the current phase status.
+See [docs/28-phase-14-domain-tls-cutover.md](docs/28-phase-14-domain-tls-cutover.md) for the current phase status.
