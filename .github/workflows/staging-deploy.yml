@@ -228,6 +228,7 @@ jobs:
           API_TRUSTED_ORIGINS=${{ steps.config.outputs.origin }}
           API_BODY_LIMIT_BYTES=262144
           LOG_LEVEL=info
+          PAMILO_DEVICE_PLOT_MAP={"tenant-a/device-a":"plot-a"}
           ENV
 
       - name: Upload staging artifacts

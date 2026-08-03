@@ -13,19 +13,29 @@ Fase 8 menyiapkan deployment staging yang repeatable tanpa melakukan production 
 - Dockerfile staging untuk:
   - API Fastify
   - Web Vue/Vite static via nginx
-  - MQTT ingestor self-check
+  - MQTT ingestor daemon
 - `.dockerignore` mencegah `.env` lokal masuk Docker build context.
 - `infra/staging/compose.staging.yaml` untuk staging stack.
 - `infra/staging/staging.env.example` sebagai template env non-secret.
-- `infra/staging/mosquitto.self-check.conf` hanya untuk profile worker self-check.
+- `infra/staging/mosquitto.self-check.conf` untuk broker Mosquitto internal staging.
 - `scripts/smoke-staging.mjs` untuk smoke test HTTP.
 - `npm run smoke:staging` sebagai entrypoint smoke.
 - GitHub Actions `Staging Deploy` manual:
   - build dan push image ke GHCR
   - upload compose/env ke VPS
+  - bootstrap Docker/Compose di VPS staging bila belum tersedia
   - deploy via `docker compose pull` dan `up -d`
   - smoke test dari runner ke staging origin
 - CI reguler menambah job build Docker image tanpa push.
+- API staging memakai telemetry adapter `redis-victoria-hybrid`.
+- MQTT ingestor staging berjalan sebagai daemon internal dan menulis latest/history ke Redis/VictoriaMetrics.
+
+## Evidence Terkini
+
+| Workflow | Run | Status |
+| --- | --- | --- |
+| `VPS Connectivity Check` | `30858475660` | Success |
+| `Staging Deploy` | `30859070123` | Success |
 
 ## GitHub Configuration
 
@@ -68,7 +78,7 @@ Workflow input:
 
 - `/health/live` HTTP 200.
 - Security headers baseline.
-- `/health/ready` HTTP 200 dan dependency placeholder telemetry/weather.
+- `/health/ready` HTTP 200 dan dependency telemetry/weather.
 - Login tenant A.
 - Farm list tenant A.
 - CSRF mutation dari trusted origin.
@@ -96,7 +106,7 @@ Bukti rollback minimal:
 - Belum ada DNS/TLS automation.
 - Belum ada database production/Hostinger migration runner.
 - Belum ada Redis/VictoriaMetrics persistent backup drill.
-- Belum ada long-running MQTT ingestion daemon production.
+- Belum ada long-running MQTT ingestion daemon production dengan TLS/ACL production.
 - Belum ada release approval environment protection.
 - Belum ada rollback otomatis bila smoke gagal.
 
@@ -111,10 +121,8 @@ Bukti rollback minimal:
 
 ## Open Before Phase 9
 
-- Jalankan workflow `Staging Deploy` manual dan simpan hasil run.
-- Simpan hasil job CI `Docker image build` setelah branch dipush.
 - Pin `VPS_KNOWN_HOSTS`.
 - Putuskan host/domain staging dan TLS terminator.
 - Tambahkan environment protection approval bila staging mulai dipakai tim QA.
 - Tambahkan backup/restore rehearsal untuk Redis/VictoriaMetrics.
-- Ubah worker MQTT dari self-check menjadi daemon ingestion durable.
+- Tambahkan replay worker untuk Redis Stream dan failure recovery VictoriaMetrics.

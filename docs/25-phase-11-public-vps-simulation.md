@@ -16,6 +16,7 @@ Fase 11 membuktikan akses staging lewat IP publik VPS sebelum keputusan producti
 - `infra/staging/public-vps-simulation.env.example` sebagai template env non-secret.
 - Report simulasi ditulis ke `.local/public-vps-simulation/`.
 - MQTT simulation dijalankan secara internal di VPS Docker network melalui SSH username/password.
+- Artifact GitHub Actions `public-vps-simulation` sudah tersedia dari run `30859331659`.
 
 ## Batas Aman
 
@@ -124,16 +125,16 @@ Masuk ke folder staging:
 
 ```text
 cd /opt/pamilo/staging
-docker compose --env-file staging.env -f compose.staging.yaml --profile worker-self-check up -d mosquitto
+sudo docker compose --env-file staging.env -f compose.staging.yaml up -d mosquitto
 ```
 
 Jalankan loopback publish/subscribe di container Mosquitto:
 
 ```text
-docker compose --env-file staging.env -f compose.staging.yaml exec -T mosquitto sh -c 'topic="pamilo/v1/tenants/tenant-a/devices/device-a/telemetry"; payload="{\"v\":1,\"device_id\":\"device-a\",\"node_id\":\"vps-sim-01\",\"ts\":\"2026-08-04T00:00:00Z\",\"seq\":1,\"m\":{\"st\":27.4,\"sm\":43.1},\"q\":{\"calibration_profile\":\"vps-simulation\",\"flags\":[]}}"; rm -f /tmp/pamilo-mqtt-simulation.out; mosquitto_sub -h 127.0.0.1 -p 1883 -C 1 -W 8 -t "$topic" > /tmp/pamilo-mqtt-simulation.out & sub_pid="$!"; sleep 1; mosquitto_pub -h 127.0.0.1 -p 1883 -t "$topic" -m "$payload"; wait "$sub_pid"; test -s /tmp/pamilo-mqtt-simulation.out; echo "MQTT internal loopback passed"'
+sudo docker compose --env-file staging.env -f compose.staging.yaml exec -T mosquitto sh -c 'topic="pamilo/v1/tenants/tenant-a/devices/device-a/telemetry"; payload="{\"v\":1,\"device_id\":\"device-a\",\"node_id\":\"vps-sim-01\",\"ts\":\"2026-08-04T00:00:00Z\",\"seq\":1,\"m\":{\"st\":27.4,\"sm\":43.1},\"q\":{\"calibration_profile\":\"vps-simulation\",\"flags\":[]}}"; rm -f /tmp/pamilo-mqtt-simulation.out; mosquitto_sub -h 127.0.0.1 -p 1883 -C 1 -W 8 -t "$topic" > /tmp/pamilo-mqtt-simulation.out & sub_pid="$!"; sleep 1; mosquitto_pub -h 127.0.0.1 -p 1883 -t "$topic" -m "$payload"; wait "$sub_pid"; test -s /tmp/pamilo-mqtt-simulation.out; echo "MQTT internal loopback passed"'
 ```
 
-Catat output command sebagai evidence. Simulasi ini hanya membuktikan broker staging internal menerima payload valid; ingestion durable masih menjadi pekerjaan fase lanjut sebelum production.
+Catat output command sebagai evidence. Simulasi ini membuktikan broker staging internal menerima payload valid; worker daemon staging juga sudah tersedia untuk menulis latest/history ke Redis/VictoriaMetrics.
 
 ## Exit Criteria Fase 11
 
@@ -146,7 +147,6 @@ Catat output command sebagai evidence. Simulasi ini hanya membuktikan broker sta
 
 ## Open Before Phase 12
 
-- Lampirkan artifact `public-vps-simulation` dari GitHub Actions.
 - Putuskan apakah write UAT perlu dijalankan di staging public IP.
 - Simpan hasil `docker compose ps` dan log tail setelah simulasi.
 - Pastikan `VPS_KNOWN_HOSTS` dipin sebelum workflow production apa pun.

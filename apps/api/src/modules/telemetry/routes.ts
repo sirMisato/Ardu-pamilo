@@ -39,7 +39,9 @@ export async function registerTelemetryRoutes(app: FastifyInstance, deps: Teleme
       return fail(request, "NOT_FOUND", "Plot was not found.");
     }
 
-    return ok(request, deps.telemetry.listLatestForPlot(context.tenantContext, plot.id).map(toTelemetryPayload));
+    const latest = await deps.telemetry.listLatestForPlot(context.tenantContext, plot.id);
+
+    return ok(request, latest.map(toTelemetryPayload));
   });
 
   app.get("/api/v1/plots/:plotId/telemetry/history", async (request, reply) => {
@@ -73,7 +75,7 @@ export async function registerTelemetryRoutes(app: FastifyInstance, deps: Teleme
       return fail(request, "VALIDATION_FAILED", "Telemetry history query is invalid.", query.errors);
     }
 
-    const points = deps.telemetry.queryHistoryForPlot(context.tenantContext, {
+    const points = await deps.telemetry.queryHistoryForPlot(context.tenantContext, {
       plotId: plot.id,
       metric: query.value.metric,
       from: query.value.from,

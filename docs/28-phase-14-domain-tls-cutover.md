@@ -15,6 +15,7 @@ Fase 14 menyiapkan kesiapan domain dan TLS untuk website `sedayafarm.keycloud.id
 - `.github/workflows/domain-tls-readiness.yml` sebagai workflow manual non-deploy.
 - `infra/production/domain-readiness.env.example` sebagai template env non-secret.
 - Report readiness ditulis ke `.local/domain-readiness/`.
+- GitHub Actions dry-run dengan `run_network_checks=true` sudah dijalankan di run `30859422632` dan menghasilkan artifact `domain-tls-readiness`.
 
 ## Batas Aman
 
@@ -117,7 +118,7 @@ PAMILO_PRODUCTION_SMOKE_APPROVED=true PAMILO_PRODUCTION_BASE_URL=https://sedayaf
 
 ## Open Before Production Cutover
 
-- Jalankan `Domain TLS Readiness` dengan `run_network_checks=true` setelah approval.
+- Jalankan ulang `Domain TLS Readiness` mode `gate` setelah evidence approval lengkap.
 - Jalankan `Production Release Gate` dengan evidence Phase 14.
 - Jalankan `smoke:production` hanya setelah production deploy disetujui.
 - Pastikan MQTT production tetap `mqtts://mqtt.keycloud.id:8883` dengan TLS dan per-device ACL.

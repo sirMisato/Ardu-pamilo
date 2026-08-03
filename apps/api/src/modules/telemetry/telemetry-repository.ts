@@ -25,9 +25,9 @@ export interface TelemetryHistoryQuery {
 }
 
 export interface TelemetryRepository {
-  listLatestForPlot(context: TenantContext, plotId: string): TelemetryReadingRecord[];
-  queryHistoryForPlot(context: TenantContext, query: TelemetryHistoryQuery): TelemetryReadingRecord[];
-  recordForPlot(context: TenantContext, plotId: string, readings: NormalizedSensorReading[]): TelemetryReadingRecord[];
+  listLatestForPlot(context: TenantContext, plotId: string): Promise<TelemetryReadingRecord[]>;
+  queryHistoryForPlot(context: TenantContext, query: TelemetryHistoryQuery): Promise<TelemetryReadingRecord[]>;
+  recordForPlot(context: TenantContext, plotId: string, readings: NormalizedSensorReading[]): Promise<TelemetryReadingRecord[]>;
 }
 
 export class InMemoryTelemetryRepository implements TelemetryRepository {
@@ -37,7 +37,7 @@ export class InMemoryTelemetryRepository implements TelemetryRepository {
     this.#readings = [...readings];
   }
 
-  listLatestForPlot(context: TenantContext, plotId: string): TelemetryReadingRecord[] {
+  async listLatestForPlot(context: TenantContext, plotId: string): Promise<TelemetryReadingRecord[]> {
     const tenantContext = requireTenantContext(context);
     const latestByMetric = new Map<MetricCode, TelemetryReadingRecord>();
 
@@ -55,7 +55,7 @@ export class InMemoryTelemetryRepository implements TelemetryRepository {
     return [...latestByMetric.values()].sort((left, right) => left.metric.localeCompare(right.metric));
   }
 
-  queryHistoryForPlot(context: TenantContext, query: TelemetryHistoryQuery): TelemetryReadingRecord[] {
+  async queryHistoryForPlot(context: TenantContext, query: TelemetryHistoryQuery): Promise<TelemetryReadingRecord[]> {
     const tenantContext = requireTenantContext(context);
     const fromTime = Date.parse(query.from);
     const toTime = Date.parse(query.to);
@@ -71,7 +71,11 @@ export class InMemoryTelemetryRepository implements TelemetryRepository {
       .sort(compareReadingTime);
   }
 
-  recordForPlot(context: TenantContext, plotId: string, readings: NormalizedSensorReading[]): TelemetryReadingRecord[] {
+  async recordForPlot(
+    context: TenantContext,
+    plotId: string,
+    readings: NormalizedSensorReading[]
+  ): Promise<TelemetryReadingRecord[]> {
     const tenantContext = requireTenantContext(context);
     const records = readings.map((reading) => ({
       id: `telemetry-${randomUUID()}`,

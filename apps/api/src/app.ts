@@ -11,6 +11,7 @@ import { InMemoryFarmRepository, type FarmRepository } from "./modules/farms/far
 import { registerFarmRoutes } from "./modules/farms/routes.js";
 import { InMemoryPlotRepository, type PlotRepository } from "./modules/plots/plot-repository.js";
 import { registerPlotRoutes } from "./modules/plots/routes.js";
+import { RedisVictoriaTelemetryRepository } from "./modules/telemetry/redis-victoria-telemetry-repository.js";
 import { InMemoryTelemetryRepository, type TelemetryRepository } from "./modules/telemetry/telemetry-repository.js";
 import { registerTelemetryRoutes } from "./modules/telemetry/routes.js";
 import { InMemoryWeatherRepository, type WeatherRepository } from "./modules/weather/weather-repository.js";
@@ -30,6 +31,7 @@ export interface AppDependencies {
   plots: PlotRepository;
   sessionStore: SessionStore;
   telemetry: TelemetryRepository;
+  telemetryStatus: string;
   weather: WeatherRepository;
 }
 
@@ -38,6 +40,8 @@ function now(): string {
 }
 
 export function createAppDependencies(overrides: Partial<AppDependencies> = {}): AppDependencies {
+  const defaultTelemetry = createDefaultTelemetryDependency();
+
   return {
     auditLog: overrides.auditLog ?? new InMemoryAuditLog(),
     devices: overrides.devices ?? new InMemoryDeviceRepository(),
@@ -45,7 +49,8 @@ export function createAppDependencies(overrides: Partial<AppDependencies> = {}):
     identityStore: overrides.identityStore ?? new InMemoryIdentityStore(),
     plots: overrides.plots ?? new InMemoryPlotRepository(),
     sessionStore: overrides.sessionStore ?? new InMemorySessionStore(),
-    telemetry: overrides.telemetry ?? new InMemoryTelemetryRepository(),
+    telemetry: overrides.telemetry ?? defaultTelemetry.repository,
+    telemetryStatus: overrides.telemetryStatus ?? (overrides.telemetry ? "custom_test" : defaultTelemetry.status),
     weather: overrides.weather ?? new InMemoryWeatherRepository()
   };
 }
@@ -76,7 +81,7 @@ export function buildApp(overrides: Partial<AppDependencies> = {}): FastifyInsta
     dependencies: {
       mysql: "not_configured_local",
       redis: "not_configured_local",
-      telemetry: "in_memory_local",
+      telemetry: deps.telemetryStatus,
       weather: "in_memory_local"
     }
   }));
@@ -91,4 +96,35 @@ export function buildApp(overrides: Partial<AppDependencies> = {}): FastifyInsta
   });
 
   return app;
+}
+
+function createDefaultTelemetryDependency(): {
+  repository: TelemetryRepository;
+  status: string;
+} {
+  const adapter = process.env.TELEMETRY_STORAGE_ADAPTER?.trim() ?? "";
+  const redisUrl = process.env.REDIS_URL?.trim() ?? "";
+  const victoriaMetricsUrl = process.env.VICTORIA_METRICS_URL?.trim() ?? "";
+
+  if (adapter === "redis-victoria" || adapter === "redis-victoria-hybrid") {
+    if (!redisUrl || !victoriaMetricsUrl) {
+      throw new Error("REDIS_URL and VICTORIA_METRICS_URL are required for redis-victoria telemetry storage.");
+    }
+
+    const fallback = adapter === "redis-victoria-hybrid" ? new InMemoryTelemetryRepository() : null;
+
+    return {
+      repository: new RedisVictoriaTelemetryRepository({
+        redisUrl,
+        victoriaMetricsUrl,
+        fallback
+      }),
+      status: adapter
+    };
+  }
+
+  return {
+    repository: new InMemoryTelemetryRepository(),
+    status: "in_memory_local"
+  };
 }

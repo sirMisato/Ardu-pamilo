@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@pamilo/shared": "0.1.0",
-    "mqtt": "^5.0.0"
+    "mqtt": "^5.0.0",
+    "redis": "^5.12.1"
   }
 }

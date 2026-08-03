@@ -84,7 +84,7 @@ Checklist otomatis:
 
 ## Backlog Setelah Phase 13
 
-- MQTT ingestor daemon durable yang benar-benar subscribe ke broker dan menulis ke storage.
+- MQTT ingestor production hardening: TLS/ACL production, persistent device ownership check, dan replay dari Redis Stream saat write history gagal.
 - Production DB path setelah MySQL TLS/Hostinger decision tertutup.
 - Domain/TLS production dengan change window yang disetujui. Status awal ada di `docs/28-phase-14-domain-tls-cutover.md`.
 - Playwright E2E desktop/mobile untuk dashboard.

@@ -72,6 +72,11 @@ export interface NormalizedSensorReading {
   qualityFlags: string[];
 }
 
+export interface TelemetryStorageRecord extends NormalizedSensorReading {
+  tenantId: string;
+  plotId: string;
+}
+
 export const sensorPayloadSchema = Type.Object(
   {
     v: Type.Literal(1),
@@ -163,4 +168,101 @@ export function normalizeSensorPayload(payload: SensorPayload): NormalizedSensor
       }
     ];
   });
+}
+
+export function createTelemetryStorageRecord(input: {
+  tenantId: string;
+  plotId: string;
+  reading: NormalizedSensorReading;
+}): TelemetryStorageRecord {
+  return {
+    tenantId: input.tenantId,
+    plotId: input.plotId,
+    ...input.reading,
+    qualityFlags: [...input.reading.qualityFlags]
+  };
+}
+
+export function serializeTelemetryStorageRecord(record: TelemetryStorageRecord): string {
+  return JSON.stringify(record);
+}
+
+export function parseTelemetryStorageRecord(input: string): ValidationResult<TelemetryStorageRecord> {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(input);
+  } catch {
+    return {
+      ok: false,
+      errors: ["Telemetry storage record is not valid JSON."]
+    };
+  }
+
+  if (!isTelemetryStorageRecord(parsed)) {
+    return {
+      ok: false,
+      errors: ["Telemetry storage record does not match the expected shape."]
+    };
+  }
+
+  return {
+    ok: true,
+    value: {
+      ...parsed,
+      qualityFlags: [...parsed.qualityFlags]
+    }
+  };
+}
+
+export function telemetryLatestRedisKey(tenantId: string, plotId: string): string {
+  return `pamilo:telemetry:latest:${encodeRedisKeyPart(tenantId)}:${encodeRedisKeyPart(plotId)}`;
+}
+
+export function telemetryIdempotencyRedisKey(tenantId: string, idempotencyKey: string): string {
+  return `pamilo:telemetry:idempotency:${encodeRedisKeyPart(tenantId)}:${encodeRedisKeyPart(idempotencyKey)}`;
+}
+
+function isTelemetryStorageRecord(value: unknown): value is TelemetryStorageRecord {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const seq = value.seq;
+  const readingValue = value.value;
+
+  return typeof value.tenantId === "string"
+    && value.tenantId.length > 0
+    && typeof value.plotId === "string"
+    && value.plotId.length > 0
+    && typeof value.deviceId === "string"
+    && value.deviceId.length > 0
+    && typeof value.nodeId === "string"
+    && value.nodeId.length > 0
+    && metricCodes.includes(value.metric as MetricCode)
+    && isSensorMetricKey(value.sensorKey)
+    && typeof value.ts === "string"
+    && !Number.isNaN(Date.parse(value.ts))
+    && typeof seq === "number"
+    && Number.isInteger(seq)
+    && seq >= 0
+    && (typeof readingValue === "number" || readingValue === null)
+    && typeof value.unit === "string"
+    && value.unit.length > 0
+    && typeof value.calibrationProfile === "string"
+    && value.calibrationProfile.length > 0
+    && Array.isArray(value.qualityFlags)
+    && value.qualityFlags.every((flag) => typeof flag === "string");
+}
+
+function isSensorMetricKey(value: unknown): value is SensorMetricKey {
+  return metricDefinitions.some((definition) => definition.sensorKey === value);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function encodeRedisKeyPart(value: string): string {
+  return encodeURIComponent(value);
 }

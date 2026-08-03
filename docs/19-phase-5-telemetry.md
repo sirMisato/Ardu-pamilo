@@ -6,7 +6,7 @@ Tanggal mulai: 2026-08-03
 
 ## Tujuan
 
-Fase 5 membangun fondasi latest dan history telemetry dari payload ESP32 yang sudah tervalidasi. Implementasi awal tetap lokal dan testable memakai in-memory repository sampai Redis dan VictoriaMetrics adapter siap.
+Fase 5 membangun fondasi latest dan history telemetry dari payload ESP32 yang sudah tervalidasi. Implementasi awal tetap lokal dan testable memakai in-memory repository, dengan adapter Redis/VictoriaMetrics opt-in untuk staging/hardening.
 
 ## Scope Implementasi Saat Ini
 
@@ -21,6 +21,10 @@ Fase 5 membangun fondasi latest dan history telemetry dari payload ESP32 yang su
   - `vwc` -> `volumetric_water_content`
 - Worker MQTT handler mengembalikan normalized readings setelah topic/payload valid.
 - In-memory telemetry repository untuk latest dan history.
+- Shared storage record serializer untuk Redis latest dan durable history writer.
+- Redis latest adapter dan VictoriaMetrics history adapter opt-in melalui `TELEMETRY_STORAGE_ADAPTER`.
+- MQTT ingestor daemon opt-in melalui `MQTT_INGESTOR_MODE=daemon`.
+- Worker daemon subscribe topic telemetry, deduplicate dengan Redis TTL, menulis event ke Redis Stream, latest ke Redis hash, dan history non-null ke VictoriaMetrics.
 - Telemetry API:
   - `GET /api/v1/plots/:plotId/telemetry/latest`
   - `GET /api/v1/plots/:plotId/telemetry/history`
@@ -38,7 +42,7 @@ Fase 5 membangun fondasi latest dan history telemetry dari payload ESP32 yang su
 - `/health/ready` sekarang membedakan dependency lokal:
   - MySQL belum configured
   - Redis belum configured
-  - telemetry memakai in-memory local adapter
+  - telemetry memakai in-memory local adapter atau `redis-victoria-hybrid`
 
 ## Security dan Tenancy
 
@@ -51,20 +55,22 @@ Fase 5 membangun fondasi latest dan history telemetry dari payload ESP32 yang su
 
 ## Explicit Non-Scope
 
-- Belum ada Redis latest adapter.
-- Belum ada VictoriaMetrics history adapter.
-- Belum ada durable ingestion worker.
 - Belum ada SSE `/api/v1/stream`.
 - Belum ada rate limit query history.
 - Belum ada downsampling/rollup nyata untuk `5m`, `15m`, dan `1h`; resolution masih divalidasi dan diecho.
 - Belum ada dead-letter storage untuk payload invalid.
+- Belum ada device registry persistent untuk ownership check production.
+- Belum ada retry/replay otomatis dari Redis Stream ke VictoriaMetrics jika write history gagal.
 
 ## QA Coverage Saat Ini
 
 - Shared payload parser menerima null channel value.
 - Shared parser menolak unknown metric field.
 - Shared normalizer menghasilkan canonical metric/unit/quality flags.
+- Shared storage record serializer round-trip.
 - MQTT ingestor mengembalikan normalized readings untuk payload valid.
+- MQTT storage helper resolve device-to-plot map dan format VictoriaMetrics import.
+- API adapter dapat membaca matrix VictoriaMetrics menjadi telemetry history.
 - Latest telemetry tenant aktif berhasil.
 - Latest telemetry plot tenant lain mengembalikan `404`.
 - History telemetry valid mengembalikan points berurutan.
@@ -82,9 +88,8 @@ Fase 5 membangun fondasi latest dan history telemetry dari payload ESP32 yang su
 
 ## Open Before Phase 6
 
-- Tambahkan adapter Redis untuk latest telemetry.
-- Tambahkan adapter VictoriaMetrics untuk history.
-- Tambahkan ingestion bridge dari MQTT worker ke storage adapter.
 - Tambahkan SSE tenant-scoped dan fallback polling.
 - Tambahkan rate limit dan batas rentang history query.
 - Tambahkan simulator telemetry end-to-end dari MQTT sampai dashboard.
+- Tambahkan replay worker dari Redis Stream untuk recovery write failure.
+- Tutup device ownership check production setelah persistent device registry tersedia.

@@ -23,7 +23,11 @@ async function runSmoke() {
   const ready = await requestJson("/health/ready");
   expectStatus(ready.response, 200, "health ready");
   expectEqual(ready.body.status, "ok", "ready status");
-  expectEqual(ready.body.dependencies?.telemetry, "in_memory_local", "ready telemetry dependency");
+  expectOneOf(
+    ready.body.dependencies?.telemetry,
+    ["in_memory_local", "redis-victoria-hybrid"],
+    "ready telemetry dependency"
+  );
   expectEqual(ready.body.dependencies?.weather, "in_memory_local", "ready weather dependency");
   checks.push("readiness");
 
@@ -167,6 +171,12 @@ function expectHeader(response, name, expected) {
 function expectEqual(actual, expected, label) {
   if (actual !== expected) {
     throw new Error(`${label} expected ${expected}, got ${String(actual)}`);
+  }
+}
+
+function expectOneOf(actual, expectedValues, label) {
+  if (!expectedValues.includes(actual)) {
+    throw new Error(`${label} expected one of ${expectedValues.join(", ")}, got ${String(actual)}`);
   }
 }
 

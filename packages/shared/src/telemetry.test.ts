@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { makeIdempotencyKey, normalizeSensorPayload, parseSensorPayload } from "./telemetry.js";
+import {
+  createTelemetryStorageRecord,
+  makeIdempotencyKey,
+  normalizeSensorPayload,
+  parseSensorPayload,
+  parseTelemetryStorageRecord,
+  serializeTelemetryStorageRecord,
+  telemetryIdempotencyRedisKey,
+  telemetryLatestRedisKey
+} from "./telemetry.js";
 
 describe("sensor payload schema", () => {
   it("accepts a valid payload with null channel values", () => {
@@ -110,5 +119,53 @@ describe("sensor payload schema", () => {
         qualityFlags: ["soil_moisture_timeout"]
       }
     ]);
+  });
+
+  it("round-trips storage records for Redis latest and durable history writers", () => {
+    const parsed = parseSensorPayload({
+      v: 1,
+      device_id: "device-a",
+      node_id: "soil-01",
+      ts: "2026-08-02T05:00:00Z",
+      seq: 42,
+      m: {
+        st: 27.4
+      },
+      q: {
+        calibration_profile: "soil-v1",
+        flags: []
+      }
+    });
+
+    expect(parsed.ok).toBe(true);
+
+    if (!parsed.ok) {
+      throw new Error("Expected valid payload");
+    }
+
+    const [reading] = normalizeSensorPayload(parsed.value);
+
+    if (!reading) {
+      throw new Error("Expected normalized reading");
+    }
+
+    const record = createTelemetryStorageRecord({
+      tenantId: "tenant-a",
+      plotId: "plot-a",
+      reading
+    });
+    const roundTrip = parseTelemetryStorageRecord(serializeTelemetryStorageRecord(record));
+
+    expect(roundTrip).toEqual({
+      ok: true,
+      value: record
+    });
+  });
+
+  it("namespaces telemetry Redis keys by tenant and plot", () => {
+    expect(telemetryLatestRedisKey("tenant-a", "plot-a")).toBe("pamilo:telemetry:latest:tenant-a:plot-a");
+    expect(telemetryIdempotencyRedisKey("tenant-a", "device-a:soil-01:42")).toBe(
+      "pamilo:telemetry:idempotency:tenant-a:device-a%3Asoil-01%3A42"
+    );
   });
 });

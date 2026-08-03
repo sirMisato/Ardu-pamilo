@@ -19,6 +19,7 @@ services:
       API_TRUSTED_ORIGINS: ${API_TRUSTED_ORIGINS:?API_TRUSTED_ORIGINS is required}
       REDIS_URL: redis://redis:6379
       VICTORIA_METRICS_URL: http://victoriametrics:8428
+      TELEMETRY_STORAGE_ADAPTER: redis-victoria-hybrid
       MQTT_URL: mqtt://mosquitto:1883
       BMKG_BASE_URL: https://api.bmkg.go.id
     expose:
@@ -67,17 +68,20 @@ services:
 
   mqtt-ingestor:
     image: ${PAMILO_MQTT_INGESTOR_IMAGE:?PAMILO_MQTT_INGESTOR_IMAGE is required}
-    profiles:
-      - worker-self-check
-    restart: "no"
+    restart: unless-stopped
     environment:
       NODE_ENV: production
+      MQTT_INGESTOR_MODE: daemon
       MQTT_URL: mqtt://mosquitto:1883
+      MQTT_CLIENT_ID: pamilo-staging-ingestor
       REDIS_URL: redis://redis:6379
       VICTORIA_METRICS_URL: http://victoriametrics:8428
+      PAMILO_DEVICE_PLOT_MAP: ${PAMILO_DEVICE_PLOT_MAP:?PAMILO_DEVICE_PLOT_MAP is required}
     depends_on:
       redis:
         condition: service_healthy
+      victoriametrics:
+        condition: service_started
       mosquitto:
         condition: service_started
     logging: *service-logging
@@ -118,8 +122,6 @@ services:
 
   mosquitto:
     image: eclipse-mosquitto:2
-    profiles:
-      - worker-self-check
     restart: unless-stopped
     volumes:
       - ./mosquitto.self-check.conf:/mosquitto/config/mosquitto.conf:ro
