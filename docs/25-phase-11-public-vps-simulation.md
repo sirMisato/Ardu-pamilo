@@ -58,6 +58,7 @@ Coverage otomatis:
 | `TENANT-001` | Farm | List farm tenant aktif tersedia |
 | `GIS-001` | Plot | Plot punya area dan centroid |
 | `TEL-001` | Telemetry | Latest telemetry bisa dibaca |
+| `TEL-002` | Telemetry history | History telemetry bisa dibaca |
 | `BMKG-001` | Weather | Attribution BMKG dan cache state terbaca |
 | `SEC-001` | Tenancy negative | Direct object access lintas tenant ditolak |
 | `WRITE-001` | Mutation optional | Create farm dengan CSRF jika write flow diaktifkan |
@@ -141,7 +142,7 @@ Catat output command sebagai evidence. Simulasi ini membuktikan broker staging i
 
 - `npm run simulate:public-vps` lulus terhadap public VPS origin.
 - Browser dapat membuka dashboard staging lewat IP publik.
-- API health, login, farm, plot, telemetry, weather, dan tenancy negative test lulus.
+- API health, login, farm, plot, telemetry latest/history, weather, dan tenancy negative test lulus.
 - MQTT loopback internal VPS punya evidence.
 - Tidak ada secret, cookie, token, atau password masuk report.
 - Tidak ada port data service yang sengaja dibuka publik.

@@ -167,6 +167,33 @@ async function runHttpSimulation() {
     return `latest_readings=${telemetry.body.data.length}`;
   });
 
+  await record("TEL-002", "Backend + QA/QC", "Telemetry history dapat dibaca lewat public VPS.", async () => {
+    const latest = await requestJson(`/api/v1/plots/${encodeURIComponent(context.activePlotId)}/telemetry/latest`, {
+      headers: authHeaders()
+    });
+    expectStatus(latest.response, 200, "telemetry latest before history");
+
+    if (!Array.isArray(latest.body.data) || latest.body.data.length < 1) {
+      throw new Error("telemetry latest did not return readings for history window");
+    }
+
+    const sample = latest.body.data[0];
+    const historyRange = createHistoryRange(latest.body.data);
+    const history = await requestJson(
+      `/api/v1/plots/${encodeURIComponent(context.activePlotId)}/telemetry/history?metric=${encodeURIComponent(sample.metric)}&from=${encodeURIComponent(historyRange.from)}&to=${encodeURIComponent(historyRange.to)}&resolution=raw`,
+      {
+        headers: authHeaders()
+      }
+    );
+    expectStatus(history.response, 200, "telemetry history");
+    expectEqual(history.body.data?.metric, sample.metric, "history metric");
+    if (!Array.isArray(history.body.data?.points)) {
+      throw new Error("telemetry history did not return points array");
+    }
+
+    return `metric=${sample.metric}, history_points=${history.body.data.points.length}`;
+  });
+
   await record("BMKG-001", "Backend + Frontend + QA/QC", "Weather/BMKG endpoint memberi attribution dan cache state.", async () => {
     const weather = await requestJson(`/api/v1/plots/${encodeURIComponent(context.activePlotId)}/weather`, {
       headers: authHeaders()
@@ -290,6 +317,7 @@ function skipRemainingChecks(detail) {
     ["TENANT-001", "Backend + Security + QA/QC", "List farm hanya mengembalikan data tenant aktif."],
     ["GIS-001", "Frontend + Backend + QA/QC", "Plot GIS tenant aktif tersedia dengan area dan centroid."],
     ["TEL-001", "Backend + QA/QC", "Telemetry latest dapat dibaca lewat public VPS."],
+    ["TEL-002", "Backend + QA/QC", "Telemetry history dapat dibaca lewat public VPS."],
     ["BMKG-001", "Backend + Frontend + QA/QC", "Weather/BMKG endpoint memberi attribution dan cache state."],
     ["SEC-001", "Security + QA/QC", "Direct object access lintas tenant tetap ditolak."],
     ["WRITE-001", "Backend + QA/QC", "Mutasi ringan dapat berjalan dengan CSRF valid."]
@@ -525,6 +553,20 @@ function readNonEmptyString(value, label) {
   }
 
   return value;
+}
+
+function createHistoryRange(readings) {
+  const latestTimestamp = readings
+    .map((reading) => Date.parse(reading.ts))
+    .filter((timestamp) => Number.isFinite(timestamp))
+    .reduce((latest, timestamp) => Math.max(latest, timestamp), 0);
+  const to = latestTimestamp > 0 ? latestTimestamp : Date.now();
+  const from = to - 60 * 60 * 1000;
+
+  return {
+    from: new Date(from).toISOString(),
+    to: new Date(to).toISOString()
+  };
 }
 
 function hasFailed(id) {

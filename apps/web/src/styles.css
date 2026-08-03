@@ -237,6 +237,61 @@ button:disabled {
   font-weight: 700;
 }
 
+.runtime-strip {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 12px;
+  border: 1px solid #d5e0e7;
+  border-radius: 6px;
+  background: #f6fafc;
+}
+
+.runtime-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.runtime-item {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #d5e0e7;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.runtime-item span,
+.runtime-item strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.runtime-item span {
+  color: #53636f;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.runtime-item strong {
+  margin-top: 3px;
+  color: #1f5f8b;
+  font-size: 12px;
+}
+
+.runtime-item strong.good {
+  color: #276749;
+}
+
+.runtime-item strong.muted {
+  color: #6b7280;
+}
+
+.runtime-item strong.warn {
+  color: #9a5b00;
+}
+
 .workspace-section {
   display: grid;
   gap: 10px;
@@ -288,7 +343,8 @@ button:disabled {
 .plot-list,
 .device-list,
 .weather-list,
-.telemetry-list {
+.telemetry-list,
+.history-list {
   display: grid;
   gap: 8px;
 }
@@ -437,6 +493,71 @@ button:disabled {
   grid-column: 1 / -1;
 }
 
+.history-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.history-controls select,
+.history-controls button {
+  min-height: 38px;
+}
+
+.history-chart {
+  display: flex;
+  align-items: end;
+  gap: 3px;
+  height: 82px;
+  padding: 8px;
+  border: 1px solid #d5e0e7;
+  border-radius: 6px;
+  background: #f6fafc;
+}
+
+.history-chart span {
+  flex: 1 1 10px;
+  min-width: 4px;
+  border-radius: 3px 3px 0 0;
+  background: #1f5f8b;
+}
+
+.history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 10px;
+  align-items: baseline;
+  padding: 9px 10px;
+  border: 1px solid #d8e2da;
+  border-radius: 6px;
+  background: #f7faf8;
+}
+
+.history-row span,
+.history-row small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.history-row span {
+  color: #56635c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.history-row strong {
+  color: #276749;
+  font-size: 13px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.history-row small {
+  grid-column: 1 / -1;
+  color: #56635c;
+  font-size: 12px;
+}
+
 .empty-state {
   margin: 0;
   padding: 10px 12px;
@@ -464,12 +585,16 @@ button:disabled {
   .plot-detail,
   .device-row,
   .weather-row,
-  .telemetry-row {
+  .telemetry-row,
+  .runtime-grid,
+  .history-controls,
+  .history-row {
     grid-template-columns: 1fr;
   }
 
   .weather-row strong,
-  .telemetry-row strong {
+  .telemetry-row strong,
+  .history-row strong {
     text-align: left;
     white-space: normal;
   }

@@ -1,13 +1,15 @@
 import { computed, createApp, onMounted, reactive, ref } from "vue";
-import type { PolygonGeometry } from "@pamilo/shared";
+import { metricCodes, type MetricCode, type PolygonGeometry } from "@pamilo/shared";
 import {
   createFarm,
   createPlot,
   getFarmPlots,
   getFarms,
+  getHealthReady,
   getMe,
   getPlotDevices,
   getPlotLatestTelemetry,
+  getPlotTelemetryHistory,
   getPlotWeather,
   login,
   logout,
@@ -16,8 +18,10 @@ import {
   type DevicePayload,
   type DeviceProvisioningPayload,
   type FarmPayload,
+  type HealthReadyPayload,
   type MePayload,
   type PlotPayload,
+  type TelemetryHistoryPayload,
   type TelemetryReadingPayload,
   type WeatherForecastPointPayload,
   type WeatherPayload
@@ -31,13 +35,18 @@ const App = {
     const plots = ref<PlotPayload[]>([]);
     const devices = ref<DevicePayload[]>([]);
     const latestTelemetry = ref<TelemetryReadingPayload[]>([]);
+    const telemetryHistory = ref<TelemetryHistoryPayload | null>(null);
     const weather = ref<WeatherPayload | null>(null);
+    const runtimeStatus = ref<HealthReadyPayload | null>(null);
     const provisioningCredential = ref<DeviceProvisioningPayload | null>(null);
     const activeFarmId = ref("");
     const selectedPlotId = ref("");
+    const historyMetric = ref<MetricCode>("soil_temperature");
     const loading = ref(true);
     const busy = ref(false);
     const workspaceBusy = ref(false);
+    const historyBusy = ref(false);
+    const runtimeBusy = ref(false);
     const error = ref<string | null>(null);
     const form = reactive({
       email: "multi@example.test",
@@ -60,6 +69,29 @@ const App = {
     const isSignedIn = computed(() => auth.value !== null);
     const activeFarm = computed(() => farms.value.find((farm) => farm.id === activeFarmId.value) ?? null);
     const selectedPlot = computed(() => plots.value.find((plot) => plot.id === selectedPlotId.value) ?? plots.value[0] ?? null);
+    const runtimeDependencyRows = computed(() => Object.entries(runtimeStatus.value?.dependencies ?? {}).map(([name, status]) => ({
+      name,
+      status
+    })));
+    const telemetryHistoryPoints = computed(() => telemetryHistory.value?.points ?? []);
+    const telemetryHistoryBars = computed(() => {
+      const points = telemetryHistoryPoints.value;
+      const values = points
+        .map((point) => point.value)
+        .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+      const minimum = values.length > 0 ? Math.min(...values) : 0;
+      const maximum = values.length > 0 ? Math.max(...values) : 1;
+      const span = maximum - minimum || 1;
+
+      return points.map((point) => ({
+        key: `${point.device_id}:${point.node_id}:${point.metric}:${point.ts}:${point.seq}`,
+        point,
+        height: typeof point.value === "number" && Number.isFinite(point.value)
+          ? `${24 + ((point.value - minimum) / span) * 76}%`
+          : "8%"
+      }));
+    });
+    const telemetryMetricOptions = metricCodes;
     const weatherLabel = computed(() => {
       if (!weather.value) {
         return selectedPlot.value?.name ?? "";
@@ -102,6 +134,8 @@ const App = {
       error.value = null;
 
       try {
+        await loadRuntimeStatus();
+
         const response = await getMe();
         auth.value = response.data;
 
@@ -134,6 +168,7 @@ const App = {
         }
 
         auth.value = response.data;
+        await loadRuntimeStatus();
         await loadTenantWorkspace();
       } finally {
         busy.value = false;
@@ -193,6 +228,7 @@ const App = {
           plots.value = [];
           devices.value = [];
           latestTelemetry.value = [];
+          telemetryHistory.value = null;
           weather.value = null;
           selectedPlotId.value = "";
         }
@@ -212,6 +248,7 @@ const App = {
           plots.value = [];
           devices.value = [];
           latestTelemetry.value = [];
+          telemetryHistory.value = null;
           weather.value = null;
           selectedPlotId.value = "";
           return;
@@ -226,6 +263,7 @@ const App = {
         } else {
           devices.value = [];
           latestTelemetry.value = [];
+          telemetryHistory.value = null;
           weather.value = null;
         }
       } finally {
@@ -255,7 +293,20 @@ const App = {
     async function loadPlotRuntime(plotId: string): Promise<void> {
       await loadDevices(plotId);
       await loadLatestTelemetry(plotId);
+      await loadTelemetryHistory(plotId);
       await loadWeather(plotId);
+    }
+
+    async function loadRuntimeStatus(): Promise<void> {
+      runtimeBusy.value = true;
+
+      try {
+        runtimeStatus.value = await getHealthReady();
+      } catch {
+        runtimeStatus.value = null;
+      } finally {
+        runtimeBusy.value = false;
+      }
     }
 
     async function loadDevices(plotId: string): Promise<void> {
@@ -289,8 +340,43 @@ const App = {
         }
 
         latestTelemetry.value = response.data;
+        const preferredMetric = response.data.find((reading) => reading.metric === historyMetric.value)?.metric
+          ?? response.data[0]?.metric;
+
+        if (preferredMetric) {
+          historyMetric.value = preferredMetric;
+        }
       } finally {
         workspaceBusy.value = false;
+      }
+    }
+
+    async function loadTelemetryHistory(plotId = selectedPlotId.value): Promise<void> {
+      if (!plotId) {
+        telemetryHistory.value = null;
+        return;
+      }
+
+      historyBusy.value = true;
+
+      try {
+        const range = createHistoryRange(latestTelemetry.value);
+        const response = await getPlotTelemetryHistory({
+          plotId,
+          metric: historyMetric.value,
+          from: range.from,
+          to: range.to,
+          resolution: "raw"
+        });
+
+        if (!response.data) {
+          telemetryHistory.value = null;
+          return;
+        }
+
+        telemetryHistory.value = response.data;
+      } finally {
+        historyBusy.value = false;
       }
     }
 
@@ -338,6 +424,7 @@ const App = {
         plots.value = [];
         devices.value = [];
         latestTelemetry.value = [];
+        telemetryHistory.value = null;
         weather.value = null;
         selectedPlotId.value = "";
       } finally {
@@ -437,7 +524,9 @@ const App = {
       plots.value = [];
       devices.value = [];
       latestTelemetry.value = [];
+      telemetryHistory.value = null;
       weather.value = null;
+      runtimeStatus.value = null;
       provisioningCredential.value = null;
       activeFarmId.value = "";
       selectedPlotId.value = "";
@@ -460,6 +549,10 @@ const App = {
         .split("_")
         .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
         .join(" ");
+    }
+
+    function formatDependencyName(name: string): string {
+      return name === "victoriametrics" ? "VictoriaMetrics" : formatMetricName(name);
     }
 
     function formatTelemetryValue(reading: TelemetryReadingPayload): string {
@@ -507,6 +600,18 @@ const App = {
       })} ${unit}`;
     }
 
+    function dependencyStateClass(status: string): string {
+      if (status.includes("not_configured")) {
+        return "muted";
+      }
+
+      if (status.includes("configured") || status.includes("hybrid") || status.includes("in_memory")) {
+        return "good";
+      }
+
+      return "warn";
+    }
+
     onMounted(() => {
       void refreshSession();
     });
@@ -517,12 +622,14 @@ const App = {
       activeFarmId,
       busy,
       canWriteMetadata,
+      dependencyStateClass,
       devices,
       deviceForm,
       error,
       farmForm,
       farms,
       formatCoordinate,
+      formatDependencyName,
       formatHectares,
       formatMeters,
       formatMetricName,
@@ -532,9 +639,16 @@ const App = {
       formatWeatherTemperature,
       form,
       isSignedIn,
+      historyBusy,
+      historyMetric,
       latestTelemetry,
+      loadRuntimeStatus,
+      loadTelemetryHistory,
       loading,
       loginTenantOptions,
+      runtimeBusy,
+      runtimeDependencyRows,
+      runtimeStatus,
       plotForm,
       plots,
       provisioningCredential,
@@ -549,6 +663,10 @@ const App = {
       submitPlot,
       submitLogout,
       switchTenant,
+      telemetryHistory,
+      telemetryHistoryBars,
+      telemetryHistoryPoints,
+      telemetryMetricOptions,
       weather,
       weatherEmptyState,
       weatherLabel,
@@ -633,6 +751,22 @@ const App = {
               <dd>{{ devices.length }}</dd>
             </div>
           </dl>
+
+          <section class="runtime-strip" aria-label="Status runtime staging">
+            <div class="section-title">
+              <h2>Runtime</h2>
+              <button class="ghost-button" :disabled="runtimeBusy" type="button" @click="loadRuntimeStatus">
+                Refresh
+              </button>
+            </div>
+            <div v-if="runtimeDependencyRows.length" class="runtime-grid">
+              <div v-for="dependency in runtimeDependencyRows" :key="dependency.name" class="runtime-item">
+                <span>{{ formatDependencyName(dependency.name) }}</span>
+                <strong :class="dependencyStateClass(dependency.status)">{{ dependency.status }}</strong>
+              </div>
+            </div>
+            <p v-else class="empty-state">Runtime belum tersedia.</p>
+          </section>
 
           <section class="workspace-section" aria-label="Farm tenant">
             <div class="section-title">
@@ -758,6 +892,41 @@ const App = {
             <p v-else class="empty-state">Belum ada telemetry.</p>
           </section>
 
+          <section v-if="selectedPlot" class="workspace-section" aria-label="History telemetry plot">
+            <div class="section-title">
+              <h2>History</h2>
+              <span>{{ historyBusy ? "Memuat" : historyMetric }}</span>
+            </div>
+
+            <div class="history-controls">
+              <select v-model="historyMetric" aria-label="Metric history" @change="loadTelemetryHistory()">
+                <option v-for="metric in telemetryMetricOptions" :key="metric" :value="metric">
+                  {{ formatMetricName(metric) }}
+                </option>
+              </select>
+              <button class="ghost-button" :disabled="historyBusy" type="button" @click="loadTelemetryHistory()">
+                Refresh
+              </button>
+            </div>
+
+            <div v-if="telemetryHistoryBars.length" class="history-chart" aria-hidden="true">
+              <span
+                v-for="bar in telemetryHistoryBars"
+                :key="bar.key"
+                :style="{ height: bar.height }"
+              ></span>
+            </div>
+
+            <div v-if="telemetryHistoryPoints.length" class="history-list">
+              <div v-for="point in telemetryHistoryPoints" :key="point.ts + point.metric + point.device_id" class="history-row">
+                <span>{{ formatTimestamp(point.ts) }}</span>
+                <strong>{{ formatTelemetryValue(point) }}</strong>
+                <small>{{ point.device_id }} / seq {{ point.seq }}</small>
+              </div>
+            </div>
+            <p v-else class="empty-state">History belum tersedia.</p>
+          </section>
+
           <section v-if="selectedPlot" class="workspace-section" aria-label="Device plot">
             <div class="section-title">
               <h2>Device</h2>
@@ -834,6 +1003,23 @@ function createTemplatePolygon(tenantId: string, plotIndex: number): PolygonGeom
         [west, south]
       ]
     ]
+  };
+}
+
+function createHistoryRange(readings: TelemetryReadingPayload[]): {
+  from: string;
+  to: string;
+} {
+  const latestTimestamp = readings
+    .map((reading) => Date.parse(reading.ts))
+    .filter((timestamp) => Number.isFinite(timestamp))
+    .reduce((latest, timestamp) => Math.max(latest, timestamp), 0);
+  const to = latestTimestamp > 0 ? latestTimestamp : Date.now();
+  const from = to - 60 * 60 * 1000;
+
+  return {
+    from: new Date(from).toISOString(),
+    to: new Date(to).toISOString()
   };
 }
 

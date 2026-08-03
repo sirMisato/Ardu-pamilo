@@ -29,6 +29,8 @@ Fase 8 menyiapkan deployment staging yang repeatable tanpa melakukan production 
 - CI reguler menambah job build Docker image tanpa push.
 - API staging memakai telemetry adapter `redis-victoria-hybrid`.
 - MQTT ingestor staging berjalan sebagai daemon internal dan menulis latest/history ke Redis/VictoriaMetrics.
+- Dashboard staging menampilkan runtime dependency, latest telemetry, dan history telemetry dari API.
+- Mosquitto staging tetap internal-only dan diberi guardrail persistence, log stdout, packet size, client id, dan inflight message.
 
 ## Evidence Terkini
 
@@ -82,7 +84,7 @@ Workflow input:
 - Login tenant A.
 - Farm list tenant A.
 - CSRF mutation dari trusted origin.
-- Latest telemetry seeded.
+- Latest/history telemetry endpoint.
 - Weather BMKG payload seeded/missing state.
 
 ## Rollback Awal

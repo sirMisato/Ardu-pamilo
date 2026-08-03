@@ -89,7 +89,23 @@ async function runSmoke() {
   if (!Array.isArray(telemetry.body.data) || telemetry.body.data.length < 1) {
     throw new Error("telemetry latest did not return seeded readings");
   }
-  checks.push("telemetry");
+
+  const telemetrySample = telemetry.body.data[0];
+  const historyRange = createHistoryRange(telemetry.body.data);
+  const history = await requestJson(
+    `/api/v1/plots/plot-a/telemetry/history?metric=${encodeURIComponent(telemetrySample.metric)}&from=${encodeURIComponent(historyRange.from)}&to=${encodeURIComponent(historyRange.to)}&resolution=raw`,
+    {
+      headers: {
+        cookie: cookieHeader
+      }
+    }
+  );
+  expectStatus(history.response, 200, "telemetry history");
+  expectEqual(history.body.data?.metric, telemetrySample.metric, "history metric");
+  if (!Array.isArray(history.body.data?.points)) {
+    throw new Error("telemetry history did not return points array");
+  }
+  checks.push("telemetry latest/history");
 
   const weather = await requestJson("/api/v1/plots/plot-a/weather", {
     headers: {
@@ -178,6 +194,20 @@ function expectOneOf(actual, expectedValues, label) {
   if (!expectedValues.includes(actual)) {
     throw new Error(`${label} expected one of ${expectedValues.join(", ")}, got ${String(actual)}`);
   }
+}
+
+function createHistoryRange(readings) {
+  const latestTimestamp = readings
+    .map((reading) => Date.parse(reading.ts))
+    .filter((timestamp) => Number.isFinite(timestamp))
+    .reduce((latest, timestamp) => Math.max(latest, timestamp), 0);
+  const to = latestTimestamp > 0 ? latestTimestamp : Date.now();
+  const from = to - 60 * 60 * 1000;
+
+  return {
+    from: new Date(from).toISOString(),
+    to: new Date(to).toISOString()
+  };
 }
 
 function normalizeBaseUrl(value) {

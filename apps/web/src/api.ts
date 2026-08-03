@@ -1,4 +1,4 @@
-import type { PolygonGeometry } from "@pamilo/shared";
+import type { MetricCode, PolygonGeometry } from "@pamilo/shared";
 
 export interface ApiEnvelope<T> {
   data: T | null;
@@ -92,7 +92,7 @@ export interface DeviceProvisioningPayload extends DevicePayload {
 export interface TelemetryReadingPayload {
   device_id: string;
   node_id: string;
-  metric: string;
+  metric: MetricCode;
   ts: string;
   seq: number;
   value: number | null;
@@ -124,6 +124,29 @@ export interface WeatherPayload {
   fetched_at: string | null;
   stale_after: string | null;
   forecast: WeatherForecastPointPayload[];
+}
+
+export interface HealthReadyPayload {
+  status: "ok";
+  service: "api";
+  generated_at: string;
+  dependencies: Record<string, string>;
+}
+
+export interface TelemetryHistoryPayload {
+  metric: MetricCode;
+  from: string;
+  to: string;
+  resolution: string;
+  points: TelemetryReadingPayload[];
+}
+
+export async function getHealthReady(): Promise<HealthReadyPayload> {
+  const response = await fetch("/health/ready", {
+    credentials: "include"
+  });
+
+  return response.json() as Promise<HealthReadyPayload>;
 }
 
 export async function login(input: {
@@ -241,6 +264,23 @@ export async function revokeDevice(input: {
 
 export async function getPlotLatestTelemetry(plotId: string): Promise<ApiEnvelope<TelemetryReadingPayload[]>> {
   return request<TelemetryReadingPayload[]>(`/api/v1/plots/${encodeURIComponent(plotId)}/telemetry/latest`);
+}
+
+export async function getPlotTelemetryHistory(input: {
+  plotId: string;
+  metric: MetricCode;
+  from: string;
+  to: string;
+  resolution: string;
+}): Promise<ApiEnvelope<TelemetryHistoryPayload>> {
+  const params = new URLSearchParams({
+    metric: input.metric,
+    from: input.from,
+    to: input.to,
+    resolution: input.resolution
+  });
+
+  return request<TelemetryHistoryPayload>(`/api/v1/plots/${encodeURIComponent(input.plotId)}/telemetry/history?${params}`);
 }
 
 export async function getPlotWeather(plotId: string): Promise<ApiEnvelope<WeatherPayload>> {

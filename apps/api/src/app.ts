@@ -29,10 +29,19 @@ export interface AppDependencies {
   farms: FarmRepository;
   identityStore: IdentityStore;
   plots: PlotRepository;
+  runtimeDependencies: RuntimeDependencyStatuses;
   sessionStore: SessionStore;
   telemetry: TelemetryRepository;
   telemetryStatus: string;
   weather: WeatherRepository;
+}
+
+export interface RuntimeDependencyStatuses {
+  mysql: string;
+  redis: string;
+  telemetry: string;
+  victoriametrics: string;
+  weather: string;
 }
 
 function now(): string {
@@ -48,6 +57,13 @@ export function createAppDependencies(overrides: Partial<AppDependencies> = {}):
     farms: overrides.farms ?? new InMemoryFarmRepository(),
     identityStore: overrides.identityStore ?? new InMemoryIdentityStore(),
     plots: overrides.plots ?? new InMemoryPlotRepository(),
+    runtimeDependencies: overrides.runtimeDependencies ?? {
+      mysql: "not_configured_local",
+      redis: defaultTelemetry.redis,
+      telemetry: overrides.telemetryStatus ?? (overrides.telemetry ? "custom_test" : defaultTelemetry.status),
+      victoriametrics: defaultTelemetry.victoriametrics,
+      weather: "in_memory_local"
+    },
     sessionStore: overrides.sessionStore ?? new InMemorySessionStore(),
     telemetry: overrides.telemetry ?? defaultTelemetry.repository,
     telemetryStatus: overrides.telemetryStatus ?? (overrides.telemetry ? "custom_test" : defaultTelemetry.status),
@@ -78,12 +94,7 @@ export function buildApp(overrides: Partial<AppDependencies> = {}): FastifyInsta
     status: "ok",
     service: "api",
     generated_at: now(),
-    dependencies: {
-      mysql: "not_configured_local",
-      redis: "not_configured_local",
-      telemetry: deps.telemetryStatus,
-      weather: "in_memory_local"
-    }
+    dependencies: deps.runtimeDependencies
   }));
 
   void app.register(async (instance) => {
@@ -100,7 +111,9 @@ export function buildApp(overrides: Partial<AppDependencies> = {}): FastifyInsta
 
 function createDefaultTelemetryDependency(): {
   repository: TelemetryRepository;
+  redis: string;
   status: string;
+  victoriametrics: string;
 } {
   const adapter = process.env.TELEMETRY_STORAGE_ADAPTER?.trim() ?? "";
   const redisUrl = process.env.REDIS_URL?.trim() ?? "";
@@ -119,12 +132,16 @@ function createDefaultTelemetryDependency(): {
         victoriaMetricsUrl,
         fallback
       }),
-      status: adapter
+      redis: "configured_for_telemetry",
+      status: adapter,
+      victoriametrics: "configured_for_telemetry"
     };
   }
 
   return {
     repository: new InMemoryTelemetryRepository(),
-    status: "in_memory_local"
+    redis: "not_configured_local",
+    status: "in_memory_local",
+    victoriametrics: "not_configured_local"
   };
 }

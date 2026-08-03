@@ -38,10 +38,12 @@ Fase 5 membangun fondasi latest dan history telemetry dari payload ESP32 yang su
   - `5m`
   - `15m`
   - `1h`
-- Frontend tenant dashboard menampilkan latest telemetry untuk plot aktif.
+- Frontend tenant dashboard menampilkan latest dan history telemetry untuk plot aktif.
+- Frontend tenant dashboard menampilkan status runtime API dependency dari `/health/ready`.
 - `/health/ready` sekarang membedakan dependency lokal:
   - MySQL belum configured
-  - Redis belum configured
+  - Redis belum configured atau `configured_for_telemetry`
+  - VictoriaMetrics belum configured atau `configured_for_telemetry`
   - telemetry memakai in-memory local adapter atau `redis-victoria-hybrid`
 
 ## Security dan Tenancy
@@ -76,6 +78,7 @@ Fase 5 membangun fondasi latest dan history telemetry dari payload ESP32 yang su
 - History telemetry valid mengembalikan points berurutan.
 - History query invalid mengembalikan `400 VALIDATION_FAILED`.
 - Operator read-only dapat membaca telemetry.
+- Smoke staging dan public VPS simulation memvalidasi endpoint latest dan history.
 
 ## Acceptance Criteria Fase 5 Saat Ini
 
@@ -84,12 +87,13 @@ Fase 5 membangun fondasi latest dan history telemetry dari payload ESP32 yang su
 - Latest/history endpoint memakai envelope standar.
 - Semua telemetry read tenant-scoped.
 - Field metric dan unit canonical sesuai `docs/09-data-api-contracts.md`.
-- Frontend menampilkan latest telemetry dari API untuk plot aktif.
+- Frontend menampilkan latest dan history telemetry dari API untuk plot aktif.
+- Runtime dependency Redis/VictoriaMetrics terlihat dari dashboard dan `/health/ready`.
 
 ## Open Before Phase 6
 
 - Tambahkan SSE tenant-scoped dan fallback polling.
 - Tambahkan rate limit dan batas rentang history query.
-- Tambahkan simulator telemetry end-to-end dari MQTT sampai dashboard.
+- Tambahkan automated browser E2E untuk bukti visual dashboard setelah MQTT simulation.
 - Tambahkan replay worker dari Redis Stream untuk recovery write failure.
 - Tutup device ownership check production setelah persistent device registry tersedia.
