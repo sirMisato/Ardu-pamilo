@@ -40,7 +40,7 @@ Dokumen ini menjadi pusat koordinasi tim kecil PAMILO Smart Farming GIS sampai s
 | 6 | BMKG dan agronomy | Weather worker, cache adm4, threshold governance | Stale/failure test dan provenance lulus |
 | 7 | Hardening dan QA | Security hardening, E2E, load, backup drill | QA sign-off dan security checklist lulus |
 | 8 | Staging deployment | VPS staging/prod-like, CI/CD, observability | Deploy dan rollback rehearsal lulus |
-| 9 | Pilot | Perangkat lapangan, UAT, monitoring, training | Pilot acceptance ditandatangani |
+| 9 | Pilot | Perangkat lapangan, UAT, monitoring, training. Status awal ada di `docs/23-phase-9-pilot-uat.md` | Pilot acceptance ditandatangani |
 | 10 | Production release | DNS/TLS production, release tagged, hypercare | Go-live checklist selesai |
 
 ## RACI Ringkas

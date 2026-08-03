@@ -29,6 +29,14 @@ Menentukan syarat minimum agar PAMILO layak deploy ke staging dan production. Ch
 - Detail teknis dan rollback: `docs/22-phase-8-staging-deployment.md`.
 - Akses VPS workflow memakai username/password dari `VPS_USERNAME` dan `VPS_PASSWORD`; private key tidak dipakai.
 
+## Artifact Fase 9
+
+- Pilot UAT command: `npm run uat:pilot`.
+- Automated UAT report: `.local/pilot-uat/pilot-uat-<timestamp>.md`.
+- Detail runbook dan acceptance: `docs/23-phase-9-pilot-uat.md`.
+- Final staging UAT harus memakai `PAMILO_UAT_WRITE=true` agar flow create farm/plot dan device provision/revoke terbukti.
+- Script UAT menolak host production; production smoke tetap Fase 10.
+
 ## Production Readiness
 
 - Scope release dan release notes disetujui.

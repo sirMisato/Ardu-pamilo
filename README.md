@@ -47,6 +47,12 @@ Staging smoke:
 PAMILO_BASE_URL=http://<staging-host>:8080 npm run smoke:staging
 ```
 
+Pilot UAT:
+
+```text
+PAMILO_UAT_BASE_URL=http://<staging-host>:8080 PAMILO_UAT_ORIGIN=http://<staging-host>:8080 npm run uat:pilot
+```
+
 ## Delivery Boundaries
 
 - No production deployment.
@@ -55,4 +61,4 @@ PAMILO_BASE_URL=http://<staging-host>:8080 npm run smoke:staging
 - No production MQTT broker connection.
 - No real credentials in repository files.
 
-See [docs/22-phase-8-staging-deployment.md](docs/22-phase-8-staging-deployment.md) for the current phase status.
+See [docs/23-phase-9-pilot-uat.md](docs/23-phase-9-pilot-uat.md) for the current phase status.

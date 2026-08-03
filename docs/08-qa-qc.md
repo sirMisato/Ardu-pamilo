@@ -61,7 +61,7 @@ Membuktikan sistem benar, aman, dan layak deploy melalui test fungsional, integr
 | 6 | BMKG adapter and alert tests. Status awal ada di `docs/20-phase-6-bmkg-agronomy.md` |
 | 7 | Full regression, load baseline, security regression. Status awal ada di `docs/21-phase-7-hardening-qa.md` |
 | 8 | Staging smoke, rollback validation. Status awal ada di `docs/22-phase-8-staging-deployment.md` |
-| 9 | UAT script and pilot acceptance report |
+| 9 | UAT script and pilot acceptance report. Status awal ada di `docs/23-phase-9-pilot-uat.md` |
 | 10 | Production smoke and hypercare checklist |
 
 ## Smoke Coverage Fase 8
@@ -95,3 +95,7 @@ Membuktikan sistem benar, aman, dan layak deploy melalui test fungsional, integr
 - Playwright mencakup desktop dan mobile.
 - Load test baseline didokumentasikan sebelum production.
 - Restore drill dan rollback rehearsal punya bukti hasil.
+
+## UAT Fase 9
+
+`npm run uat:pilot` menghasilkan report Markdown di `.local/pilot-uat/`. Report tersebut wajib dilampirkan bersama evidence manual browser, perangkat lapangan, log operasional, dan sign-off sebelum Fase 10.
