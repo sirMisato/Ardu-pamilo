@@ -1,0 +1,38 @@
+{
+  "name": "ardu-pamilo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.12.1",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "workspaces": [
+    "packages/shared",
+    "apps/api",
+    "apps/web",
+    "apps/workers/mqtt-ingestor"
+  ],
+  "scripts": {
+    "build": "npm run build -w @pamilo/shared && npm run build -w @pamilo/api && npm run build -w @pamilo/mqtt-ingestor && npm run build -w @pamilo/web",
+    "ci": "npm run secret:scan && npm run lint && npm run typecheck && npm test && npm run build",
+    "dev:api": "npm run dev -w @pamilo/api",
+    "dev:mqtt-ingestor": "npm run dev -w @pamilo/mqtt-ingestor",
+    "dev:web": "npm run dev -w @pamilo/web",
+    "lint": "eslint .",
+    "secret:scan": "node scripts/check-secrets.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^24.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0"
+  }
+}

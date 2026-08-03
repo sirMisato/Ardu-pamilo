@@ -1,0 +1,65 @@
+name: pamilo
+
+x-node-service: &node-service
+  image: node:22-alpine
+  working_dir: /workspace
+  env_file:
+    - .env.example
+  volumes:
+    - ./:/workspace
+    - node_modules:/workspace/node_modules
+
+services:
+  api:
+    <<: *node-service
+    command: sh -c "npm install && npm run dev:api"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis
+      - victoriametrics
+
+  web:
+    <<: *node-service
+    command: sh -c "npm install && npm run dev:web"
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+  mqtt-ingestor:
+    <<: *node-service
+    command: sh -c "npm install && npm run dev:mqtt-ingestor"
+    depends_on:
+      - mosquitto
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.103.0
+    command:
+      - "-retentionPeriod=1"
+    ports:
+      - "8428:8428"
+    volumes:
+      - victoriametrics-data:/victoria-metrics-data
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./infra/mosquitto/mosquitto.local.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+
+volumes:
+  node_modules:
+  redis-data:
+  victoriametrics-data:
+  mosquitto-data:

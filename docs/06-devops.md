@@ -53,6 +53,14 @@ flowchart LR
 - Production deploy memakai approval.
 - Rollback memakai image digest terakhir yang sudah sehat.
 
+## GitHub Actions VPS Access
+
+- Data non-sensitif seperti `VPS_HOST`, `VPS_PORT`, dan `VPS_USERNAME` boleh memakai repository variables.
+- Credential seperti password, private key, token, dan deploy key wajib memakai repository secrets.
+- Akses VPS untuk Fase 1 hanya berupa workflow manual read-only connectivity check.
+- Deployment production belum boleh dibuat sebelum deployment readiness dan security gate disetujui.
+- Lihat `docs/15-github-actions-vps-access.md` untuk setup aman.
+
 ## Commands Placeholder
 
 Commands final dibuat saat repo source code tersedia. Format placeholder:
