@@ -268,6 +268,23 @@ jobs:
           export SSHPASS="$VPS_PASSWORD"
           deploy_path="${{ steps.config.outputs.deploy_path }}"
 
+          sshpass -e ssh \
+            -p "$VPS_PORT" \
+            -o BatchMode=no \
+            -o NumberOfPasswordPrompts=1 \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USERNAME@$VPS_HOST" \
+            'set -euo pipefail
+            if ! command -v docker >/dev/null 2>&1 || ! sudo -n docker compose version >/dev/null 2>&1; then
+              sudo -n apt-get update
+              sudo -n apt-get install -y --no-install-recommends docker.io docker-compose-v2
+            fi
+            sudo -n systemctl enable --now docker >/dev/null 2>&1 || sudo -n service docker start
+            sudo -n docker --version
+            sudo -n docker compose version'
+
           printf '%s' "${{ github.token }}" | sshpass -e ssh \
             -p "$VPS_PORT" \
             -o BatchMode=no \
@@ -276,7 +293,7 @@ jobs:
             -o PubkeyAuthentication=no \
             -o StrictHostKeyChecking=yes \
             "$VPS_USERNAME@$VPS_HOST" \
-            "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
+            "sudo -n docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
 
           sshpass -e ssh \
             -p "$VPS_PORT" \
@@ -286,7 +303,7 @@ jobs:
             -o PubkeyAuthentication=no \
             -o StrictHostKeyChecking=yes \
             "$VPS_USERNAME@$VPS_HOST" \
-            "cd '$deploy_path' && docker compose --env-file staging.env -f compose.staging.yaml pull && docker compose --env-file staging.env -f compose.staging.yaml up -d --remove-orphans && docker compose --env-file staging.env -f compose.staging.yaml ps"
+            "cd '$deploy_path' && sudo -n docker compose --env-file staging.env -f compose.staging.yaml pull && sudo -n docker compose --env-file staging.env -f compose.staging.yaml up -d --remove-orphans && sudo -n docker compose --env-file staging.env -f compose.staging.yaml ps"
 
       - name: Run staging smoke
         env:

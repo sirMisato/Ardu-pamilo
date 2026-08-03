@@ -171,8 +171,8 @@ jobs:
           payload="{\"v\":1,\"device_id\":\"device-a\",\"node_id\":\"vps-sim-01\",\"ts\":\"$ts\",\"seq\":1,\"m\":{\"st\":27.4,\"sm\":43.1},\"q\":{\"calibration_profile\":\"vps-simulation\",\"flags\":[]}}"
 
           cd "$DEPLOY_PATH"
-          docker compose --env-file staging.env -f compose.staging.yaml --profile worker-self-check up -d mosquitto
-          docker compose --env-file staging.env -f compose.staging.yaml exec -T mosquitto sh -c '
+          sudo -n docker compose --env-file staging.env -f compose.staging.yaml --profile worker-self-check up -d mosquitto
+          sudo -n docker compose --env-file staging.env -f compose.staging.yaml exec -T mosquitto sh -c '
             set -eu
             topic="$1"
             payload="$2"
