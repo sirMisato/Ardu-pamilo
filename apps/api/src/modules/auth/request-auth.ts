@@ -1,5 +1,6 @@
 import type { FastifyRequest } from "fastify";
 import type { TenantContext } from "@pamilo/shared";
+import { isTrustedRequestOrigin } from "../../lib/security-hardening.js";
 import type { IdentityStore } from "./identity-store.js";
 import type { SessionStore } from "./session-store.js";
 import type { SessionRecord, TenantRecord, UserRecord } from "./types.js";
@@ -53,5 +54,5 @@ export function getAuthenticatedContext(request: FastifyRequest, deps: AuthDepen
 
 export function isValidCsrf(request: FastifyRequest, session: SessionRecord): boolean {
   const header = request.headers[csrfHeaderName];
-  return typeof header === "string" && header.length > 0 && header === session.csrfToken;
+  return typeof header === "string" && header.length > 0 && header === session.csrfToken && isTrustedRequestOrigin(request);
 }

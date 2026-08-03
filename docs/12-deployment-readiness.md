@@ -16,6 +16,8 @@ Menentukan syarat minimum agar PAMILO layak deploy ke staging dan production. Ch
 - MySQL remote staging/test tidak memakai production data mentah.
 - Redis dan VictoriaMetrics punya volume dan retention.
 - CI deploy staging memakai image immutable.
+- `API_TRUSTED_ORIGINS` sudah berisi origin web staging yang disetujui.
+- API security headers dan safe error envelope lulus smoke test.
 - Smoke test otomatis lulus.
 - Rollback rehearsal berhasil.
 

@@ -59,7 +59,7 @@ Membuktikan sistem benar, aman, dan layak deploy melalui test fungsional, integr
 | 4 | MQTT simulator and ACL tests |
 | 5 | Telemetry latency and history tests |
 | 6 | BMKG adapter and alert tests. Status awal ada di `docs/20-phase-6-bmkg-agronomy.md` |
-| 7 | Full regression, load baseline, security regression |
+| 7 | Full regression, load baseline, security regression. Status awal ada di `docs/21-phase-7-hardening-qa.md` |
 | 8 | Staging smoke, rollback validation |
 | 9 | UAT script and pilot acceptance report |
 | 10 | Production smoke and hypercare checklist |

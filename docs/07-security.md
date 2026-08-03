@@ -88,3 +88,11 @@ pamilo/v1/tenants/{tenant_id}/devices/{device_id}/acks
 - Auth skeleton memakai cookie session server-side dan CSRF token untuk mutasi.
 - Data identity/session/audit masih in-memory untuk local/test sampai keputusan database production dikunci.
 - Cross-tenant direct ID test pertama tersedia melalui `GET /api/v1/plots/:plotId`.
+
+## Phase 7 Notes
+
+- Status awal hardening ada di `docs/21-phase-7-hardening-qa.md`.
+- API sudah menambahkan baseline security headers dan `X-Request-Id`.
+- API sudah memakai global safe error envelope untuk unknown route, oversized payload, dan unhandled error.
+- CSRF route mutasi sekarang menolak `Origin` yang tidak dipercaya, dengan allowlist via `API_TRUSTED_ORIGINS`.
+- `Strict-Transport-Security` hanya aktif saat `NODE_ENV=production`.

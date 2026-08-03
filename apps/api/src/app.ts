@@ -1,5 +1,6 @@
 import cookie from "@fastify/cookie";
 import Fastify, { type FastifyInstance } from "fastify";
+import { registerSecurityHardening, resolveBodyLimitBytes } from "./lib/security-hardening.js";
 import { InMemoryAuditLog, type AuditLog } from "./modules/audit/audit-log.js";
 import { InMemoryIdentityStore, type IdentityStore } from "./modules/auth/identity-store.js";
 import { registerAuthRoutes } from "./modules/auth/routes.js";
@@ -52,10 +53,13 @@ export function createAppDependencies(overrides: Partial<AppDependencies> = {}):
 export function buildApp(overrides: Partial<AppDependencies> = {}): FastifyInstance {
   const deps = createAppDependencies(overrides);
   const app = Fastify({
+    bodyLimit: resolveBodyLimitBytes(),
     logger: {
       level: process.env.LOG_LEVEL ?? "info"
     }
   });
+
+  registerSecurityHardening(app);
 
   void app.register(cookie);
 

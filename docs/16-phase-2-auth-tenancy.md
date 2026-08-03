@@ -62,6 +62,7 @@ Data ini hanya untuk local/test. Jangan gunakan sebagai seed production.
 
 - Session cookie `pamilo_session` diset `HttpOnly`, `SameSite=Lax`, dan `Secure` saat `NODE_ENV=production`.
 - CSRF token dikembalikan pada login dan harus dikirim sebagai header `x-csrf-token` untuk logout.
+- Sejak Fase 7, mutasi dengan `Origin` tidak dipercaya ditolak walaupun token CSRF valid. Trusted origin staging/production dikonfigurasi lewat `API_TRUSTED_ORIGINS`.
 - Tenant ID dari client hanya boleh dipakai saat login untuk memilih tenant membership yang memang dimiliki user.
 - Tenant-owned repository tetap wajib menerima `TenantContext`.
 - Cross-tenant not found memakai `404` untuk tidak membocorkan keberadaan resource.

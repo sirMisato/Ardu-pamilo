@@ -103,7 +103,7 @@ apps/api/src/modules/
 | 4 | Device provisioning API, MQTT credential lifecycle hooks. Status awal ada di `docs/18-phase-4-device-mqtt.md` |
 | 5 | Latest/history telemetry API, SSE, rate limit. Status awal ada di `docs/19-phase-5-telemetry.md` |
 | 6 | BMKG adapter, threshold versioning, alert API. Status awal ada di `docs/20-phase-6-bmkg-agronomy.md` |
-| 7 | Security hardening, negative tests, load improvements |
+| 7 | Security hardening, negative tests, load improvements. Status awal ada di `docs/21-phase-7-hardening-qa.md` |
 | 8 | Health/readiness, release migrations, staging smoke tests |
 
 ## Acceptance Criteria Backend
