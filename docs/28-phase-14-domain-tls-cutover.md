@@ -6,22 +6,33 @@ Tanggal mulai: 2026-08-04
 
 ## Tujuan
 
-Fase 14 menyiapkan kesiapan domain dan TLS untuk website `sedayafarm.keycloud.id`. Fase ini hanya membuat gate, runbook, dan evidence check. Tidak ada DNS change, production deploy, production MQTT, atau production MySQL access dari repo.
+Fase 14 menyiapkan kesiapan domain dan TLS untuk website `sedayafarm.keycloud.id`. Fase ini membuat gate, runbook, evidence check, dan installer HTTPS reverse proxy VPS yang dijalankan atas permintaan operator. Tidak ada DNS change, production MQTT, atau production MySQL access dari repo.
 
 ## Scope Implementasi Saat Ini
 
 - `scripts/domain-readiness.mjs` untuk validasi kesiapan domain/TLS.
 - `npm run domain:readiness` sebagai entrypoint gate.
 - `.github/workflows/domain-tls-readiness.yml` sebagai workflow manual non-deploy.
+- `.github/workflows/vps-domain-ssl.yml` sebagai workflow manual untuk install Nginx + Certbot di VPS.
 - `infra/production/domain-readiness.env.example` sebagai template env non-secret.
 - Report readiness ditulis ke `.local/domain-readiness/`.
-- GitHub Actions dry-run dengan `run_network_checks=true` sudah dijalankan di run `30860521786` dan menghasilkan artifact `domain-tls-readiness`.
+- GitHub Actions `VPS Domain SSL Install` sudah dijalankan di run `30865577439`.
+- GitHub Actions dry-run dengan `run_network_checks=true` sudah dijalankan di run `30865715442` dan menghasilkan artifact `8876009840`.
+
+## Evidence Terkini
+
+| Workflow | Run | Artifact | Status |
+| --- | --- | --- | --- |
+| `VPS Domain SSL Install` | `30865577439` | n/a | Success |
+| `Domain TLS Readiness` | `30865715442` | `8876009840` | Success |
 
 ## Batas Aman
 
 - Default script tidak melakukan DNS lookup atau request HTTPS.
 - DNS/HTTPS check hanya berjalan jika `PAMILO_DOMAIN_NETWORK_APPROVED=true`.
 - Gate tidak menjalankan SSH, deploy, Docker command, atau DNS mutation.
+- Installer SSL memakai SSH username/password dari GitHub Actions, bukan private key.
+- Installer SSL hanya mengatur Nginx/Certbot reverse proxy `https://sedayafarm.keycloud.id` ke web staging port `8080`.
 - Production smoke tetap memakai `npm run smoke:production` dan membutuhkan `PAMILO_PRODUCTION_SMOKE_APPROVED=true`.
 - Production MQTT dan MySQL tidak disentuh.
 - Private key tidak dipakai.
@@ -84,6 +95,25 @@ Input penting:
 | `mode` | `dry-run`, lalu `gate` saat evidence lengkap |
 
 Workflow ini tidak memakai SSH dan tidak mengubah DNS.
+
+Jalankan workflow manual `VPS Domain SSL Install` untuk instalasi HTTPS reverse proxy di VPS.
+
+Input penting:
+
+| Input | Nilai awal |
+| --- | --- |
+| `domain` | `sedayafarm.keycloud.id` |
+| `upstream_port` | `8080` |
+| `certbot_email` | optional |
+
+Workflow installer:
+
+- Memvalidasi DNS A record domain mengarah ke `VPS_HOST`.
+- Menginstal Nginx dan Certbot di VPS.
+- Mengambil sertifikat Let's Encrypt HTTP-01.
+- Mengaktifkan redirect HTTP ke HTTPS.
+- Mem-proxy HTTPS ke `127.0.0.1:8080`.
+- Memverifikasi `https://sedayafarm.keycloud.id/health/live` dari runner.
 
 ## Manual Operator Checks
 
