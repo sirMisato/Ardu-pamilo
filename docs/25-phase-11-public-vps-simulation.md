@@ -17,7 +17,13 @@ Fase 11 membuktikan akses staging lewat IP publik VPS sebelum keputusan producti
 - Report simulasi ditulis ke `.local/public-vps-simulation/`.
 - MQTT simulation dijalankan secara internal di VPS Docker network melalui SSH username/password.
 - MQTT simulation memverifikasi Redis latest dan VictoriaMetrics history setelah publish payload.
-- Artifact GitHub Actions `public-vps-simulation` sudah tersedia dari run `30860675495`.
+- Artifact GitHub Actions `public-vps-simulation` sudah tersedia dari run `30864101005`.
+
+## Evidence Terkini
+
+| Workflow | Run | Artifact | Status |
+| --- | --- | --- | --- |
+| `Public VPS Simulation` | `30864101005` | `8875449534` | Success |
 
 ## Batas Aman
 

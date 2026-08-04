@@ -37,7 +37,7 @@ Fase 8 menyiapkan deployment staging yang repeatable tanpa melakukan production 
 | Workflow | Run | Status |
 | --- | --- | --- |
 | `VPS Connectivity Check` | `30858475660` | Success |
-| `Staging Deploy` | `30860249108` | Success |
+| `Staging Deploy` | `30863883784` | Success |
 
 ## GitHub Configuration
 
