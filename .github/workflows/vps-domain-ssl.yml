@@ -1,0 +1,283 @@
+name: VPS Domain SSL Install
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: "Domain to secure on the VPS."
+        required: true
+        default: "sedayafarm.keycloud.id"
+      upstream_port:
+        description: "Local VPS port served by the staging web container."
+        required: true
+        default: "8080"
+      certbot_email:
+        description: "Optional Let's Encrypt notification email."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  install-ssl:
+    name: Install HTTPS reverse proxy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      VPS_HOST: ${{ vars.VPS_HOST }}
+      VPS_PORT: ${{ vars.VPS_PORT }}
+      VPS_USERNAME: ${{ vars.VPS_USERNAME }}
+      VPS_PASSWORD: ${{ secrets.VPS_PASSWORD || vars.VPS_PASSWORD }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      TLS_DOMAIN: ${{ inputs.domain }}
+      UPSTREAM_PORT: ${{ inputs.upstream_port }}
+      CERTBOT_EMAIL: ${{ inputs.certbot_email }}
+
+    steps:
+      - name: Validate SSL configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          missing=0
+
+          if [ -n "$VPS_PASSWORD" ]; then
+            echo "::add-mask::$VPS_PASSWORD"
+          fi
+
+          for name in VPS_HOST VPS_PORT VPS_USERNAME VPS_PASSWORD TLS_DOMAIN UPSTREAM_PORT; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name repository secret, variable, or workflow input is required."
+              missing=1
+            fi
+          done
+
+          if [ "$TLS_DOMAIN" != "sedayafarm.keycloud.id" ]; then
+            echo "::error::This workflow is intentionally scoped to sedayafarm.keycloud.id."
+            missing=1
+          fi
+
+          if [ -n "$VPS_HOST" ] && ! [[ "$VPS_HOST" =~ ^[A-Za-z0-9.-]+$ ]]; then
+            echo "::error::VPS_HOST must be a hostname or IPv4 address."
+            missing=1
+          fi
+
+          if [ -n "$VPS_PORT" ] && ! [[ "$VPS_PORT" =~ ^[0-9]+$ ]]; then
+            echo "::error::VPS_PORT must be numeric."
+            missing=1
+          elif [ -n "$VPS_PORT" ] && { [ "$VPS_PORT" -lt 1 ] || [ "$VPS_PORT" -gt 65535 ]; }; then
+            echo "::error::VPS_PORT must be between 1 and 65535."
+            missing=1
+          fi
+
+          if [ -n "$VPS_USERNAME" ] && ! [[ "$VPS_USERNAME" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::VPS_USERNAME contains unsupported characters."
+            missing=1
+          fi
+
+          if ! [[ "$UPSTREAM_PORT" =~ ^[0-9]+$ ]]; then
+            echo "::error::upstream_port must be numeric."
+            missing=1
+          elif [ "$UPSTREAM_PORT" -lt 1 ] || [ "$UPSTREAM_PORT" -gt 65535 ]; then
+            echo "::error::upstream_port must be between 1 and 65535."
+            missing=1
+          fi
+
+          if [ -n "$CERTBOT_EMAIL" ] && ! [[ "$CERTBOT_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+            echo "::error::certbot_email must be empty or a valid email address."
+            missing=1
+          fi
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Verify domain resolves to VPS
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          resolved_ips="$(getent ahostsv4 "$TLS_DOMAIN" | awk '{print $1}' | sort -u | tr '\n' ' ')"
+          echo "Resolved $TLS_DOMAIN to: $resolved_ips"
+
+          if ! printf '%s\n' "$resolved_ips" | tr ' ' '\n' | grep -Fxq "$VPS_HOST"; then
+            echo "::error::$TLS_DOMAIN must resolve to VPS_HOST before HTTP-01 certificate issuance."
+            exit 1
+          fi
+
+      - name: Install password SSH client
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends sshpass
+
+      - name: Configure SSH known hosts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          install -m 700 -d ~/.ssh
+
+          if [ -n "$VPS_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            echo "::warning::VPS_KNOWN_HOSTS is not set. Pin the host key before production workflows."
+            ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          fi
+
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Install Nginx and issue certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          export SSHPASS="$VPS_PASSWORD"
+
+          sshpass -e ssh \
+            -p "$VPS_PORT" \
+            -o BatchMode=no \
+            -o NumberOfPasswordPrompts=1 \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USERNAME@$VPS_HOST" \
+            "TLS_DOMAIN='$TLS_DOMAIN' UPSTREAM_PORT='$UPSTREAM_PORT' CERTBOT_EMAIL='$CERTBOT_EMAIL' bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          if ! curl -fsS "http://127.0.0.1:${UPSTREAM_PORT}/health/live" >/dev/null; then
+            echo "Staging web upstream is not healthy on 127.0.0.1:${UPSTREAM_PORT}."
+            exit 1
+          fi
+
+          sudo -n apt-get update
+          sudo -n DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ca-certificates \
+            certbot \
+            curl \
+            nginx
+
+          sudo -n install -d -m 755 /var/www/letsencrypt
+
+          cat <<NGINX | sudo -n tee /etc/nginx/sites-available/pamilo-domain.conf >/dev/null
+          server {
+            listen 80;
+            listen [::]:80;
+            server_name ${TLS_DOMAIN};
+
+            location ^~ /.well-known/acme-challenge/ {
+              root /var/www/letsencrypt;
+              default_type "text/plain";
+            }
+
+            location / {
+              proxy_pass http://127.0.0.1:${UPSTREAM_PORT};
+              proxy_http_version 1.1;
+              proxy_set_header Host \$host;
+              proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Host \$host;
+              proxy_set_header X-Forwarded-Proto \$scheme;
+              proxy_set_header X-Real-IP \$remote_addr;
+            }
+          }
+          NGINX
+
+          sudo -n ln -sfn /etc/nginx/sites-available/pamilo-domain.conf /etc/nginx/sites-enabled/pamilo-domain.conf
+          sudo -n rm -f /etc/nginx/sites-enabled/default
+          sudo -n nginx -t
+          sudo -n systemctl enable --now nginx >/dev/null 2>&1 || sudo -n service nginx start
+          sudo -n systemctl reload nginx >/dev/null 2>&1 || sudo -n service nginx reload
+
+          certbot_args=(
+            certonly
+            --webroot
+            -w /var/www/letsencrypt
+            -d "$TLS_DOMAIN"
+            --non-interactive
+            --agree-tos
+            --keep-until-expiring
+            --preferred-challenges http
+          )
+
+          if [ -n "$CERTBOT_EMAIL" ]; then
+            certbot_args+=(--email "$CERTBOT_EMAIL")
+          else
+            certbot_args+=(--register-unsafely-without-email)
+          fi
+
+          sudo -n certbot "${certbot_args[@]}"
+
+          cat <<NGINX | sudo -n tee /etc/nginx/sites-available/pamilo-domain.conf >/dev/null
+          map \$http_upgrade \$pamilo_connection_upgrade {
+            default upgrade;
+            '' close;
+          }
+
+          server {
+            listen 80;
+            listen [::]:80;
+            server_name ${TLS_DOMAIN};
+
+            location ^~ /.well-known/acme-challenge/ {
+              root /var/www/letsencrypt;
+              default_type "text/plain";
+            }
+
+            location / {
+              return 301 https://\$host\$request_uri;
+            }
+          }
+
+          server {
+            listen 443 ssl http2;
+            listen [::]:443 ssl http2;
+            server_name ${TLS_DOMAIN};
+
+            ssl_certificate /etc/letsencrypt/live/${TLS_DOMAIN}/fullchain.pem;
+            ssl_certificate_key /etc/letsencrypt/live/${TLS_DOMAIN}/privkey.pem;
+            ssl_protocols TLSv1.2 TLSv1.3;
+            ssl_prefer_server_ciphers off;
+            ssl_session_cache shared:SSL:10m;
+            ssl_session_timeout 1d;
+            ssl_session_tickets off;
+
+            add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+            client_max_body_size 256k;
+
+            location / {
+              proxy_pass http://127.0.0.1:${UPSTREAM_PORT};
+              proxy_http_version 1.1;
+              proxy_set_header Host \$host;
+              proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Host \$host;
+              proxy_set_header X-Forwarded-Proto https;
+              proxy_set_header X-Real-IP \$remote_addr;
+              proxy_set_header Upgrade \$http_upgrade;
+              proxy_set_header Connection \$pamilo_connection_upgrade;
+            }
+          }
+          NGINX
+
+          sudo -n nginx -t
+          sudo -n systemctl reload nginx >/dev/null 2>&1 || sudo -n service nginx reload
+          sudo -n systemctl enable --now certbot.timer >/dev/null 2>&1 || true
+
+          if command -v ufw >/dev/null 2>&1 && sudo -n ufw status | grep -q "Status: active"; then
+            sudo -n ufw allow 'Nginx Full'
+          fi
+
+          curl -fsSI "https://${TLS_DOMAIN}/health/live" | sed -n '1,12p'
+          echo "HTTPS reverse proxy installed for ${TLS_DOMAIN} -> 127.0.0.1:${UPSTREAM_PORT}."
+          REMOTE
+
+      - name: Verify HTTPS from runner
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsSI "https://${TLS_DOMAIN}/health/live" | sed -n '1,12p'
+          curl -fsS "https://${TLS_DOMAIN}/health/ready"
