@@ -29,6 +29,7 @@ Fase 11 membuktikan akses staging lewat IP publik VPS sebelum keputusan producti
 
 - Simulasi default memakai staging origin `http://43.157.203.226:8080`.
 - MQTT staging tidak dipublish sebagai public plaintext port.
+- MQTT staging hanya dibind ke loopback VPS `127.0.0.1:18830` untuk SSH tunnel operator.
 - MQTT production tidak disentuh.
 - MySQL production tidak disentuh.
 - DNS tidak diubah.
@@ -143,6 +144,65 @@ sudo docker compose --env-file staging.env -f compose.staging.yaml exec -T mosqu
 ```
 
 Catat output command sebagai evidence. Simulasi ini membuktikan broker staging internal menerima payload valid dan worker daemon staging menulis latest/history ke Redis/VictoriaMetrics.
+
+## MQTT Explorer Desktop via SSH Tunnel
+
+Broker staging tidak dibuka langsung ke internet. Untuk melihat broker dari MQTT Explorer desktop, buat tunnel SSH dari komputer lokal ke loopback VPS:
+
+```text
+ssh -L 1883:127.0.0.1:18830 ubuntu@43.157.203.226
+```
+
+Jika port lokal `1883` sudah dipakai, gunakan port lokal lain:
+
+```text
+ssh -L 18830:127.0.0.1:18830 ubuntu@43.157.203.226
+```
+
+Setting MQTT Explorer:
+
+| Field | Nilai |
+| --- | --- |
+| Protocol | `mqtt://` |
+| Host | `127.0.0.1` |
+| Port | `1883` atau `18830` sesuai tunnel lokal |
+| Username | kosong untuk staging tunnel |
+| Password | kosong untuk staging tunnel |
+| Encryption | off |
+
+Topic untuk subscribe:
+
+```text
+pamilo/v1/#
+```
+
+Topic untuk publish payload simulasi:
+
+```text
+pamilo/v1/tenants/tenant-a/devices/device-a/telemetry
+```
+
+Payload contoh:
+
+```json
+{
+  "v": 1,
+  "device_id": "device-a",
+  "node_id": "mqtt-explorer-01",
+  "ts": "2026-08-04T01:00:00Z",
+  "seq": 1,
+  "m": {
+    "st": 27.4,
+    "sm": 43.1
+  },
+  "q": {
+    "calibration_profile": "mqtt-explorer",
+    "flags": []
+  }
+}
+```
+
+Naikkan nilai `seq` setiap publish supaya deduplication ingestor tidak menganggap payload sebagai replay.
 
 ## Exit Criteria Fase 11
 
