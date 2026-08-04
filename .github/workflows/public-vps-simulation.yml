@@ -178,10 +178,10 @@ jobs:
             topic="$1"
             payload="$2"
             rm -f /tmp/pamilo-mqtt-simulation.out
-            mosquitto_sub -h 127.0.0.1 -p 1883 -C 1 -W 8 -t "$topic" > /tmp/pamilo-mqtt-simulation.out &
+            mosquitto_sub -i "pamilo-gh-sub-$$" -h 127.0.0.1 -p 1883 -C 1 -W 8 -t "$topic" > /tmp/pamilo-mqtt-simulation.out &
             sub_pid="$!"
             sleep 1
-            mosquitto_pub -h 127.0.0.1 -p 1883 -t "$topic" -m "$payload"
+            mosquitto_pub -i "pamilo-gh-pub-$$" -h 127.0.0.1 -p 1883 -t "$topic" -m "$payload"
             wait "$sub_pid"
             test -s /tmp/pamilo-mqtt-simulation.out
           ' sh "$topic" "$payload"

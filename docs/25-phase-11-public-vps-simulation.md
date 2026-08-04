@@ -140,7 +140,7 @@ sudo docker compose --env-file staging.env -f compose.staging.yaml up -d mosquit
 Jalankan loopback publish/subscribe di container Mosquitto:
 
 ```text
-sudo docker compose --env-file staging.env -f compose.staging.yaml exec -T mosquitto sh -c 'topic="pamilo/v1/tenants/tenant-a/devices/device-a/telemetry"; payload="{\"v\":1,\"device_id\":\"device-a\",\"node_id\":\"vps-sim-01\",\"ts\":\"2026-08-04T00:00:00Z\",\"seq\":1,\"m\":{\"st\":27.4,\"sm\":43.1},\"q\":{\"calibration_profile\":\"vps-simulation\",\"flags\":[]}}"; rm -f /tmp/pamilo-mqtt-simulation.out; mosquitto_sub -h 127.0.0.1 -p 1883 -C 1 -W 8 -t "$topic" > /tmp/pamilo-mqtt-simulation.out & sub_pid="$!"; sleep 1; mosquitto_pub -h 127.0.0.1 -p 1883 -t "$topic" -m "$payload"; wait "$sub_pid"; test -s /tmp/pamilo-mqtt-simulation.out; echo "MQTT internal loopback passed"'
+sudo docker compose --env-file staging.env -f compose.staging.yaml exec -T mosquitto sh -c 'topic="pamilo/v1/tenants/tenant-a/devices/device-a/telemetry"; payload="{\"v\":1,\"device_id\":\"device-a\",\"node_id\":\"vps-sim-01\",\"ts\":\"2026-08-04T00:00:00Z\",\"seq\":1,\"m\":{\"st\":27.4,\"sm\":43.1},\"q\":{\"calibration_profile\":\"vps-simulation\",\"flags\":[]}}"; rm -f /tmp/pamilo-mqtt-simulation.out; mosquitto_sub -i "pamilo-manual-sub-$$" -h 127.0.0.1 -p 1883 -C 1 -W 8 -t "$topic" > /tmp/pamilo-mqtt-simulation.out & sub_pid="$!"; sleep 1; mosquitto_pub -i "pamilo-manual-pub-$$" -h 127.0.0.1 -p 1883 -t "$topic" -m "$payload"; wait "$sub_pid"; test -s /tmp/pamilo-mqtt-simulation.out; echo "MQTT internal loopback passed"'
 ```
 
 Catat output command sebagai evidence. Simulasi ini membuktikan broker staging internal menerima payload valid dan worker daemon staging menulis latest/history ke Redis/VictoriaMetrics.
@@ -166,6 +166,7 @@ Setting MQTT Explorer:
 | Protocol | `mqtt://` |
 | Host | `127.0.0.1` |
 | Port | `1883` atau `18830` sesuai tunnel lokal |
+| Client ID | `mqtt-explorer-desktop` |
 | Username | kosong untuk staging tunnel |
 | Password | kosong untuk staging tunnel |
 | Encryption | off |
