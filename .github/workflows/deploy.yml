@@ -1,0 +1,424 @@
+name: Deploy PAMILO Stack
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to publish and deploy. Empty value uses the current commit SHA."
+        required: false
+        default: ""
+      deploy_path:
+        description: "Absolute VPS deploy path under /opt/pamilo."
+        required: false
+        default: "/opt/pamilo/production"
+      production_origin:
+        description: "Production HTTPS origin."
+        required: false
+        default: "https://sedayafarm.keycloud.id"
+      mqtt_host:
+        description: "Production MQTT hostname used for TLS certificate expectation."
+        required: false
+        default: "mqtt.keycloud.id"
+      web_port:
+        description: "Loopback host port used by the web container and reverse proxy."
+        required: false
+        default: "8080"
+      mqtts_port:
+        description: "Public MQTTS port exposed by EMQX."
+        required: false
+        default: "8883"
+      legacy_projects:
+        description: "Optional comma-separated legacy Docker Compose project names to remove before deploy."
+        required: false
+        default: ""
+      legacy_paths:
+        description: "Optional comma-separated legacy paths under /opt/pamilo to remove before deploy."
+        required: false
+        default: ""
+      release_approval_ref:
+        description: "Required approval/evidence reference. Production deploy is blocked if empty."
+        required: true
+      deploy_confirm:
+        description: "I confirm this deployment has release approval."
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    name: Build, cleanup, and deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: production
+
+    env:
+      VPS_HOST: ${{ vars.VPS_HOST }}
+      VPS_PORT: ${{ vars.VPS_PORT }}
+      VPS_USERNAME: ${{ vars.VPS_USERNAME }}
+      VPS_PASSWORD: ${{ secrets.VPS_PASSWORD || vars.VPS_PASSWORD }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
+      INPUT_DEPLOY_PATH: ${{ inputs.deploy_path }}
+      INPUT_PRODUCTION_ORIGIN: ${{ inputs.production_origin }}
+      INPUT_MQTT_HOST: ${{ inputs.mqtt_host }}
+      INPUT_WEB_PORT: ${{ inputs.web_port }}
+      INPUT_MQTTS_PORT: ${{ inputs.mqtts_port }}
+      INPUT_LEGACY_PROJECTS: ${{ inputs.legacy_projects }}
+      INPUT_LEGACY_PATHS: ${{ inputs.legacy_paths }}
+      INPUT_RELEASE_APPROVAL_REF: ${{ inputs.release_approval_ref }}
+      INPUT_DEPLOY_CONFIRM: ${{ inputs.deploy_confirm }}
+      EMQX_DASHBOARD_PASSWORD: ${{ secrets.EMQX_DASHBOARD_PASSWORD }}
+      MQTT_SERVICE_PASSWORD: ${{ secrets.MQTT_SERVICE_PASSWORD }}
+      EMQX_MQTT_TLS_CERT_PEM: ${{ secrets.EMQX_MQTT_TLS_CERT_PEM }}
+      EMQX_MQTT_TLS_KEY_PEM: ${{ secrets.EMQX_MQTT_TLS_KEY_PEM }}
+      PAMILO_DEVICE_PLOT_MAP: ${{ secrets.PAMILO_DEVICE_PLOT_MAP || vars.PAMILO_DEVICE_PLOT_MAP || '{}' }}
+      MYSQL_HOST: ${{ vars.MYSQL_HOST }}
+      MYSQL_PORT: ${{ vars.MYSQL_PORT || '3306' }}
+      MYSQL_DATABASE: ${{ vars.MYSQL_DATABASE }}
+      MYSQL_USER: ${{ secrets.MYSQL_USER || vars.MYSQL_USER }}
+      MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+      PAMILO_MYSQL_MODE: ${{ vars.PAMILO_MYSQL_MODE || 'not_configured_until_tls_decision' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Validate deploy configuration
+        id: config
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          missing=0
+
+          for value in \
+            "$VPS_PASSWORD" \
+            "$EMQX_DASHBOARD_PASSWORD" \
+            "$MQTT_SERVICE_PASSWORD" \
+            "$MYSQL_PASSWORD"; do
+            if [ -n "$value" ]; then
+              echo "::add-mask::$value"
+            fi
+          done
+
+          for name in VPS_HOST VPS_PORT VPS_USERNAME VPS_PASSWORD EMQX_DASHBOARD_PASSWORD MQTT_SERVICE_PASSWORD EMQX_MQTT_TLS_CERT_PEM EMQX_MQTT_TLS_KEY_PEM; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name repository secret or variable is required."
+              missing=1
+            fi
+          done
+
+          if [ "$INPUT_DEPLOY_CONFIRM" != "true" ]; then
+            echo "::error::deploy_confirm must be true before this workflow can deploy."
+            missing=1
+          fi
+
+          if [ -z "$INPUT_RELEASE_APPROVAL_REF" ]; then
+            echo "::error::release_approval_ref is required before production deployment."
+            missing=1
+          fi
+
+          if [ -n "$VPS_HOST" ] && ! [[ "$VPS_HOST" =~ ^[A-Za-z0-9.-]+$ ]]; then
+            echo "::error::VPS_HOST must be a hostname or IPv4 address."
+            missing=1
+          fi
+
+          for item in "VPS_PORT=$VPS_PORT" "web_port=$INPUT_WEB_PORT" "mqtts_port=$INPUT_MQTTS_PORT"; do
+            name="${item%%=*}"
+            value="${item#*=}"
+            if ! [[ "$value" =~ ^[0-9]+$ ]] || [ "$value" -lt 1 ] || [ "$value" -gt 65535 ]; then
+              echo "::error::$name must be a port number between 1 and 65535."
+              missing=1
+            fi
+          done
+
+          if [ -n "$VPS_USERNAME" ] && ! [[ "$VPS_USERNAME" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::VPS_USERNAME contains unsupported characters."
+            missing=1
+          fi
+
+          if ! [[ "$INPUT_DEPLOY_PATH" =~ ^/opt/pamilo/[A-Za-z0-9._/-]+$ ]]; then
+            echo "::error::deploy_path must stay under /opt/pamilo."
+            missing=1
+          elif [[ "$INPUT_DEPLOY_PATH" == *"/../"* || "$INPUT_DEPLOY_PATH" == *"/.." || "$INPUT_DEPLOY_PATH" == *"/./"* || "$INPUT_DEPLOY_PATH" == *"/." ]]; then
+            echo "::error::deploy_path must not contain relative path segments."
+            missing=1
+          fi
+
+          if [ "$INPUT_PRODUCTION_ORIGIN" != "https://sedayafarm.keycloud.id" ]; then
+            echo "::error::production_origin must be https://sedayafarm.keycloud.id for this Phase 2 workflow."
+            missing=1
+          fi
+
+          if [ "$INPUT_MQTT_HOST" != "mqtt.keycloud.id" ]; then
+            echo "::error::mqtt_host must be mqtt.keycloud.id for this Phase 2 workflow."
+            missing=1
+          fi
+
+          if [ -n "$INPUT_IMAGE_TAG" ] && ! [[ "$INPUT_IMAGE_TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+            echo "::error::image_tag must be a valid Docker tag."
+            missing=1
+          fi
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          echo "deploy_path=$INPUT_DEPLOY_PATH" >> "$GITHUB_OUTPUT"
+          echo "web_port=$INPUT_WEB_PORT" >> "$GITHUB_OUTPUT"
+          echo "mqtts_port=$INPUT_MQTTS_PORT" >> "$GITHUB_OUTPUT"
+
+      - name: Secret scan
+        run: npm run secret:scan
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build app
+        run: npm run build
+
+      - name: Prepare image tags
+        id: images
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          owner="$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          tag="$INPUT_IMAGE_TAG"
+          if [ -z "$tag" ]; then
+            tag="${GITHUB_SHA::12}"
+          fi
+
+          echo "api=ghcr.io/$owner/ardu-pamilo-api:$tag" >> "$GITHUB_OUTPUT"
+          echo "web=ghcr.io/$owner/ardu-pamilo-web:$tag" >> "$GITHUB_OUTPUT"
+          echo "mqtt_ingestor=ghcr.io/$owner/ardu-pamilo-mqtt-ingestor:$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .docker/Dockerfile.api
+          push: true
+          tags: ${{ steps.images.outputs.api }}
+
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .docker/Dockerfile.web
+          push: true
+          tags: ${{ steps.images.outputs.web }}
+
+      - name: Build and push MQTT ingestor image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .docker/Dockerfile.mqtt-ingestor
+          push: true
+          tags: ${{ steps.images.outputs.mqtt_ingestor }}
+
+      - name: Install password SSH client
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends sshpass
+
+      - name: Configure SSH known hosts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          install -m 700 -d ~/.ssh
+
+          if [ -n "$VPS_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            echo "::warning::VPS_KNOWN_HOSTS is not set. Pin the host key before production deploy workflows."
+            ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          fi
+
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Render production bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf .deploy
+          install -d -m 755 .deploy/production/scripts .deploy/production/emqx .deploy/production/certs/mqtt
+
+          cp infra/production/docker-compose.yml .deploy/production/docker-compose.yml
+          cp infra/production/emqx/acl.conf .deploy/production/emqx/acl.conf
+          cp scripts/vps-cleanup.sh .deploy/production/scripts/vps-cleanup.sh
+
+          printf '%s\n' "$EMQX_MQTT_TLS_CERT_PEM" > .deploy/production/certs/mqtt/fullchain.pem
+          printf '%s\n' "$EMQX_MQTT_TLS_KEY_PEM" > .deploy/production/certs/mqtt/privkey.pem
+          chmod 600 .deploy/production/certs/mqtt/privkey.pem
+
+          cat > .deploy/production/production.env <<ENV
+          PAMILO_API_IMAGE=${{ steps.images.outputs.api }}
+          PAMILO_WEB_IMAGE=${{ steps.images.outputs.web }}
+          PAMILO_MQTT_INGESTOR_IMAGE=${{ steps.images.outputs.mqtt_ingestor }}
+          PAMILO_WEB_PORT=${{ steps.config.outputs.web_port }}
+          PAMILO_EMQX_MQTTS_PORT=${{ steps.config.outputs.mqtts_port }}
+          PAMILO_EMQX_DASHBOARD_PORT=18083
+          API_TRUSTED_ORIGINS=$INPUT_PRODUCTION_ORIGIN
+          API_BODY_LIMIT_BYTES=262144
+          LOG_LEVEL=info
+          EMQX_IMAGE=emqx/emqx:5.8.8
+          EMQX_DASHBOARD_USERNAME=admin
+          EMQX_DASHBOARD_PASSWORD=$EMQX_DASHBOARD_PASSWORD
+          MQTT_CLIENT_ID=pamilo-production-ingestor
+          MQTT_SERVICE_USERNAME=pamilo-ingestor
+          MQTT_SERVICE_PASSWORD=$MQTT_SERVICE_PASSWORD
+          PAMILO_DEVICE_PLOT_MAP=$PAMILO_DEVICE_PLOT_MAP
+          PAMILO_MQTT_DEDUP_TTL_SECONDS=604800
+          BMKG_BASE_URL=https://api.bmkg.go.id
+          VICTORIA_METRICS_RETENTION_PERIOD=12
+          PAMILO_MYSQL_MODE=$PAMILO_MYSQL_MODE
+          MYSQL_HOST=$MYSQL_HOST
+          MYSQL_PORT=$MYSQL_PORT
+          MYSQL_DATABASE=$MYSQL_DATABASE
+          MYSQL_USER=$MYSQL_USER
+          MYSQL_PASSWORD=$MYSQL_PASSWORD
+          MYSQL_TLS_REJECT_UNAUTHORIZED=true
+          ENV
+
+      - name: Upload production bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          export SSHPASS="$VPS_PASSWORD"
+          deploy_path="${{ steps.config.outputs.deploy_path }}"
+
+          sshpass -e ssh \
+            -p "$VPS_PORT" \
+            -o BatchMode=no \
+            -o NumberOfPasswordPrompts=1 \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USERNAME@$VPS_HOST" \
+            "deploy_path='$deploy_path'; sudo -n install -d -m 755 \"\$deploy_path\" && sudo -n chown \"\$(id -un):\$(id -gn)\" \"\$deploy_path\""
+
+          sshpass -e scp \
+            -P "$VPS_PORT" \
+            -o BatchMode=no \
+            -o NumberOfPasswordPrompts=1 \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
+            -o StrictHostKeyChecking=yes \
+            -r .deploy/production/. \
+            "$VPS_USERNAME@$VPS_HOST:$deploy_path/"
+
+      - name: Cleanup VPS before deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          export SSHPASS="$VPS_PASSWORD"
+          deploy_path="${{ steps.config.outputs.deploy_path }}"
+
+          sshpass -e ssh \
+            -p "$VPS_PORT" \
+            -o BatchMode=no \
+            -o NumberOfPasswordPrompts=1 \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USERNAME@$VPS_HOST" \
+            "cd '$deploy_path' && chmod +x scripts/vps-cleanup.sh && PAMILO_CLEANUP_DRY_RUN=false PAMILO_DEPLOY_ROOT=/opt/pamilo PAMILO_ACTIVE_DEPLOY_PATH='$deploy_path' PAMILO_LEGACY_PROJECTS='$INPUT_LEGACY_PROJECTS' PAMILO_LEGACY_PATHS='$INPUT_LEGACY_PATHS' sudo -E bash scripts/vps-cleanup.sh"
+
+      - name: Deploy containers
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          export SSHPASS="$VPS_PASSWORD"
+          deploy_path="${{ steps.config.outputs.deploy_path }}"
+
+          sshpass -e ssh \
+            -p "$VPS_PORT" \
+            -o BatchMode=no \
+            -o NumberOfPasswordPrompts=1 \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USERNAME@$VPS_HOST" \
+            'set -euo pipefail
+            if ! command -v docker >/dev/null 2>&1 || ! sudo -n docker compose version >/dev/null 2>&1; then
+              sudo -n apt-get update
+              sudo -n apt-get install -y --no-install-recommends docker.io docker-compose-v2
+            fi
+            sudo -n systemctl enable --now docker >/dev/null 2>&1 || sudo -n service docker start
+            sudo -n docker --version
+            sudo -n docker compose version'
+
+          printf '%s' "${{ github.token }}" | sshpass -e ssh \
+            -p "$VPS_PORT" \
+            -o BatchMode=no \
+            -o NumberOfPasswordPrompts=1 \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USERNAME@$VPS_HOST" \
+            "sudo -n docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
+
+          sshpass -e ssh \
+            -p "$VPS_PORT" \
+            -o BatchMode=no \
+            -o NumberOfPasswordPrompts=1 \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USERNAME@$VPS_HOST" \
+            "cd '$deploy_path' && sudo -n chmod 600 certs/mqtt/privkey.pem && sudo -n docker compose --env-file production.env pull && sudo -n docker compose --env-file production.env up -d --remove-orphans && sudo -n docker compose --env-file production.env ps"
+
+      - name: Local VPS health check
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          export SSHPASS="$VPS_PASSWORD"
+          deploy_path="${{ steps.config.outputs.deploy_path }}"
+
+          sshpass -e ssh \
+            -p "$VPS_PORT" \
+            -o BatchMode=no \
+            -o NumberOfPasswordPrompts=1 \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USERNAME@$VPS_HOST" \
+            "cd '$deploy_path' && curl -fsS 'http://127.0.0.1:${{ steps.config.outputs.web_port }}/health/live' && sudo -n docker compose --env-file production.env exec -T emqx /opt/emqx/bin/emqx ctl status"

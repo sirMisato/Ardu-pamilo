@@ -11,10 +11,13 @@ const textExtensions = new Set([
   ".env",
   ".example",
   ".html",
+  ".hocon",
   ".js",
   ".json",
   ".md",
   ".mjs",
+  ".conf",
+  ".sh",
   ".ts",
   ".yml",
   ".yaml"
@@ -65,7 +68,7 @@ function walk(directory) {
     }
 
     const extension = extname(entry);
-    if (textExtensions.has(extension) || entry === ".env.example") {
+    if (textExtensions.has(extension) || entry === ".env.example" || entry.startsWith("Dockerfile")) {
       files.push(fullPath);
     }
   }

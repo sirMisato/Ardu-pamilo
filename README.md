@@ -35,6 +35,22 @@ npm run dev:web
 npm run dev:mqtt-ingestor
 ```
 
+## Phase 1 Documentation Pack
+
+- [System Architecture Note](docs/29-system-architecture-note.md)
+- [Complete Technical Document](docs/30-complete-technical-document.md)
+- [User Manual Cara Penggunaan](docs/31-user-manual-cara-penggunaan.md)
+- [Maintenance Guide](docs/32-maintenance-guide.md)
+- [Troubleshooting Guide](docs/33-troubleshooting-guide.md)
+
+## Phase 2 Deployment Pack
+
+- [VPS cleanup script](scripts/vps-cleanup.sh)
+- [Production Docker Compose](infra/production/docker-compose.yml)
+- [Production environment template](infra/production/production.env.example)
+- [EMQX ACL starter](infra/production/emqx/acl.conf)
+- [Deploy workflow](.github/workflows/deploy.yml)
+
 Docker local skeleton:
 
 ```text
