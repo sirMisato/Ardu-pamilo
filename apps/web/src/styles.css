@@ -46,39 +46,6 @@ body {
   min-height: calc(100vh - 48px);
 }
 
-.map-pane {
-  position: relative;
-  overflow: hidden;
-  min-height: 520px;
-  border: 1px solid #c9d6cd;
-  border-radius: 8px;
-  background:
-    linear-gradient(90deg, rgba(23, 33, 26, 0.08) 1px, transparent 1px),
-    linear-gradient(rgba(23, 33, 26, 0.08) 1px, transparent 1px),
-    #dde9e0;
-  background-size: 42px 42px;
-}
-
-.plot-shape {
-  position: absolute;
-  inset: 18% 22% 20% 18%;
-  clip-path: polygon(12% 28%, 62% 9%, 91% 42%, 75% 83%, 28% 75%);
-  border: 2px solid #276749;
-  background: rgba(47, 133, 90, 0.3);
-}
-
-.attribution {
-  position: absolute;
-  right: 12px;
-  bottom: 8px;
-  margin: 0;
-  padding: 4px 6px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.82);
-  color: #2f3a33;
-  font-size: 12px;
-}
-
 .panel {
   align-self: stretch;
   padding: 20px;
@@ -575,10 +542,6 @@ button:disabled {
   .workspace {
     grid-template-columns: 1fr;
     min-height: auto;
-  }
-
-  .map-pane {
-    min-height: 360px;
   }
 
   .compact-form,

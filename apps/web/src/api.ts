@@ -227,6 +227,22 @@ export async function createPlot(input: {
   });
 }
 
+export async function updatePlotGeometry(input: {
+  plotId: string;
+  geometry: PolygonGeometry;
+  csrfToken: string;
+}): Promise<ApiEnvelope<PlotPayload>> {
+  return request<PlotPayload>(`/api/v1/plots/${encodeURIComponent(input.plotId)}/geometry`, {
+    method: "PATCH",
+    headers: {
+      "x-csrf-token": input.csrfToken
+    },
+    body: JSON.stringify({
+      geometry: input.geometry
+    })
+  });
+}
+
 export async function getPlotDevices(plotId: string): Promise<ApiEnvelope<DevicePayload[]>> {
   return request<DevicePayload[]>(`/api/v1/plots/${encodeURIComponent(plotId)}/devices`);
 }

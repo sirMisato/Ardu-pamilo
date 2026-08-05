@@ -15,6 +15,7 @@ import {
   logout,
   provisionDevice,
   revokeDevice,
+  updatePlotGeometry,
   type DevicePayload,
   type DeviceProvisioningPayload,
   type FarmPayload,
@@ -26,9 +27,13 @@ import {
   type WeatherForecastPointPayload,
   type WeatherPayload
 } from "./api.js";
+import MapView from "./components/MapView.vue";
 import "./styles.css";
 
 const App = {
+  components: {
+    MapView
+  },
   setup() {
     const auth = ref<MePayload | null>(null);
     const farms = ref<FarmPayload[]>([]);
@@ -39,6 +44,7 @@ const App = {
     const weather = ref<WeatherPayload | null>(null);
     const runtimeStatus = ref<HealthReadyPayload | null>(null);
     const provisioningCredential = ref<DeviceProvisioningPayload | null>(null);
+    const pendingPlotGeometry = ref<PolygonGeometry | null>(null);
     const activeFarmId = ref("");
     const selectedPlotId = ref("");
     const historyMetric = ref<MetricCode>("soil_temperature");
@@ -441,11 +447,12 @@ const App = {
       error.value = null;
 
       try {
+        const geometry = pendingPlotGeometry.value ?? createTemplatePolygon(auth.value.active_tenant.id, plots.value.length);
         const response = await createPlot({
           farmId: activeFarm.value.id,
           name: plotForm.name,
           adm4Code: plotForm.adm4Code,
-          geometry: createTemplatePolygon(auth.value.active_tenant.id, plots.value.length),
+          geometry,
           csrfToken: auth.value.csrf_token
         });
 
@@ -457,8 +464,41 @@ const App = {
         plots.value = [...plots.value, response.data];
         selectedPlotId.value = response.data.id;
         plotForm.name = "";
+        pendingPlotGeometry.value = null;
         provisioningCredential.value = null;
         await loadPlotRuntime(response.data.id);
+      } finally {
+        busy.value = false;
+      }
+    }
+
+    async function createPlotFromDrawnPolygon(geometry: PolygonGeometry): Promise<void> {
+      pendingPlotGeometry.value = geometry;
+      await submitPlot();
+    }
+
+    async function updateSelectedPlotGeometry(geometry: PolygonGeometry): Promise<void> {
+      if (!auth.value || !selectedPlot.value || !canWriteMetadata.value) {
+        return;
+      }
+
+      busy.value = true;
+      error.value = null;
+
+      try {
+        const response = await updatePlotGeometry({
+          plotId: selectedPlot.value.id,
+          geometry,
+          csrfToken: auth.value.csrf_token
+        });
+
+        if (!response.data) {
+          error.value = response.error?.message ?? "Gagal menyimpan geometri plot.";
+          return;
+        }
+
+        plots.value = plots.value.map((plot) => plot.id === response.data?.id ? response.data : plot);
+        selectedPlotId.value = response.data.id;
       } finally {
         busy.value = false;
       }
@@ -622,6 +662,7 @@ const App = {
       activeFarmId,
       busy,
       canWriteMetadata,
+      createPlotFromDrawnPolygon,
       dependencyStateClass,
       devices,
       deviceForm,
@@ -649,6 +690,7 @@ const App = {
       runtimeBusy,
       runtimeDependencyRows,
       runtimeStatus,
+      pendingPlotGeometry,
       plotForm,
       plots,
       provisioningCredential,
@@ -667,6 +709,7 @@ const App = {
       telemetryHistoryBars,
       telemetryHistoryPoints,
       telemetryMetricOptions,
+      updateSelectedPlotGeometry,
       weather,
       weatherEmptyState,
       weatherLabel,
@@ -680,10 +723,14 @@ const App = {
       </section>
 
       <section v-else class="workspace">
-        <div class="map-pane" aria-label="Area peta GIS PAMILO">
-          <div class="plot-shape"></div>
-          <p class="attribution">&copy; OpenStreetMap contributors</p>
-        </div>
+        <MapView
+          :can-edit="isSignedIn && canWriteMetadata"
+          :plots="plots"
+          :selected-plot-id="selectedPlotId"
+          @plot-selected="selectPlot"
+          @polygon-created="createPlotFromDrawnPolygon"
+          @polygon-edited="updateSelectedPlotGeometry"
+        />
 
         <aside v-if="!isSignedIn" class="panel auth-panel" aria-label="Login PAMILO">
           <h1>PAMILO Smart Farming GIS</h1>
