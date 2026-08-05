@@ -19,6 +19,22 @@ export interface DeviceRouteDependencies extends AuthDependencies {
 }
 
 export async function registerDeviceRoutes(app: FastifyInstance, deps: DeviceRouteDependencies): Promise<void> {
+  app.get("/api/v1/devices", async (request, reply) => {
+    const context = getAuthenticatedContext(request, deps);
+
+    if (!context) {
+      reply.code(401);
+      return fail(request, "UNAUTHENTICATED", "Authentication is required.");
+    }
+
+    if (!roleHasPermission(context.tenantContext.role, "device:read")) {
+      reply.code(403);
+      return fail(request, "FORBIDDEN", "User is not allowed to read devices.");
+    }
+
+    return ok(request, deps.devices.listForTenant(context.tenantContext).map(toDevicePayload));
+  });
+
   app.get("/api/v1/plots/:plotId/devices", async (request, reply) => {
     const context = getAuthenticatedContext(request, deps);
 
@@ -45,6 +61,34 @@ export async function registerDeviceRoutes(app: FastifyInstance, deps: DeviceRou
     }
 
     return ok(request, deps.devices.listForPlot(context.tenantContext, plot.id).map(toDevicePayload));
+  });
+
+  app.get("/api/v1/devices/:deviceId", async (request, reply) => {
+    const context = getAuthenticatedContext(request, deps);
+
+    if (!context) {
+      reply.code(401);
+      return fail(request, "UNAUTHENTICATED", "Authentication is required.");
+    }
+
+    if (!roleHasPermission(context.tenantContext.role, "device:read")) {
+      reply.code(403);
+      return fail(request, "FORBIDDEN", "User is not allowed to read devices.");
+    }
+
+    const params = request.params;
+    if (!isDeviceParams(params)) {
+      reply.code(400);
+      return fail(request, "VALIDATION_FAILED", "Device ID is required.");
+    }
+
+    const device = deps.devices.findByIdForTenant(context.tenantContext, params.deviceId);
+    if (!device) {
+      reply.code(404);
+      return fail(request, "NOT_FOUND", "Device was not found.");
+    }
+
+    return ok(request, toDevicePayload(device));
   });
 
   app.post("/api/v1/plots/:plotId/devices", async (request, reply) => {
@@ -117,6 +161,107 @@ export async function registerDeviceRoutes(app: FastifyInstance, deps: DeviceRou
 
       throw error;
     }
+  });
+
+  app.patch("/api/v1/devices/:deviceId", async (request, reply) => {
+    const context = getAuthenticatedContext(request, deps);
+
+    if (!context) {
+      reply.code(401);
+      return fail(request, "UNAUTHENTICATED", "Authentication is required.");
+    }
+
+    if (!isValidCsrf(request, context.session)) {
+      reply.code(403);
+      return fail(request, "CSRF_FAILED", "CSRF token is missing or invalid.");
+    }
+
+    if (!roleHasPermission(context.tenantContext.role, "device:provision")) {
+      reply.code(403);
+      return fail(request, "FORBIDDEN", "User is not allowed to update devices.");
+    }
+
+    const params = request.params;
+    if (!isDeviceParams(params)) {
+      reply.code(400);
+      return fail(request, "VALIDATION_FAILED", "Device ID is required.");
+    }
+
+    const body = parseDeviceUpdateBody(request.body);
+    if (!body.ok) {
+      reply.code(400);
+      return fail(request, "VALIDATION_FAILED", "Device update request is invalid.", body.errors);
+    }
+
+    if (body.value.plotId) {
+      const plot = deps.plots.findByIdForTenant(context.tenantContext, body.value.plotId);
+      if (!plot) {
+        reply.code(404);
+        return fail(request, "NOT_FOUND", "Target plot was not found.");
+      }
+    }
+
+    const device = deps.devices.updateForTenant(context.tenantContext, params.deviceId, body.value);
+    if (!device) {
+      reply.code(404);
+      return fail(request, "NOT_FOUND", "Device was not found.");
+    }
+
+    deps.auditLog.record({
+      action: "device.updated",
+      actorUserId: context.user.id,
+      tenantId: context.tenant.id,
+      objectType: "device",
+      objectId: device.id,
+      requestId: request.id,
+      metadata: {
+        plot_id: device.plotId
+      }
+    });
+
+    return ok(request, toDevicePayload(device));
+  });
+
+  app.delete("/api/v1/devices/:deviceId", async (request, reply) => {
+    const context = getAuthenticatedContext(request, deps);
+
+    if (!context) {
+      reply.code(401);
+      return fail(request, "UNAUTHENTICATED", "Authentication is required.");
+    }
+
+    if (!isValidCsrf(request, context.session)) {
+      reply.code(403);
+      return fail(request, "CSRF_FAILED", "CSRF token is missing or invalid.");
+    }
+
+    if (!roleHasPermission(context.tenantContext.role, "device:provision")) {
+      reply.code(403);
+      return fail(request, "FORBIDDEN", "User is not allowed to delete devices.");
+    }
+
+    const params = request.params;
+    if (!isDeviceParams(params)) {
+      reply.code(400);
+      return fail(request, "VALIDATION_FAILED", "Device ID is required.");
+    }
+
+    const device = deps.devices.deleteForTenant(context.tenantContext, params.deviceId);
+    if (!device) {
+      reply.code(404);
+      return fail(request, "NOT_FOUND", "Device was not found.");
+    }
+
+    deps.auditLog.record({
+      action: "device.deleted",
+      actorUserId: context.user.id,
+      tenantId: context.tenant.id,
+      objectType: "device",
+      objectId: device.id,
+      requestId: request.id
+    });
+
+    return ok(request, toDevicePayload(device));
   });
 
   app.post("/api/v1/devices/:deviceId/revoke", async (request, reply) => {
@@ -199,6 +344,75 @@ function parseDeviceBody(body: unknown): {
         ? body.label.trim()
         : null
     }
+  };
+}
+
+function parseDeviceUpdateBody(body: unknown): {
+  ok: true;
+  value: {
+    label?: string | null;
+    plotId?: string;
+  };
+} | { ok: false; errors: Array<{ path: string; message: string }> } {
+  if (!isRecord(body)) {
+    return {
+      ok: false,
+      errors: [
+        {
+          path: "body",
+          message: "Request body is required."
+        }
+      ]
+    };
+  }
+
+  const value: {
+    label?: string | null;
+    plotId?: string;
+  } = {};
+  const errors: Array<{ path: string; message: string }> = [];
+
+  if ("label" in body) {
+    if (body.label === null) {
+      value.label = null;
+    } else if (typeof body.label === "string") {
+      value.label = body.label.trim() || null;
+    } else {
+      errors.push({
+        path: "label",
+        message: "Label must be a string or null."
+      });
+    }
+  }
+
+  if ("plot_id" in body) {
+    if (typeof body.plot_id !== "string" || !body.plot_id.trim()) {
+      errors.push({
+        path: "plot_id",
+        message: "Plot ID must be a non-empty string."
+      });
+    } else {
+      value.plotId = body.plot_id.trim();
+    }
+  }
+
+  if (!("label" in body) && !("plot_id" in body)) {
+    errors.push({
+      path: "body",
+      message: "At least one mutable field is required."
+    });
+  }
+
+  if (errors.length > 0) {
+    return {
+      ok: false,
+      errors
+    };
+  }
+
+  return {
+    ok: true,
+    value
   };
 }
 

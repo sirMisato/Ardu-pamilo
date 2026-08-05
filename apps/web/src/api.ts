@@ -1,4 +1,4 @@
-import type { MetricCode, PolygonGeometry } from "@pamilo/shared";
+import type { PolygonGeometry, TelemetryValueType } from "@pamilo/shared";
 
 export interface ApiEnvelope<T> {
   data: T | null;
@@ -92,10 +92,11 @@ export interface DeviceProvisioningPayload extends DevicePayload {
 export interface TelemetryReadingPayload {
   device_id: string;
   node_id: string;
-  metric: MetricCode;
+  metric: string;
   ts: string;
   seq: number;
-  value: number | null;
+  value: number | string | boolean | null;
+  value_type: TelemetryValueType;
   unit: string;
   calibration_profile: string;
   quality_flags: string[];
@@ -134,7 +135,7 @@ export interface HealthReadyPayload {
 }
 
 export interface TelemetryHistoryPayload {
-  metric: MetricCode;
+  metric: string;
   from: string;
   to: string;
   resolution: string;
@@ -247,6 +248,14 @@ export async function getPlotDevices(plotId: string): Promise<ApiEnvelope<Device
   return request<DevicePayload[]>(`/api/v1/plots/${encodeURIComponent(plotId)}/devices`);
 }
 
+export async function getDevices(): Promise<ApiEnvelope<DevicePayload[]>> {
+  return request<DevicePayload[]>("/api/v1/devices");
+}
+
+export async function getDevice(deviceId: string): Promise<ApiEnvelope<DevicePayload>> {
+  return request<DevicePayload>(`/api/v1/devices/${encodeURIComponent(deviceId)}`);
+}
+
 export async function provisionDevice(input: {
   plotId: string;
   serialNo: string;
@@ -262,6 +271,37 @@ export async function provisionDevice(input: {
       serial_no: input.serialNo,
       label: input.label
     })
+  });
+}
+
+export async function updateDevice(input: {
+  deviceId: string;
+  label?: string | null;
+  plotId?: string;
+  csrfToken: string;
+}): Promise<ApiEnvelope<DevicePayload>> {
+  return request<DevicePayload>(`/api/v1/devices/${encodeURIComponent(input.deviceId)}`, {
+    method: "PATCH",
+    headers: {
+      "x-csrf-token": input.csrfToken
+    },
+    body: JSON.stringify({
+      label: input.label,
+      plot_id: input.plotId
+    })
+  });
+}
+
+export async function deleteDevice(input: {
+  deviceId: string;
+  csrfToken: string;
+}): Promise<ApiEnvelope<DevicePayload>> {
+  return request<DevicePayload>(`/api/v1/devices/${encodeURIComponent(input.deviceId)}`, {
+    method: "DELETE",
+    headers: {
+      "x-csrf-token": input.csrfToken
+    },
+    body: JSON.stringify({})
   });
 }
 
@@ -284,7 +324,7 @@ export async function getPlotLatestTelemetry(plotId: string): Promise<ApiEnvelop
 
 export async function getPlotTelemetryHistory(input: {
   plotId: string;
-  metric: MetricCode;
+  metric: string;
   from: string;
   to: string;
   resolution: string;

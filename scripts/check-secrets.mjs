@@ -18,7 +18,9 @@ const textExtensions = new Set([
   ".mjs",
   ".conf",
   ".sh",
+  ".sql",
   ".ts",
+  ".vue",
   ".yml",
   ".yaml"
 ]);

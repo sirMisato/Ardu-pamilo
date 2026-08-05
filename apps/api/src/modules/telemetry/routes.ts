@@ -1,10 +1,10 @@
 import type { FastifyInstance } from "fastify";
-import { metricCodes, roleHasPermission, type MetricCode } from "@pamilo/shared";
+import { isTelemetryMetricKey, roleHasPermission, type TelemetryValueType } from "@pamilo/shared";
 import { fail, ok } from "../../lib/api-response.js";
 import type { AuthDependencies } from "../auth/request-auth.js";
 import { getAuthenticatedContext } from "../auth/request-auth.js";
 import type { PlotRepository } from "../plots/plot-repository.js";
-import type { TelemetryReadingRecord, TelemetryRepository } from "./telemetry-repository.js";
+import type { TelemetryReadingRecord, TelemetryRepository, TelemetryValue } from "./telemetry-repository.js";
 
 const supportedResolutions = new Set(["raw", "5m", "15m", "1h"]);
 
@@ -96,7 +96,7 @@ export async function registerTelemetryRoutes(app: FastifyInstance, deps: Teleme
 function parseHistoryQuery(query: unknown): {
   ok: true;
   value: {
-    metric: MetricCode;
+    metric: string;
     from: string;
     to: string;
     resolution: string;
@@ -124,10 +124,10 @@ function parseHistoryQuery(query: unknown): {
   const to = typeof query.to === "string" ? query.to : "";
   const resolution = typeof query.resolution === "string" ? query.resolution : "";
 
-  if (!metricCodes.includes(metric as MetricCode)) {
+  if (!isTelemetryMetricKey(metric)) {
     errors.push({
       path: "metric",
-      message: "Metric is required and must be supported."
+      message: "Metric is required and must use lowercase letters, numbers, or underscores."
     });
   }
 
@@ -169,7 +169,7 @@ function parseHistoryQuery(query: unknown): {
   return {
     ok: true,
     value: {
-      metric: metric as MetricCode,
+      metric,
       from,
       to,
       resolution
@@ -180,10 +180,11 @@ function parseHistoryQuery(query: unknown): {
 function toTelemetryPayload(reading: TelemetryReadingRecord): {
   device_id: string;
   node_id: string;
-  metric: MetricCode;
+  metric: string;
   ts: string;
   seq: number;
-  value: number | null;
+  value: TelemetryValue;
+  value_type: TelemetryValueType;
   unit: string;
   calibration_profile: string;
   quality_flags: string[];
@@ -195,6 +196,7 @@ function toTelemetryPayload(reading: TelemetryReadingRecord): {
     ts: reading.ts,
     seq: reading.seq,
     value: reading.value,
+    value_type: reading.valueType,
     unit: reading.unit,
     calibration_profile: reading.calibrationProfile,
     quality_flags: reading.qualityFlags

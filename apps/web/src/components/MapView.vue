@@ -202,26 +202,26 @@ function toLeafletLatLngs(geometry: PolygonGeometry): L.LatLngExpression[][] {
 <style scoped>
 .map-view {
   position: relative;
-  min-height: 520px;
+  min-height: 360px;
   overflow: hidden;
-  border: 1px solid #c9d6cd;
+  border: 1px solid var(--border, #cfe9df);
   border-radius: 8px;
-  background: #dbe7e1;
+  background: #dff5ed;
 }
 
 .leaflet-surface {
   width: 100%;
-  min-height: 520px;
-  height: calc(100vh - 48px);
+  min-height: 360px;
+  height: clamp(360px, 48vh, 520px);
 }
 
 :deep(.leaflet-control-attribution) {
-  color: #2f3a33;
+  color: var(--text-soft, #48645a);
   font-size: 11px;
 }
 
 :deep(.leaflet-draw-toolbar a) {
-  color: #17211a;
+  color: var(--text, #12372c);
 }
 
 @media (max-width: 800px) {

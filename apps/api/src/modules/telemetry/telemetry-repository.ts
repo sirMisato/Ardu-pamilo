@@ -1,5 +1,28 @@
 import { randomUUID } from "node:crypto";
-import { requireTenantContext, type MetricCode, type NormalizedSensorReading, type TenantContext } from "@pamilo/shared";
+import {
+  inferTelemetryValueType,
+  requireTenantContext,
+  type NormalizedSensorReading,
+  type TelemetryValueType,
+  type TenantContext
+} from "@pamilo/shared";
+
+export type TelemetryValue = number | string | boolean | null;
+
+export interface TelemetryInputReading {
+  deviceId: string;
+  nodeId: string;
+  metric: string;
+  sensorKey?: string;
+  label?: string | null;
+  ts: string;
+  seq: number;
+  value: TelemetryValue;
+  unit: string;
+  calibrationProfile: string;
+  qualityFlags: string[];
+  valueType?: TelemetryValueType;
+}
 
 export interface TelemetryReadingRecord {
   id: string;
@@ -7,10 +30,11 @@ export interface TelemetryReadingRecord {
   plotId: string;
   deviceId: string;
   nodeId: string;
-  metric: MetricCode;
+  metric: string;
   ts: string;
   seq: number;
-  value: number | null;
+  value: TelemetryValue;
+  valueType: TelemetryValueType;
   unit: string;
   calibrationProfile: string;
   qualityFlags: string[];
@@ -18,7 +42,7 @@ export interface TelemetryReadingRecord {
 
 export interface TelemetryHistoryQuery {
   plotId: string;
-  metric: MetricCode;
+  metric: string;
   from: string;
   to: string;
   resolution: string;
@@ -27,7 +51,7 @@ export interface TelemetryHistoryQuery {
 export interface TelemetryRepository {
   listLatestForPlot(context: TenantContext, plotId: string): Promise<TelemetryReadingRecord[]>;
   queryHistoryForPlot(context: TenantContext, query: TelemetryHistoryQuery): Promise<TelemetryReadingRecord[]>;
-  recordForPlot(context: TenantContext, plotId: string, readings: NormalizedSensorReading[]): Promise<TelemetryReadingRecord[]>;
+  recordForPlot(context: TenantContext, plotId: string, readings: TelemetryInputReading[] | NormalizedSensorReading[]): Promise<TelemetryReadingRecord[]>;
 }
 
 export class InMemoryTelemetryRepository implements TelemetryRepository {
@@ -39,7 +63,7 @@ export class InMemoryTelemetryRepository implements TelemetryRepository {
 
   async listLatestForPlot(context: TenantContext, plotId: string): Promise<TelemetryReadingRecord[]> {
     const tenantContext = requireTenantContext(context);
-    const latestByMetric = new Map<MetricCode, TelemetryReadingRecord>();
+    const latestByMetric = new Map<string, TelemetryReadingRecord>();
 
     for (const reading of this.#readings) {
       if (reading.tenantId !== tenantContext.tenantId || reading.plotId !== plotId) {
@@ -74,7 +98,7 @@ export class InMemoryTelemetryRepository implements TelemetryRepository {
   async recordForPlot(
     context: TenantContext,
     plotId: string,
-    readings: NormalizedSensorReading[]
+    readings: TelemetryInputReading[] | NormalizedSensorReading[]
   ): Promise<TelemetryReadingRecord[]> {
     const tenantContext = requireTenantContext(context);
     const records = readings.map((reading) => ({
@@ -87,6 +111,9 @@ export class InMemoryTelemetryRepository implements TelemetryRepository {
       ts: reading.ts,
       seq: reading.seq,
       value: reading.value,
+      valueType: "valueType" in reading && reading.valueType
+        ? reading.valueType
+        : inferTelemetryValueType(reading.value),
       unit: reading.unit,
       calibrationProfile: reading.calibrationProfile,
       qualityFlags: [...reading.qualityFlags]
@@ -109,6 +136,7 @@ export function defaultTelemetryReadings(): TelemetryReadingRecord[] {
       ts: "2026-08-03T03:00:00Z",
       seq: 10,
       value: 27.1,
+      valueType: "number",
       unit: "deg_c",
       calibrationProfile: "soil-v1",
       qualityFlags: []
@@ -123,6 +151,7 @@ export function defaultTelemetryReadings(): TelemetryReadingRecord[] {
       ts: "2026-08-03T03:05:00Z",
       seq: 11,
       value: 27.4,
+      valueType: "number",
       unit: "deg_c",
       calibrationProfile: "soil-v1",
       qualityFlags: []
@@ -137,6 +166,7 @@ export function defaultTelemetryReadings(): TelemetryReadingRecord[] {
       ts: "2026-08-03T03:05:00Z",
       seq: 11,
       value: 43.1,
+      valueType: "number",
       unit: "percent_relative",
       calibrationProfile: "soil-v1",
       qualityFlags: []
@@ -151,6 +181,7 @@ export function defaultTelemetryReadings(): TelemetryReadingRecord[] {
       ts: "2026-08-03T03:05:00Z",
       seq: 11,
       value: 1.24,
+      valueType: "number",
       unit: "ms_cm",
       calibrationProfile: "soil-v1",
       qualityFlags: []
@@ -165,6 +196,7 @@ export function defaultTelemetryReadings(): TelemetryReadingRecord[] {
       ts: "2026-08-03T03:05:00Z",
       seq: 7,
       value: 25.9,
+      valueType: "number",
       unit: "deg_c",
       calibrationProfile: "soil-v1",
       qualityFlags: []

@@ -135,6 +135,90 @@ describe("device provisioning routes", () => {
     });
   });
 
+  it("updates device metadata only within the active tenant", async () => {
+    const auditLog = new InMemoryAuditLog();
+    const app = buildApp({ auditLog });
+    const loginResponse = await login(app, "farmer-a@example.test", "tenant-a");
+    const tenantBLogin = await login(app, "farmer-b@example.test", "tenant-b");
+    const provisioned = await provisionDevice(app, loginResponse, "plot-a", "ESP32-A-UPDATE");
+    const deviceId = provisioned.json().data.id as string;
+
+    const updated = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/devices/${encodeURIComponent(deviceId)}`,
+      headers: {
+        cookie: getCookieHeader(loginResponse),
+        "x-csrf-token": getCsrfToken(loginResponse)
+      },
+      payload: {
+        label: "Node Sawah Timur"
+      }
+    });
+
+    expect(updated.statusCode).toBe(200);
+    expect(updated.json()).toMatchObject({
+      data: {
+        id: deviceId,
+        label: "Node Sawah Timur",
+        plot_id: "plot-a"
+      },
+      error: null
+    });
+
+    const blockedTenant = await app.inject({
+      method: "GET",
+      url: `/api/v1/devices/${encodeURIComponent(deviceId)}`,
+      headers: {
+        cookie: getCookieHeader(tenantBLogin)
+      }
+    });
+
+    expect(blockedTenant.statusCode).toBe(404);
+
+    const blockedMove = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/devices/${encodeURIComponent(deviceId)}`,
+      headers: {
+        cookie: getCookieHeader(loginResponse),
+        "x-csrf-token": getCsrfToken(loginResponse)
+      },
+      payload: {
+        plot_id: "plot-b"
+      }
+    });
+
+    expect(blockedMove.statusCode).toBe(404);
+    expect(auditLog.all().map((event) => event.action)).toContain("device.updated");
+  });
+
+  it("soft deletes devices through the delete endpoint without exposing credentials", async () => {
+    const app = buildApp();
+    const loginResponse = await login(app, "farmer-a@example.test", "tenant-a");
+    const provisioned = await provisionDevice(app, loginResponse, "plot-a", "ESP32-A-DELETE");
+    const deviceId = provisioned.json().data.id as string;
+
+    const response = await app.inject({
+      method: "DELETE",
+      url: `/api/v1/devices/${encodeURIComponent(deviceId)}`,
+      headers: {
+        cookie: getCookieHeader(loginResponse),
+        "x-csrf-token": getCsrfToken(loginResponse)
+      },
+      payload: {}
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      data: {
+        id: deviceId,
+        status: "revoked",
+        revoked_at: expect.any(String)
+      },
+      error: null
+    });
+    expect(JSON.stringify(response.json().data)).not.toContain("password");
+  });
+
   it("revokes devices without exposing credentials", async () => {
     const auditLog = new InMemoryAuditLog();
     const app = buildApp({ auditLog });

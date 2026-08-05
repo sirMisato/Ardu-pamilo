@@ -11,6 +11,14 @@ import { InMemoryFarmRepository, type FarmRepository } from "./modules/farms/far
 import { registerFarmRoutes } from "./modules/farms/routes.js";
 import { InMemoryPlotRepository, type PlotRepository } from "./modules/plots/plot-repository.js";
 import { registerPlotRoutes } from "./modules/plots/routes.js";
+import {
+  InMemoryDynamicTelemetryRepository,
+  type DynamicTelemetryRepository
+} from "./modules/telemetry/dynamic-telemetry-repository.js";
+import {
+  createMqttTelemetryServiceFromEnv,
+  type MqttTelemetryService
+} from "./modules/telemetry/mqtt-telemetry-service.js";
 import { RedisVictoriaTelemetryRepository } from "./modules/telemetry/redis-victoria-telemetry-repository.js";
 import { InMemoryTelemetryRepository, type TelemetryRepository } from "./modules/telemetry/telemetry-repository.js";
 import { registerTelemetryRoutes } from "./modules/telemetry/routes.js";
@@ -26,8 +34,11 @@ export interface HealthPayload {
 export interface AppDependencies {
   auditLog: AuditLog;
   devices: DeviceRepository;
+  dynamicTelemetry: DynamicTelemetryRepository;
   farms: FarmRepository;
   identityStore: IdentityStore;
+  mqttTelemetryService: MqttTelemetryService | null;
+  mqttTelemetryStatus: string;
   plots: PlotRepository;
   runtimeDependencies: RuntimeDependencyStatuses;
   sessionStore: SessionStore;
@@ -38,6 +49,7 @@ export interface AppDependencies {
 
 export interface RuntimeDependencyStatuses {
   mysql: string;
+  mqtt_listener: string;
   redis: string;
   telemetry: string;
   victoriametrics: string;
@@ -54,11 +66,15 @@ export function createAppDependencies(overrides: Partial<AppDependencies> = {}):
   return {
     auditLog: overrides.auditLog ?? new InMemoryAuditLog(),
     devices: overrides.devices ?? new InMemoryDeviceRepository(),
+    dynamicTelemetry: overrides.dynamicTelemetry ?? new InMemoryDynamicTelemetryRepository(),
     farms: overrides.farms ?? new InMemoryFarmRepository(),
     identityStore: overrides.identityStore ?? new InMemoryIdentityStore(),
+    mqttTelemetryService: overrides.mqttTelemetryService ?? null,
+    mqttTelemetryStatus: overrides.mqttTelemetryStatus ?? "disabled",
     plots: overrides.plots ?? new InMemoryPlotRepository(),
     runtimeDependencies: overrides.runtimeDependencies ?? {
       mysql: "not_configured_local",
+      mqtt_listener: overrides.mqttTelemetryStatus ?? "disabled",
       redis: defaultTelemetry.redis,
       telemetry: overrides.telemetryStatus ?? (overrides.telemetry ? "custom_test" : defaultTelemetry.status),
       victoriametrics: defaultTelemetry.victoriametrics,
@@ -81,6 +97,7 @@ export function buildApp(overrides: Partial<AppDependencies> = {}): FastifyInsta
   });
 
   registerSecurityHardening(app);
+  configureMqttTelemetryService(app, deps, overrides);
 
   void app.register(cookie);
 
@@ -107,6 +124,37 @@ export function buildApp(overrides: Partial<AppDependencies> = {}): FastifyInsta
   });
 
   return app;
+}
+
+function configureMqttTelemetryService(
+  app: FastifyInstance,
+  deps: AppDependencies,
+  overrides: Partial<AppDependencies>
+): void {
+  if (overrides.mqttTelemetryService === undefined) {
+    const telemetryListener = createMqttTelemetryServiceFromEnv({
+      devices: deps.devices,
+      telemetry: deps.telemetry,
+      dynamicTelemetry: deps.dynamicTelemetry,
+      logger: app.log
+    });
+
+    deps.mqttTelemetryService = telemetryListener.service;
+    deps.mqttTelemetryStatus = telemetryListener.status;
+    deps.runtimeDependencies.mqtt_listener = telemetryListener.status;
+  }
+
+  if (!deps.mqttTelemetryService) {
+    return;
+  }
+
+  app.addHook("onReady", async () => {
+    deps.mqttTelemetryService?.start();
+  });
+
+  app.addHook("onClose", async () => {
+    await deps.mqttTelemetryService?.stop();
+  });
 }
 
 function createDefaultTelemetryDependency(): {

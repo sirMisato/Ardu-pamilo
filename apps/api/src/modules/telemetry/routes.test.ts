@@ -1,6 +1,7 @@
 import type { LightMyRequestResponse } from "fastify";
 import { describe, expect, it } from "vitest";
 import { buildApp } from "../../app.js";
+import { InMemoryTelemetryRepository } from "./telemetry-repository.js";
 
 const demoPassword = "local-demo-password";
 
@@ -90,13 +91,58 @@ describe("telemetry routes", () => {
     });
   });
 
+  it("returns history points for dynamic metric keys", async () => {
+    const telemetry = new InMemoryTelemetryRepository([
+      {
+        id: "dynamic-a-1",
+        tenantId: "tenant-a",
+        plotId: "plot-a",
+        deviceId: "device-a",
+        nodeId: "soil-01",
+        metric: "soil_ph",
+        ts: "2026-08-03T03:05:00Z",
+        seq: 21,
+        value: 6.4,
+        valueType: "number",
+        unit: "ph",
+        calibrationProfile: "dynamic-v1",
+        qualityFlags: []
+      }
+    ]);
+    const app = buildApp({ telemetry });
+    const loginResponse = await login(app, "farmer-a@example.test", "tenant-a");
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/v1/plots/plot-a/telemetry/history?metric=soil_ph&from=2026-08-03T03:00:00Z&to=2026-08-03T03:10:00Z&resolution=raw",
+      headers: {
+        cookie: getCookieHeader(loginResponse)
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      data: {
+        metric: "soil_ph",
+        points: [
+          {
+            metric: "soil_ph",
+            value: 6.4,
+            value_type: "number"
+          }
+        ]
+      },
+      error: null
+    });
+  });
+
   it("rejects invalid history query parameters", async () => {
     const app = buildApp();
     const loginResponse = await login(app, "farmer-a@example.test", "tenant-a");
 
     const response = await app.inject({
       method: "GET",
-      url: "/api/v1/plots/plot-a/telemetry/history?metric=unknown&from=nope&to=2026-08-03T03:10:00Z&resolution=2m",
+      url: "/api/v1/plots/plot-a/telemetry/history?metric=Bad%20Metric&from=nope&to=2026-08-03T03:10:00Z&resolution=2m",
       headers: {
         cookie: getCookieHeader(loginResponse)
       }
@@ -109,7 +155,7 @@ describe("telemetry routes", () => {
         fields: expect.arrayContaining([
           {
             path: "metric",
-            message: "Metric is required and must be supported."
+            message: "Metric is required and must use lowercase letters, numbers, or underscores."
           },
           {
             path: "from",

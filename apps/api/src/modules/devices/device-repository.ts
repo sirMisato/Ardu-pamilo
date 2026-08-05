@@ -35,14 +35,32 @@ export interface DeviceProvisioningResult {
   };
 }
 
+export interface DeviceUpdateInput {
+  label?: string | null;
+  plotId?: string;
+}
+
+export interface DeviceTelemetryBinding {
+  id: string;
+  tenantId: string;
+  plotId: string;
+  status: DeviceStatus;
+}
+
 export interface DeviceRepository {
+  listForTenant(context: TenantContext): DeviceRecord[];
   listForPlot(context: TenantContext, plotId: string): DeviceRecord[];
+  findByIdForTenant(context: TenantContext, deviceId: string): DeviceRecord | null;
   provisionForPlot(context: TenantContext, input: {
     plotId: string;
     serialNo: string;
     label?: string | null;
   }): DeviceProvisioningResult;
+  updateForTenant(context: TenantContext, deviceId: string, input: DeviceUpdateInput): DeviceRecord | null;
   revokeForTenant(context: TenantContext, deviceId: string): DeviceRecord | null;
+  deleteForTenant(context: TenantContext, deviceId: string): DeviceRecord | null;
+  resolveTelemetryBinding(tenantId: string, deviceId: string): DeviceTelemetryBinding | null;
+  markSeenFromTelemetry(tenantId: string, deviceId: string, seenAt: string): DeviceRecord | null;
 }
 
 export class DuplicateDeviceSerialError extends Error {
@@ -59,9 +77,19 @@ export class InMemoryDeviceRepository implements DeviceRepository {
     this.#devices = [...devices];
   }
 
+  listForTenant(context: TenantContext): DeviceRecord[] {
+    const tenantContext = requireTenantContext(context);
+    return this.#devices.filter((device) => device.tenantId === tenantContext.tenantId);
+  }
+
   listForPlot(context: TenantContext, plotId: string): DeviceRecord[] {
     const tenantContext = requireTenantContext(context);
     return this.#devices.filter((device) => device.tenantId === tenantContext.tenantId && device.plotId === plotId);
+  }
+
+  findByIdForTenant(context: TenantContext, deviceId: string): DeviceRecord | null {
+    const tenantContext = requireTenantContext(context);
+    return this.#devices.find((device) => device.id === deviceId && device.tenantId === tenantContext.tenantId) ?? null;
   }
 
   provisionForPlot(context: TenantContext, input: {
@@ -113,6 +141,29 @@ export class InMemoryDeviceRepository implements DeviceRepository {
     };
   }
 
+  updateForTenant(context: TenantContext, deviceId: string, input: DeviceUpdateInput): DeviceRecord | null {
+    const tenantContext = requireTenantContext(context);
+    const index = this.#devices.findIndex((device) => device.id === deviceId && device.tenantId === tenantContext.tenantId);
+
+    if (index < 0) {
+      return null;
+    }
+
+    const existing = this.#devices[index];
+    if (!existing) {
+      return null;
+    }
+
+    const updated: DeviceRecord = {
+      ...existing,
+      label: input.label === undefined ? existing.label : input.label,
+      plotId: input.plotId ?? existing.plotId
+    };
+
+    this.#devices[index] = updated;
+    return updated;
+  }
+
   revokeForTenant(context: TenantContext, deviceId: string): DeviceRecord | null {
     const tenantContext = requireTenantContext(context);
     const index = this.#devices.findIndex((device) => device.id === deviceId && device.tenantId === tenantContext.tenantId);
@@ -130,6 +181,55 @@ export class InMemoryDeviceRepository implements DeviceRepository {
       ...existing,
       status: "revoked",
       revokedAt: new Date().toISOString()
+    };
+
+    this.#devices[index] = updated;
+    return updated;
+  }
+
+  deleteForTenant(context: TenantContext, deviceId: string): DeviceRecord | null {
+    return this.revokeForTenant(context, deviceId);
+  }
+
+  resolveTelemetryBinding(tenantId: string, deviceId: string): DeviceTelemetryBinding | null {
+    const device = this.#devices.find((candidate) =>
+      candidate.tenantId === tenantId
+      && candidate.id === deviceId
+      && candidate.status !== "revoked"
+    );
+
+    if (!device) {
+      return null;
+    }
+
+    return {
+      id: device.id,
+      tenantId: device.tenantId,
+      plotId: device.plotId,
+      status: device.status
+    };
+  }
+
+  markSeenFromTelemetry(tenantId: string, deviceId: string, seenAt: string): DeviceRecord | null {
+    const index = this.#devices.findIndex((candidate) =>
+      candidate.tenantId === tenantId
+      && candidate.id === deviceId
+      && candidate.status !== "revoked"
+    );
+
+    if (index < 0) {
+      return null;
+    }
+
+    const existing = this.#devices[index];
+    if (!existing) {
+      return null;
+    }
+
+    const updated: DeviceRecord = {
+      ...existing,
+      status: "active",
+      lastSeenAt: seenAt
     };
 
     this.#devices[index] = updated;

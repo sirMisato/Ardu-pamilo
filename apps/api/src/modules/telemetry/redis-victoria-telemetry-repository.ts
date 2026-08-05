@@ -1,15 +1,19 @@
 import { createClient } from "redis";
 import {
-  createTelemetryStorageRecord,
+  inferTelemetryValueType,
   parseTelemetryStorageRecord,
   serializeTelemetryStorageRecord,
   telemetryLatestRedisKey,
-  type MetricCode,
   type NormalizedSensorReading,
   type TelemetryStorageRecord,
   type TenantContext
 } from "@pamilo/shared";
-import type { TelemetryHistoryQuery, TelemetryReadingRecord, TelemetryRepository } from "./telemetry-repository.js";
+import type {
+  TelemetryHistoryQuery,
+  TelemetryInputReading,
+  TelemetryReadingRecord,
+  TelemetryRepository
+} from "./telemetry-repository.js";
 
 type RedisClient = ReturnType<typeof createClient>;
 
@@ -75,15 +79,12 @@ export class RedisVictoriaTelemetryRepository implements TelemetryRepository {
   async recordForPlot(
     context: TenantContext,
     plotId: string,
-    readings: NormalizedSensorReading[]
+    readings: TelemetryInputReading[] | NormalizedSensorReading[]
   ): Promise<TelemetryReadingRecord[]> {
-    const records = readings.map((reading) =>
-      createTelemetryStorageRecord({
-        tenantId: context.tenantId,
-        plotId,
-        reading
-      })
-    );
+    const records = readings.flatMap((reading) => {
+      const record = toNumericStorageRecord(context, plotId, reading);
+      return record ? [record] : [];
+    });
 
     if (records.length === 0) {
       return [];
@@ -222,6 +223,7 @@ function parseVictoriaSeries(
         value,
         unit,
         calibrationProfile: "victoriametrics",
+        valueType: "number",
         qualityFlags: []
       }
     ];
@@ -239,16 +241,42 @@ function toReadingRecord(record: TelemetryStorageRecord): TelemetryReadingRecord
     ts: record.ts,
     seq: record.seq,
     value: record.value,
+    valueType: inferTelemetryValueType(record.value),
     unit: record.unit,
     calibrationProfile: record.calibrationProfile,
     qualityFlags: [...record.qualityFlags]
   };
 }
 
-function formatVictoriaQuery(tenantId: string, plotId: string, metric: MetricCode): string {
+function formatVictoriaQuery(tenantId: string, plotId: string, metric: string): string {
   return `pamilo_telemetry_value{tenant_id="${escapePrometheusLabelValue(tenantId)}",plot_id="${escapePrometheusLabelValue(
     plotId
   )}",metric="${escapePrometheusLabelValue(metric)}"}`;
+}
+
+function toNumericStorageRecord(
+  context: TenantContext,
+  plotId: string,
+  reading: TelemetryInputReading | NormalizedSensorReading
+): TelemetryStorageRecord | null {
+  if (reading.value !== null && typeof reading.value !== "number") {
+    return null;
+  }
+
+  return {
+    tenantId: context.tenantId,
+    plotId,
+    deviceId: reading.deviceId,
+    nodeId: reading.nodeId,
+    metric: reading.metric,
+    sensorKey: "sensorKey" in reading && reading.sensorKey ? reading.sensorKey : reading.metric,
+    ts: reading.ts,
+    seq: reading.seq,
+    value: reading.value,
+    unit: reading.unit,
+    calibrationProfile: reading.calibrationProfile,
+    qualityFlags: [...reading.qualityFlags]
+  };
 }
 
 function formatPrometheusLabels(labels: Record<string, string>): string {

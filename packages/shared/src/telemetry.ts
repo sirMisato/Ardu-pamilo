@@ -14,6 +14,7 @@ export const metricCodes = [
 export type MetricCode = (typeof metricCodes)[number];
 
 export type SensorMetricKey = "st" | "sm" | "n" | "p" | "k" | "ec" | "vwc";
+export type TelemetryValueType = "number" | "string" | "boolean" | "null";
 
 export interface MetricDefinition {
   code: MetricCode;
@@ -72,10 +73,22 @@ export interface NormalizedSensorReading {
   qualityFlags: string[];
 }
 
-export interface TelemetryStorageRecord extends NormalizedSensorReading {
+export interface TelemetryStorageRecord {
   tenantId: string;
   plotId: string;
+  deviceId: string;
+  nodeId: string;
+  metric: string;
+  sensorKey: string;
+  ts: string;
+  seq: number;
+  value: number | null;
+  unit: string;
+  calibrationProfile: string;
+  qualityFlags: string[];
 }
+
+export const telemetryMetricKeyPattern = /^[a-z][a-z0-9_]{0,63}$/;
 
 export const sensorPayloadSchema = Type.Object(
   {
@@ -139,6 +152,26 @@ export function parseSensorPayload(input: unknown): ValidationResult<SensorPaylo
     ok: true,
     value
   };
+}
+
+export function isTelemetryMetricKey(value: string): boolean {
+  return telemetryMetricKeyPattern.test(value);
+}
+
+export function inferTelemetryValueType(value: number | string | boolean | null): TelemetryValueType {
+  if (value === null) {
+    return "null";
+  }
+
+  if (typeof value === "number") {
+    return "number";
+  }
+
+  if (typeof value === "boolean") {
+    return "boolean";
+  }
+
+  return "string";
 }
 
 export function makeIdempotencyKey(payload: Pick<SensorPayload, "device_id" | "node_id" | "seq">): string {
@@ -239,8 +272,10 @@ function isTelemetryStorageRecord(value: unknown): value is TelemetryStorageReco
     && value.deviceId.length > 0
     && typeof value.nodeId === "string"
     && value.nodeId.length > 0
-    && metricCodes.includes(value.metric as MetricCode)
-    && isSensorMetricKey(value.sensorKey)
+    && typeof value.metric === "string"
+    && isTelemetryMetricKey(value.metric)
+    && typeof value.sensorKey === "string"
+    && value.sensorKey.length > 0
     && typeof value.ts === "string"
     && !Number.isNaN(Date.parse(value.ts))
     && typeof seq === "number"
@@ -253,10 +288,6 @@ function isTelemetryStorageRecord(value: unknown): value is TelemetryStorageReco
     && value.calibrationProfile.length > 0
     && Array.isArray(value.qualityFlags)
     && value.qualityFlags.every((flag) => typeof flag === "string");
-}
-
-function isSensorMetricKey(value: unknown): value is SensorMetricKey {
-  return metricDefinitions.some((definition) => definition.sensorKey === value);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
