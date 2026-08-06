@@ -1,0 +1,102 @@
+name: pamilo-saas
+
+services:
+  emqx:
+    image: emqx/emqx:5.8
+    restart: unless-stopped
+    environment:
+      EMQX_NODE_NAME: emqx@emqx
+      EMQX_DASHBOARD__DEFAULT_USERNAME: ${EMQX_DASHBOARD_USERNAME:?set EMQX_DASHBOARD_USERNAME}
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_DASHBOARD_PASSWORD:?set EMQX_DASHBOARD_PASSWORD}
+    volumes:
+      - emqx-data:/opt/emqx/data
+      - emqx-log:/opt/emqx/log
+      - ./infra/emqx/base.hocon:/opt/emqx/etc/base.hocon:ro
+      - ./infra/emqx/acl.conf:/opt/emqx/etc/acl.conf:ro
+      - ./infra/emqx/certs:/opt/emqx/certs:ro
+    ports:
+      - "8883:8883"
+      - "127.0.0.1:18083:18083"
+    expose:
+      - "1883"
+    networks:
+      - mqtt-private
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 20s
+      timeout: 10s
+      retries: 6
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      emqx:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      PUBLIC_WEB_ORIGIN: ${PUBLIC_WEB_ORIGIN:?set PUBLIC_WEB_ORIGIN}
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET}
+      MYSQL_HOST: ${MYSQL_HOST:?set MYSQL_HOST}
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?set MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD}
+      MQTT_BROKER_URL: mqtt://emqx:1883
+      MQTT_SERVICE_USERNAME: ${MQTT_SERVICE_USERNAME:?set MQTT_SERVICE_USERNAME}
+      MQTT_SERVICE_PASSWORD: ${MQTT_SERVICE_PASSWORD:?set MQTT_SERVICE_PASSWORD}
+      MQTT_TOPIC_ROOT: pamilo/v1/tenants
+      BMKG_BASE_URL: ${BMKG_BASE_URL:-https://api.bmkg.go.id}
+      REALTIME_TRANSPORT: sse
+    expose:
+      - "3000"
+    networks:
+      - app-private
+      - mqtt-private
+      - backend-egress
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 20s
+      timeout: 10s
+      retries: 6
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      API_ORIGIN: http://backend:3000
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - app-private
+      - public-edge
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 6
+
+networks:
+  public-edge:
+    driver: bridge
+  app-private:
+    driver: bridge
+    internal: true
+  mqtt-private:
+    driver: bridge
+    internal: true
+  backend-egress:
+    driver: bridge
+
+volumes:
+  emqx-data:
+  emqx-log:

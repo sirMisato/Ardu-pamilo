@@ -1,0 +1,84 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy to VPS
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate compose file
+        run: docker compose -f docker-compose.yml config --quiet
+        env:
+          PUBLIC_WEB_ORIGIN: https://example.com
+          SESSION_SECRET: placeholder-session-secret-for-ci-validation
+          MYSQL_HOST: mysql.example.com
+          MYSQL_PORT: 3306
+          MYSQL_DATABASE: pamilo
+          MYSQL_USER: pamilo
+          MYSQL_PASSWORD: placeholder
+          MQTT_SERVICE_USERNAME: pamilo_ingestor
+          MQTT_SERVICE_PASSWORD: placeholder
+          EMQX_DASHBOARD_USERNAME: admin
+          EMQX_DASHBOARD_PASSWORD: placeholder
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          APP_DIR: ${{ vars.VPS_APP_DIR }}
+          REPOSITORY: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          envs: APP_DIR,REPOSITORY,REF_NAME
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            if [ -z "${APP_DIR:-}" ]; then
+              APP_DIR="/opt/pamilo-saas"
+            fi
+
+            mkdir -p "$APP_DIR"
+
+            if [ ! -d "$APP_DIR/.git" ]; then
+              git clone "https://github.com/${REPOSITORY}.git" "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
+            git fetch origin "$REF_NAME"
+            git checkout "$REF_NAME"
+            git reset --hard "origin/$REF_NAME"
+
+            test -f production.env
+            test -f infra/emqx/base.hocon
+            test -f infra/emqx/acl.conf
+            test -d infra/emqx/certs
+
+            docker compose --env-file production.env -f docker-compose.yml config --quiet
+            docker compose --env-file production.env -f docker-compose.yml pull --ignore-buildable
+            docker compose --env-file production.env -f docker-compose.yml build --pull
+            docker compose --env-file production.env -f docker-compose.yml up -d --remove-orphans
+            docker compose --env-file production.env -f docker-compose.yml ps
+
+            docker image prune -af --filter "until=168h"
+            docker builder prune -af --filter "until=168h"
