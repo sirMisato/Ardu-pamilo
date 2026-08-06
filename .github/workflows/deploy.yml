@@ -5,12 +5,6 @@ on:
     branches:
       - main
   workflow_dispatch:
-    inputs:
-      deploy_to_vps:
-        description: Run the real VPS deployment after build
-        required: true
-        default: false
-        type: boolean
 
 concurrency:
   group: production-deploy
@@ -22,7 +16,9 @@ permissions:
 env:
   WEB_HOST: sedayafarm.keycloud.id
   MQTT_HOST: mqtt.keycloud.id
+  VPS_HOST_DEFAULT: 43.157.203.226
   LETSENCRYPT_EMAIL: admin@sedayafarm.keycloud.id
+  FRONTEND_ORIGIN: https://sedayafarm.keycloud.id
   VITE_API_BASE_URL: https://sedayafarm.keycloud.id
   VITE_BMKG_FORECAST_BASE_URL: https://api.bmkg.go.id/publik/prakiraan-cuaca
   VITE_MQTT_BROKER_URL: mqtts://mqtt.keycloud.id:8883
@@ -31,7 +27,7 @@ env:
 
 jobs:
   test-build:
-    name: Test and Build Frontend
+    name: Test and build application
     runs-on: ubuntu-latest
 
     steps:
@@ -69,6 +65,18 @@ jobs:
           node --version
           npm --version
 
+      - name: Install API dependencies
+        working-directory: source
+        run: npm ci --prefix apps/api
+
+      - name: Typecheck API
+        working-directory: source
+        run: npm run typecheck --prefix apps/api
+
+      - name: Build API
+        working-directory: source
+        run: npm run build --prefix apps/api
+
       - name: Install frontend dependencies
         working-directory: source
         run: npm ci --prefix apps/web
@@ -85,8 +93,12 @@ jobs:
         working-directory: source
         run: docker compose -f docker-compose.yml config --quiet
         env:
+          DATABASE_URL: mysql://placeholder:placeholder@mysql.example.invalid:3306/pamilo
+          EMQX_DASHBOARD_PASSWORD: placeholder-dashboard-password
           EMQX_DASHBOARD_USERNAME: admin
-          EMQX_DASHBOARD_PASSWORD: placeholder
+          JWT_SECRET: placeholder-jwt-secret-that-is-long-enough
+          SUPER_ADMIN_EMAIL: admin@sedayafarm.keycloud.id
+          SUPER_ADMIN_PASSWORD_HASH: placeholder-bcrypt-hash
 
   deploy:
     name: Deploy to VPS
@@ -95,28 +107,36 @@ jobs:
     environment: production
 
     steps:
-      - name: Deployment paused on push
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.deploy_to_vps != true }}
-        run: echo "VPS deployment is paused. Run this workflow manually with deploy_to_vps=true to deploy."
-
       - name: Install SSH password client
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_to_vps == true }}
         run: |
           sudo apt-get update
           sudo apt-get install -y sshpass
 
       - name: Deploy to VPS
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_to_vps == true }}
         shell: bash
         env:
           APP_DIR: ${{ vars.VPS_APP_DIR }}
+          DATABASE_SSL: ${{ vars.DATABASE_SSL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           EMQX_DASHBOARD_PASSWORD: ${{ secrets.EMQX_DASHBOARD_PASSWORD }}
-          EMQX_DASHBOARD_USERNAME: ${{ secrets.EMQX_DASHBOARD_USERNAME }}
+          EMQX_DASHBOARD_USERNAME: ${{ vars.EMQX_DASHBOARD_USERNAME }}
+          FRONTEND_ORIGIN: ${{ vars.FRONTEND_ORIGIN }}
+          JWT_EXPIRES_IN: ${{ vars.JWT_EXPIRES_IN }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
           LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
+          LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+          MQTT_BROKER_URL: ${{ vars.MQTT_BROKER_URL }}
+          MQTT_CLIENT_ID: ${{ vars.MQTT_CLIENT_ID }}
           MQTT_HOST: ${{ vars.MQTT_HOST }}
+          MQTT_INGEST_ENABLED: ${{ vars.MQTT_INGEST_ENABLED }}
+          MQTT_PASSWORD: ${{ secrets.MQTT_PASSWORD }}
+          MQTT_TELEMETRY_TOPIC: ${{ vars.MQTT_TELEMETRY_TOPIC }}
+          MQTT_USERNAME: ${{ secrets.MQTT_USERNAME }}
           REF_NAME: ${{ github.ref_name }}
           REPOSITORY: ${{ github.repository }}
           REPO_TOKEN: ${{ github.token }}
+          SUPER_ADMIN_EMAIL: ${{ vars.SUPER_ADMIN_EMAIL }}
+          SUPER_ADMIN_PASSWORD_HASH: ${{ secrets.SUPER_ADMIN_PASSWORD_HASH }}
           SUDO_PASSWORD: ${{ secrets.VPS_PASSWORD }}
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
           VITE_BMKG_FORECAST_BASE_URL: ${{ vars.VITE_BMKG_FORECAST_BASE_URL }}
@@ -124,6 +144,7 @@ jobs:
           VITE_MQTT_WEBSOCKET_URL: ${{ vars.VITE_MQTT_WEBSOCKET_URL }}
           VITE_WEB_BASE_URL: ${{ vars.VITE_WEB_BASE_URL }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_HOST_DEFAULT: ${{ env.VPS_HOST_DEFAULT }}
           VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
           VPS_PORT: ${{ secrets.VPS_PORT }}
           VPS_USERNAME: ${{ secrets.VPS_USERNAME }}
@@ -131,20 +152,33 @@ jobs:
         run: |
           set -euo pipefail
 
-          : "${VPS_HOST:?Missing VPS_HOST secret}"
           : "${VPS_PASSWORD:?Missing VPS_PASSWORD secret}"
           : "${VPS_USERNAME:?Missing VPS_USERNAME secret}"
+          : "${DATABASE_URL:?Missing DATABASE_URL secret}"
+          : "${JWT_SECRET:?Missing JWT_SECRET secret}"
+          : "${SUPER_ADMIN_PASSWORD_HASH:?Missing SUPER_ADMIN_PASSWORD_HASH secret}"
 
           APP_DIR="${APP_DIR:-/opt/pamilo-saas}"
-          WEB_HOST="${WEB_HOST:-sedayafarm.keycloud.id}"
-          MQTT_HOST="${MQTT_HOST:-mqtt.keycloud.id}"
+          DATABASE_SSL="${DATABASE_SSL:-true}"
+          EMQX_DASHBOARD_USERNAME="${EMQX_DASHBOARD_USERNAME:-admin}"
+          FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-https://sedayafarm.keycloud.id}"
+          JWT_EXPIRES_IN="${JWT_EXPIRES_IN:-8h}"
           LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-admin@sedayafarm.keycloud.id}"
-          VITE_WEB_BASE_URL="${VITE_WEB_BASE_URL:-https://${WEB_HOST}}"
-          VITE_API_BASE_URL="${VITE_API_BASE_URL:-https://${WEB_HOST}}"
-          VITE_MQTT_BROKER_URL="${VITE_MQTT_BROKER_URL:-mqtts://${MQTT_HOST}:8883}"
-          VITE_MQTT_WEBSOCKET_URL="${VITE_MQTT_WEBSOCKET_URL:-wss://${MQTT_HOST}:8084/mqtt}"
+          LOG_LEVEL="${LOG_LEVEL:-info}"
+          MQTT_BROKER_URL="${MQTT_BROKER_URL:-mqtt://emqx:1883}"
+          MQTT_CLIENT_ID="${MQTT_CLIENT_ID:-pamilo-api-production}"
+          MQTT_HOST="${MQTT_HOST:-mqtt.keycloud.id}"
+          MQTT_INGEST_ENABLED="${MQTT_INGEST_ENABLED:-true}"
+          MQTT_TELEMETRY_TOPIC="${MQTT_TELEMETRY_TOPIC:-pamilo/v1/tenants/+/devices/+/telemetry}"
+          SUPER_ADMIN_EMAIL="${SUPER_ADMIN_EMAIL:-admin@sedayafarm.keycloud.id}"
+          VITE_WEB_BASE_URL="${VITE_WEB_BASE_URL:-https://sedayafarm.keycloud.id}"
+          VITE_API_BASE_URL="${VITE_API_BASE_URL:-https://sedayafarm.keycloud.id}"
+          VITE_MQTT_BROKER_URL="${VITE_MQTT_BROKER_URL:-mqtts://mqtt.keycloud.id:8883}"
+          VITE_MQTT_WEBSOCKET_URL="${VITE_MQTT_WEBSOCKET_URL:-wss://mqtt.keycloud.id:8084/mqtt}"
           VITE_BMKG_FORECAST_BASE_URL="${VITE_BMKG_FORECAST_BASE_URL:-https://api.bmkg.go.id/publik/prakiraan-cuaca}"
+          VPS_HOST="${VPS_HOST:-$VPS_HOST_DEFAULT}"
           VPS_PORT="${VPS_PORT:-22}"
+          WEB_HOST="${WEB_HOST:-sedayafarm.keycloud.id}"
 
           remote_export() {
             local name="$1"
@@ -154,13 +188,27 @@ jobs:
 
           {
             remote_export APP_DIR
+            remote_export DATABASE_SSL
+            remote_export DATABASE_URL
             remote_export EMQX_DASHBOARD_PASSWORD
             remote_export EMQX_DASHBOARD_USERNAME
+            remote_export FRONTEND_ORIGIN
+            remote_export JWT_EXPIRES_IN
+            remote_export JWT_SECRET
             remote_export LETSENCRYPT_EMAIL
+            remote_export LOG_LEVEL
+            remote_export MQTT_BROKER_URL
+            remote_export MQTT_CLIENT_ID
             remote_export MQTT_HOST
+            remote_export MQTT_INGEST_ENABLED
+            remote_export MQTT_PASSWORD
+            remote_export MQTT_TELEMETRY_TOPIC
+            remote_export MQTT_USERNAME
             remote_export REF_NAME
             remote_export REPOSITORY
             remote_export REPO_TOKEN
+            remote_export SUPER_ADMIN_EMAIL
+            remote_export SUPER_ADMIN_PASSWORD_HASH
             remote_export SUDO_PASSWORD
             remote_export VITE_API_BASE_URL
             remote_export VITE_BMKG_FORECAST_BASE_URL
@@ -181,15 +229,9 @@ jobs:
           }
 
           install_docker_if_missing() {
-            if command -v docker >/dev/null 2>&1; then
-              if sudo_run docker compose version >/dev/null 2>&1; then
-                echo "Docker and Docker Compose are already available on this VPS."
-                return
-              fi
-
-              echo "Docker CLI is present, but Docker Compose plugin is missing. Installing Docker packages."
-            else
-              echo "Docker CLI is missing. Installing Docker Engine and Docker Compose plugin."
+            if command -v docker >/dev/null 2>&1 && sudo_run docker compose version >/dev/null 2>&1; then
+              echo "Docker and Docker Compose are already available on this VPS."
+              return
             fi
 
             if ! command -v apt-get >/dev/null 2>&1; then
@@ -220,7 +262,6 @@ jobs:
               exit 1
             fi
 
-            echo "Using Docker apt repository for ${docker_repo_os} ${docker_codename}."
             sudo_run apt-get update
             sudo_run apt-get install -y ca-certificates curl gnupg
             sudo_run install -m 0755 -d /etc/apt/keyrings
@@ -275,11 +316,30 @@ jobs:
               ;;
           esac
 
-          REMOTE_USER="$(id -un)"
-          REMOTE_GROUP="$(id -gn)"
+          if [ -z "${EMQX_DASHBOARD_PASSWORD:-}" ]; then
+            SECRETS_DIR="$APP_DIR/.deploy-secrets"
+            sudo_run mkdir -p "$SECRETS_DIR"
+            sudo_run chown -R "$(id -un):$(id -gn)" "$SECRETS_DIR"
+            chmod 700 "$SECRETS_DIR"
+
+            if [ ! -f "$SECRETS_DIR/emqx-dashboard-password" ] || ! grep -Eq '^[A-Za-z0-9]{32,}$' "$SECRETS_DIR/emqx-dashboard-password"; then
+              openssl rand -hex 32 > "$SECRETS_DIR/emqx-dashboard-password"
+              chmod 600 "$SECRETS_DIR/emqx-dashboard-password"
+            fi
+
+            EMQX_DASHBOARD_PASSWORD="$(cat "$SECRETS_DIR/emqx-dashboard-password")"
+            export EMQX_DASHBOARD_PASSWORD
+          fi
+
+          require_env DATABASE_URL
+          require_env EMQX_DASHBOARD_PASSWORD
+          require_env EMQX_DASHBOARD_USERNAME
+          require_env JWT_SECRET
+          require_env SUPER_ADMIN_EMAIL
+          require_env SUPER_ADMIN_PASSWORD_HASH
 
           sudo_run mkdir -p "$APP_DIR"
-          sudo_run chown -R "$REMOTE_USER:$REMOTE_GROUP" "$APP_DIR"
+          sudo_run chown -R "$(id -un):$(id -gn)" "$APP_DIR"
 
           if [ ! -d "$APP_DIR/.git" ]; then
             git_with_token clone "https://github.com/${REPOSITORY}.git" "$APP_DIR"
@@ -290,34 +350,26 @@ jobs:
           git checkout "$REF_NAME"
           git reset --hard "origin/$REF_NAME"
 
-          SECRETS_DIR="$APP_DIR/.deploy-secrets"
-          mkdir -p "$SECRETS_DIR"
-          chmod 700 "$SECRETS_DIR"
-
-          if [ -z "${EMQX_DASHBOARD_USERNAME:-}" ]; then
-            EMQX_DASHBOARD_USERNAME="admin"
-            export EMQX_DASHBOARD_USERNAME
-          fi
-
-          if [ -z "${EMQX_DASHBOARD_PASSWORD:-}" ]; then
-            if [ ! -f "$SECRETS_DIR/emqx-dashboard-password" ] || ! grep -Eq '^[A-Za-z0-9]{32,}$' "$SECRETS_DIR/emqx-dashboard-password"; then
-              openssl rand -hex 32 > "$SECRETS_DIR/emqx-dashboard-password"
-              chmod 600 "$SECRETS_DIR/emqx-dashboard-password"
-            fi
-
-            EMQX_DASHBOARD_PASSWORD="$(cat "$SECRETS_DIR/emqx-dashboard-password")"
-            export EMQX_DASHBOARD_PASSWORD
-          fi
-
-          require_env EMQX_DASHBOARD_PASSWORD
-          require_env EMQX_DASHBOARD_USERNAME
-
           compose() {
             sudo_run env \
+              DATABASE_SSL="$DATABASE_SSL" \
+              DATABASE_URL="$DATABASE_URL" \
               EMQX_DASHBOARD_PASSWORD="$EMQX_DASHBOARD_PASSWORD" \
               EMQX_DASHBOARD_USERNAME="$EMQX_DASHBOARD_USERNAME" \
+              FRONTEND_ORIGIN="$FRONTEND_ORIGIN" \
+              JWT_EXPIRES_IN="$JWT_EXPIRES_IN" \
+              JWT_SECRET="$JWT_SECRET" \
               LETSENCRYPT_EMAIL="$LETSENCRYPT_EMAIL" \
+              LOG_LEVEL="$LOG_LEVEL" \
+              MQTT_BROKER_URL="$MQTT_BROKER_URL" \
+              MQTT_CLIENT_ID="$MQTT_CLIENT_ID" \
               MQTT_HOST="$MQTT_HOST" \
+              MQTT_INGEST_ENABLED="$MQTT_INGEST_ENABLED" \
+              MQTT_PASSWORD="$MQTT_PASSWORD" \
+              MQTT_TELEMETRY_TOPIC="$MQTT_TELEMETRY_TOPIC" \
+              MQTT_USERNAME="$MQTT_USERNAME" \
+              SUPER_ADMIN_EMAIL="$SUPER_ADMIN_EMAIL" \
+              SUPER_ADMIN_PASSWORD_HASH="$SUPER_ADMIN_PASSWORD_HASH" \
               VITE_API_BASE_URL="$VITE_API_BASE_URL" \
               VITE_BMKG_FORECAST_BASE_URL="$VITE_BMKG_FORECAST_BASE_URL" \
               VITE_MQTT_BROKER_URL="$VITE_MQTT_BROKER_URL" \
@@ -328,33 +380,17 @@ jobs:
           }
 
           test -f apps/web/Dockerfile
+          test -f apps/api/Dockerfile
           test -f apps/web/package-lock.json
+          test -f apps/api/package-lock.json
           test -f infra/emqx/base.hocon
           test -f infra/emqx/acl.conf
 
-          echo "Checking Docker availability on VPS."
           install_docker_if_missing
-          echo "Docker is ready for deployment."
           compose config --quiet
-          compose pull --ignore-buildable
-          compose build --pull
-          if ! compose up -d --remove-orphans; then
-            echo "Compose deployment failed. Recent service logs:"
-            compose ps || true
-            compose logs --tail=200 emqx || true
-            compose logs --tail=120 frontend edge || true
-            exit 1
-          fi
+          compose up -d --build --remove-orphans
           compose ps
-
-          if ! compose exec -T emqx sh -lc '/opt/emqx/bin/emqx_ctl status >/dev/null 2>&1 || /opt/emqx/bin/emqx ctl status >/dev/null 2>&1'; then
-            echo "EMQX did not report ready after deployment. Recent EMQX logs:"
-            compose logs --tail=200 emqx || true
-            exit 1
-          fi
-
-          sudo_run docker image prune -af --filter "until=168h"
-          sudo_run docker builder prune -af --filter "until=168h"
+          sudo_run docker system prune -af --volumes
           REMOTE_SCRIPT
           } | SSHPASS="$VPS_PASSWORD" sshpass -e ssh \
             -p "$VPS_PORT" \

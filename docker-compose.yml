@@ -1,7 +1,7 @@
 name: pamilo-saas
 
 services:
-  edge:
+  reverse-proxy:
     image: traefik:v3.1
     restart: unless-stopped
     command:
@@ -31,10 +31,12 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik-letsencrypt:/letsencrypt
     depends_on:
-      frontend:
+      backend:
         condition: service_healthy
       emqx:
-        condition: service_started
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
     networks:
       - public-edge
 
@@ -56,6 +58,8 @@ services:
       - traefik.docker.network=pamilo-public-edge
       - traefik.http.routers.pamilo-web.rule=Host(`${WEB_HOST:-sedayafarm.keycloud.id}`)
       - traefik.http.routers.pamilo-web.entrypoints=websecure
+      - traefik.http.routers.pamilo-web.priority=10
+      - traefik.http.routers.pamilo-web.tls=true
       - traefik.http.routers.pamilo-web.tls.certresolver=letsencrypt
       - traefik.http.routers.pamilo-web.service=pamilo-web
       - traefik.http.services.pamilo-web.loadbalancer.server.port=80
@@ -67,14 +71,61 @@ services:
       timeout: 10s
       retries: 6
 
+  backend:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_SSL: ${DATABASE_SSL:-true}
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-https://sedayafarm.keycloud.id}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      MQTT_BROKER_URL: ${MQTT_BROKER_URL:-mqtt://emqx:1883}
+      MQTT_CLIENT_ID: ${MQTT_CLIENT_ID:-pamilo-api-production}
+      MQTT_INGEST_ENABLED: ${MQTT_INGEST_ENABLED:-true}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+      MQTT_TELEMETRY_TOPIC: ${MQTT_TELEMETRY_TOPIC:-pamilo/v1/tenants/+/devices/+/telemetry}
+      MQTT_USERNAME: ${MQTT_USERNAME:-}
+      NODE_ENV: production
+      PORT: 3000
+      SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:?set SUPER_ADMIN_EMAIL}
+      SUPER_ADMIN_PASSWORD_HASH: ${SUPER_ADMIN_PASSWORD_HASH:?set SUPER_ADMIN_PASSWORD_HASH}
+    expose:
+      - "3000"
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=pamilo-public-edge
+      - traefik.http.routers.pamilo-api.rule=Host(`${WEB_HOST:-sedayafarm.keycloud.id}`) && PathPrefix(`/api`)
+      - traefik.http.routers.pamilo-api.entrypoints=websecure
+      - traefik.http.routers.pamilo-api.priority=100
+      - traefik.http.routers.pamilo-api.tls=true
+      - traefik.http.routers.pamilo-api.tls.certresolver=letsencrypt
+      - traefik.http.routers.pamilo-api.service=pamilo-api
+      - traefik.http.services.pamilo-api.loadbalancer.server.port=3000
+    depends_on:
+      emqx:
+        condition: service_healthy
+    networks:
+      - public-edge
+      - mqtt-private
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      start_period: 30s
+      interval: 20s
+      timeout: 10s
+      retries: 6
+
   emqx:
     image: emqx/emqx:5.8
     hostname: emqx
     restart: unless-stopped
     environment:
       EMQX_NODE_NAME: emqx@emqx
-      EMQX_DASHBOARD__DEFAULT_USERNAME: "\"${EMQX_DASHBOARD_USERNAME:?set EMQX_DASHBOARD_USERNAME}\""
-      EMQX_DASHBOARD__DEFAULT_PASSWORD: "\"${EMQX_DASHBOARD_PASSWORD:?set EMQX_DASHBOARD_PASSWORD}\""
+      EMQX_DASHBOARD__DEFAULT_USERNAME: "${EMQX_DASHBOARD_USERNAME:?set EMQX_DASHBOARD_USERNAME}"
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: "${EMQX_DASHBOARD_PASSWORD:?set EMQX_DASHBOARD_PASSWORD}"
     volumes:
       - emqx-data:/opt/emqx/data
       - emqx-log:/opt/emqx/log
@@ -83,6 +134,7 @@ services:
     expose:
       - "1883"
       - "8083"
+      - "18083"
     ports:
       - "127.0.0.1:18083:18083"
     labels:
@@ -94,6 +146,7 @@ services:
       - traefik.tcp.services.emqx-mqtt.loadbalancer.server.port=1883
       - traefik.tcp.routers.emqx-mqtts.rule=HostSNI(`${MQTT_HOST:-mqtt.keycloud.id}`)
       - traefik.tcp.routers.emqx-mqtts.entrypoints=mqtts
+      - traefik.tcp.routers.emqx-mqtts.tls=true
       - traefik.tcp.routers.emqx-mqtts.tls.certresolver=letsencrypt
       - traefik.tcp.routers.emqx-mqtts.service=emqx-mqtt
       - traefik.http.routers.emqx-ws.rule=Host(`${MQTT_HOST:-mqtt.keycloud.id}`) && PathPrefix(`/mqtt`)
@@ -101,6 +154,7 @@ services:
       - traefik.http.routers.emqx-ws.service=emqx-ws
       - traefik.http.routers.emqx-wss.rule=Host(`${MQTT_HOST:-mqtt.keycloud.id}`) && PathPrefix(`/mqtt`)
       - traefik.http.routers.emqx-wss.entrypoints=mqttwss
+      - traefik.http.routers.emqx-wss.tls=true
       - traefik.http.routers.emqx-wss.tls.certresolver=letsencrypt
       - traefik.http.routers.emqx-wss.service=emqx-ws
       - traefik.http.services.emqx-ws.loadbalancer.server.port=8083
