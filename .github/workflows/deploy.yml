@@ -241,8 +241,8 @@ jobs:
             fi
 
             if [ -z "${EMQX_DASHBOARD_PASSWORD:-}" ]; then
-              if [ ! -f "$SECRETS_DIR/emqx-dashboard-password" ]; then
-                openssl rand -base64 36 > "$SECRETS_DIR/emqx-dashboard-password"
+              if [ ! -f "$SECRETS_DIR/emqx-dashboard-password" ] || ! grep -Eq '^[A-Za-z0-9]{32,}$' "$SECRETS_DIR/emqx-dashboard-password"; then
+                openssl rand -hex 32 > "$SECRETS_DIR/emqx-dashboard-password"
                 chmod 600 "$SECRETS_DIR/emqx-dashboard-password"
               fi
 
