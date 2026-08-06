@@ -24,7 +24,7 @@
       <article class="panel-surface p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <p class="text-sm font-medium text-slate-400">Area Aktif</p>
+            <p class="text-sm font-medium text-slate-400">Plot Aktif</p>
             <p class="mt-2 text-3xl font-semibold tracking-normal text-white">{{ activePlotCount }}</p>
           </div>
           <MapPin class="h-9 w-9 text-sky-200" />
@@ -40,7 +40,7 @@
             <input
               v-model.trim="searchQuery"
               class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 pl-10 pr-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
-              placeholder="Cari device ID, area, atau profile"
+              placeholder="Cari device ID, plot, atau profile"
               type="search"
             />
           </label>
@@ -52,6 +52,7 @@
             <option value="all">Semua Status</option>
             <option value="online">Online</option>
             <option value="offline">Offline</option>
+            <option value="maintenance">Maintenance</option>
           </select>
         </div>
 
@@ -64,11 +65,15 @@
           Tambah Perangkat
         </button>
       </div>
+
+      <div v-if="errorMessage" class="mt-4 rounded-lg border border-amber-300/25 bg-amber-300/10 p-4 text-sm text-amber-100">
+        {{ errorMessage }}
+      </div>
     </section>
 
     <section class="panel-surface overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="min-w-[860px] w-full text-left text-sm">
+        <table class="min-w-[900px] w-full text-left text-sm">
           <thead class="border-b border-white/10 bg-white/5 text-xs uppercase tracking-wide text-slate-400">
             <tr>
               <th class="px-5 py-4 font-semibold">Device ID</th>
@@ -88,37 +93,37 @@
                     <Cpu class="h-5 w-5" />
                   </div>
                   <div class="min-w-0">
-                    <p class="truncate font-semibold text-white">{{ device.id }}</p>
+                    <p class="truncate font-semibold text-white">{{ device.deviceUid }}</p>
                     <p class="truncate text-xs text-slate-400">{{ device.telemetryTopic }}</p>
                   </div>
                 </div>
               </td>
               <td class="px-5 py-4">
                 <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold" :class="statusBadgeClass(device.status)">
-                  <component :is="device.status === 'online' ? Wifi : WifiOff" class="h-3.5 w-3.5" />
+                  <component :is="statusIcon(device.status)" class="h-3.5 w-3.5" />
                   {{ statusLabel(device.status) }}
                 </span>
               </td>
-              <td class="px-5 py-4 text-slate-300">{{ device.assignedPlot }}</td>
-              <td class="px-5 py-4 text-slate-300">{{ device.sensorProfile }}</td>
+              <td class="px-5 py-4 text-slate-300">{{ device.plotName ?? device.plotId }}</td>
+              <td class="px-5 py-4 text-slate-300">{{ sensorProfile(device.metadata) }}</td>
               <td class="px-5 py-4">
                 <div class="flex items-center gap-2 text-slate-300">
                   <Clock3 class="h-4 w-4 text-slate-500" />
-                  {{ formatDateTime(device.lastSeen) }}
+                  {{ device.lastSeenAt ? formatDateTime(device.lastSeenAt) : "-" }}
                 </div>
               </td>
               <td class="px-5 py-4">
                 <div class="flex items-center gap-3">
                   <BatteryMedium class="h-4 w-4 text-field-green" />
                   <div class="h-2 w-24 rounded-full bg-white/10">
-                    <div class="h-full rounded-full bg-field-green" :style="{ width: `${device.batteryPercent}%` }"></div>
+                    <div class="h-full rounded-full bg-field-green" :style="{ width: `${batteryPercent(device.metadata)}%` }"></div>
                   </div>
-                  <span class="text-xs text-slate-400">{{ device.batteryPercent }}%</span>
+                  <span class="text-xs text-slate-400">{{ batteryPercent(device.metadata) }}%</span>
                 </div>
               </td>
               <td class="px-5 py-4">
                 <div class="flex justify-end gap-2">
-                  <button class="icon-button" type="button" :aria-label="`Hapus ${device.id}`" @click="removeDevice(device.id)">
+                  <button class="icon-button" type="button" :aria-label="`Hapus ${device.deviceUid}`" @click="removeDevice(device.id)">
                     <Trash2 class="h-4 w-4" />
                   </button>
                 </div>
@@ -128,7 +133,11 @@
         </table>
       </div>
 
-      <div v-if="filteredDevices.length === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
+      <div v-if="isLoading" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
+        Memuat perangkat dari API.
+      </div>
+
+      <div v-else-if="filteredDevices.length === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
         Tidak ada perangkat sesuai filter.
       </div>
     </section>
@@ -138,7 +147,7 @@
         <div class="flex items-center justify-between gap-4">
           <div>
             <h2 class="text-lg font-semibold tracking-normal text-white">Tambah Perangkat</h2>
-            <p class="mt-1 text-sm text-slate-400">Registrasi node ESP32 baru.</p>
+            <p class="mt-1 text-sm text-slate-400">Registrasi node ESP32 baru lewat API tenant.</p>
           </div>
           <button class="icon-button" type="button" aria-label="Tutup modal" @click="closeAddModal">
             <X class="h-4 w-4" />
@@ -146,23 +155,36 @@
         </div>
 
         <div class="mt-5 grid gap-4">
-          <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Device ID</span>
-            <input
-              v-model.trim="deviceForm.id"
-              class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
-              placeholder="SensorNode04"
-              required
-              type="text"
-            />
-          </label>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="space-y-2">
+              <span class="text-sm font-medium text-slate-300">Device UID</span>
+              <input
+                v-model.trim="deviceForm.deviceUid"
+                class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+                placeholder="SensorNode04"
+                required
+                type="text"
+              />
+            </label>
+
+            <label class="space-y-2">
+              <span class="text-sm font-medium text-slate-300">Display Name</span>
+              <input
+                v-model.trim="deviceForm.displayName"
+                class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+                placeholder="Soil Node Blok C"
+                required
+                type="text"
+              />
+            </label>
+          </div>
 
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Assigned Plot/Area</span>
+            <span class="text-sm font-medium text-slate-300">Plot ID</span>
             <input
-              v-model.trim="deviceForm.assignedPlot"
+              v-model.trim="deviceForm.plotId"
               class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
-              placeholder="Kebun Utara / Blok C"
+              placeholder="UUID plot dari API /plots"
               required
               type="text"
             />
@@ -190,6 +212,7 @@
               >
                 <option value="online">Online</option>
                 <option value="offline">Offline</option>
+                <option value="maintenance">Maintenance</option>
               </select>
             </label>
           </div>
@@ -210,9 +233,13 @@
           <button class="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-slate-300 hover:bg-white/5" type="button" @click="closeAddModal">
             Batal
           </button>
-          <button class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-field-green px-5 text-sm font-semibold text-[#102016] hover:bg-field-mint" type="submit">
+          <button
+            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-field-green px-5 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60"
+            :disabled="isSaving"
+            type="submit"
+          >
             <Save class="h-4 w-4" />
-            Simpan
+            {{ isSaving ? "Menyimpan" : "Simpan" }}
           </button>
         </div>
       </form>
@@ -229,75 +256,37 @@ import {
   Plus,
   Save,
   Search,
+  Settings2,
   Trash2,
   Wifi,
   WifiOff,
   X
 } from "@lucide/vue";
-import { computed, reactive, ref } from "vue";
+import { storeToRefs } from "pinia";
+import { computed, onMounted, reactive, ref } from "vue";
+import { useDeviceStore, type DeviceStatus } from "../../stores/deviceStore";
 
-type DeviceStatus = "online" | "offline";
 type StatusFilter = "all" | DeviceStatus;
 
-interface SensorDevice {
-  id: string;
-  status: DeviceStatus;
-  assignedPlot: string;
-  lastSeen: string;
-  firmware: string;
-  batteryPercent: number;
-  telemetryTopic: string;
-  sensorProfile: string;
-}
-
-const devices = ref<SensorDevice[]>([
-  {
-    id: "SensorNode01",
-    status: "online",
-    assignedPlot: "Kebun Utara / Blok A",
-    lastSeen: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
-    firmware: "esp32-pamilo-1.4.2",
-    batteryPercent: 92,
-    telemetryTopic: "pamilo/v1/tenants/mock-tenant/devices/SensorNode01/telemetry",
-    sensorProfile: "Soil NPK + pH"
-  },
-  {
-    id: "SensorNode02",
-    status: "online",
-    assignedPlot: "Kebun Utara / Blok B",
-    lastSeen: new Date(Date.now() - 11 * 60 * 1000).toISOString(),
-    firmware: "esp32-pamilo-1.4.1",
-    batteryPercent: 76,
-    telemetryTopic: "pamilo/v1/tenants/mock-tenant/devices/SensorNode02/telemetry",
-    sensorProfile: "Moisture + Temperature"
-  },
-  {
-    id: "WeatherHub01",
-    status: "offline",
-    assignedPlot: "Plot Pembibitan",
-    lastSeen: new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString(),
-    firmware: "weather-hub-0.9.8",
-    batteryPercent: 34,
-    telemetryTopic: "pamilo/v1/tenants/mock-tenant/devices/WeatherHub01/telemetry",
-    sensorProfile: "Weather Station"
-  }
-]);
-
+const deviceStore = useDeviceStore();
+const { activePlotCount, devices, errorMessage, isLoading, isSaving, onlineDeviceCount } = storeToRefs(deviceStore);
 const searchQuery = ref("");
 const statusFilter = ref<StatusFilter>("all");
 const isAddModalOpen = ref(false);
 const deviceForm = reactive<{
-  id: string;
-  status: DeviceStatus;
-  assignedPlot: string;
-  telemetryTopic: string;
+  deviceUid: string;
+  displayName: string;
+  plotId: string;
   sensorProfile: string;
+  status: DeviceStatus;
+  telemetryTopic: string;
 }>({
-  id: "",
-  status: "online",
-  assignedPlot: "",
-  telemetryTopic: "",
-  sensorProfile: "Soil NPK + pH"
+  deviceUid: "",
+  displayName: "",
+  plotId: "",
+  sensorProfile: "Soil NPK + pH",
+  status: "offline",
+  telemetryTopic: ""
 });
 
 const filteredDevices = computed(() => {
@@ -306,23 +295,27 @@ const filteredDevices = computed(() => {
   return devices.value.filter((device) => {
     const matchesStatus = statusFilter.value === "all" || device.status === statusFilter.value;
     const matchesQuery = !query
-      || device.id.toLowerCase().includes(query)
-      || device.assignedPlot.toLowerCase().includes(query)
-      || device.sensorProfile.toLowerCase().includes(query);
+      || device.deviceUid.toLowerCase().includes(query)
+      || device.displayName.toLowerCase().includes(query)
+      || (device.plotName ?? device.plotId).toLowerCase().includes(query)
+      || sensorProfile(device.metadata).toLowerCase().includes(query);
 
     return matchesStatus && matchesQuery;
   });
 });
 
-const onlineDeviceCount = computed(() => devices.value.filter((device) => device.status === "online").length);
-const activePlotCount = computed(() => new Set(devices.value.map((device) => device.assignedPlot)).size);
+onMounted(() => {
+  void deviceStore.fetchDevices();
+});
 
 function openAddModal(): void {
-  deviceForm.id = "";
-  deviceForm.status = "online";
-  deviceForm.assignedPlot = "";
+  deviceForm.deviceUid = "";
+  deviceForm.displayName = "";
+  deviceForm.plotId = "";
   deviceForm.sensorProfile = "Soil NPK + pH";
+  deviceForm.status = "offline";
   deviceForm.telemetryTopic = "pamilo/v1/tenants/mock-tenant/devices/SensorNode04/telemetry";
+  deviceStore.clearError();
   isAddModalOpen.value = true;
 }
 
@@ -330,35 +323,62 @@ function closeAddModal(): void {
   isAddModalOpen.value = false;
 }
 
-function submitDevice(): void {
-  devices.value = [
-    {
-      id: deviceForm.id,
-      status: deviceForm.status,
-      assignedPlot: deviceForm.assignedPlot,
-      lastSeen: new Date().toISOString(),
-      firmware: "pending-provision",
-      batteryPercent: deviceForm.status === "online" ? 100 : 0,
-      telemetryTopic: deviceForm.telemetryTopic,
+async function submitDevice(): Promise<void> {
+  const created = await deviceStore.createDevice({
+    deviceUid: deviceForm.deviceUid,
+    displayName: deviceForm.displayName,
+    metadata: {
+      batteryPercent: 100,
       sensorProfile: deviceForm.sensorProfile
     },
-    ...devices.value
-  ];
-  closeAddModal();
+    plotId: deviceForm.plotId,
+    status: deviceForm.status,
+    telemetryTopic: deviceForm.telemetryTopic
+  });
+
+  if (created) {
+    closeAddModal();
+  }
 }
 
-function removeDevice(deviceId: string): void {
-  devices.value = devices.value.filter((device) => device.id !== deviceId);
+async function removeDevice(deviceId: string): Promise<void> {
+  await deviceStore.deleteDevice(deviceId);
+}
+
+function sensorProfile(metadata: Record<string, unknown>): string {
+  return typeof metadata.sensorProfile === "string" ? metadata.sensorProfile : "Custom Payload";
+}
+
+function batteryPercent(metadata: Record<string, unknown>): number {
+  return typeof metadata.batteryPercent === "number" ? Math.min(100, Math.max(0, metadata.batteryPercent)) : 0;
+}
+
+function statusIcon(status: DeviceStatus) {
+  if (status === "online") {
+    return Wifi;
+  }
+
+  if (status === "maintenance") {
+    return Settings2;
+  }
+
+  return WifiOff;
 }
 
 function statusLabel(status: DeviceStatus): string {
-  return status === "online" ? "Online" : "Offline";
+  return status === "online" ? "Online" : status === "maintenance" ? "Maintenance" : "Offline";
 }
 
 function statusBadgeClass(status: DeviceStatus): string {
-  return status === "online"
-    ? "bg-field-mint/10 text-field-mint"
-    : "bg-rose-300/10 text-rose-200";
+  if (status === "online") {
+    return "bg-field-mint/10 text-field-mint";
+  }
+
+  if (status === "maintenance") {
+    return "bg-amber-300/10 text-amber-100";
+  }
+
+  return "bg-rose-300/10 text-rose-200";
 }
 
 function formatDateTime(value: string): string {

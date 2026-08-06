@@ -1,0 +1,180 @@
+import type { FastifyPluginAsync } from "fastify";
+import { z } from "zod";
+import { db } from "../db/client.js";
+import type { JsonValue } from "../db/schema.js";
+import { requireTenantContext, verifyTenant } from "../middleware/verifyTenant.js";
+
+const historyQuerySchema = z.object({
+  deviceId: z.string().trim().min(1).optional(),
+  end: z.string().datetime().optional(),
+  limit: z.coerce.number().int().min(1).max(1000).default(250),
+  metricKey: z.string().trim().min(1).optional(),
+  start: z.string().datetime().optional()
+});
+
+interface TelemetryHistoryRow {
+  device_uid: string;
+  metric_keys_json: JsonValue | string;
+  payload_json: JsonValue | string;
+  received_at: Date | string;
+  telemetry_id: string | number | bigint;
+  topic: string;
+}
+
+export const telemetryRoutes: FastifyPluginAsync = async (app) => {
+  app.addHook("preHandler", verifyTenant);
+
+  app.get<{ Querystring: z.input<typeof historyQuerySchema> }>("/telemetry/history", async (request, reply) => {
+    const tenant = requireTenantContext(request);
+    const parsed = historyQuerySchema.safeParse(request.query);
+
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: "Invalid telemetry query",
+        issues: parsed.error.flatten().fieldErrors
+      });
+    }
+
+    const { deviceId, end, limit, metricKey, start } = parsed.data;
+    let query = db
+      .selectFrom("telemetry_data")
+      .innerJoin("devices", "devices.id", "telemetry_data.device_id")
+      .select([
+        "devices.device_uid",
+        "telemetry_data.id as telemetry_id",
+        "telemetry_data.metric_keys_json",
+        "telemetry_data.payload_json",
+        "telemetry_data.received_at",
+        "telemetry_data.topic"
+      ])
+      .where("telemetry_data.tenant_id", "=", tenant.tenantId)
+      .where("devices.tenant_id", "=", tenant.tenantId)
+      .orderBy("telemetry_data.received_at", "desc")
+      .limit(limit);
+
+    if (deviceId) {
+      query = query.where((expressionBuilder) => expressionBuilder.or([
+        expressionBuilder("devices.device_uid", "=", deviceId),
+        expressionBuilder("telemetry_data.device_id", "=", deviceId)
+      ]));
+    }
+
+    if (start) {
+      query = query.where("telemetry_data.received_at", ">=", new Date(start));
+    }
+
+    if (end) {
+      query = query.where("telemetry_data.received_at", "<=", new Date(end));
+    }
+
+    const rows = await query.execute();
+    const items = rows
+      .map((row) => toTelemetryHistoryItem(row, metricKey))
+      .filter((row): row is NonNullable<ReturnType<typeof toTelemetryHistoryItem>> => row !== null)
+      .reverse();
+
+    return {
+      count: items.length,
+      items,
+      metricKey: metricKey ?? null
+    };
+  });
+
+  app.get("/telemetry/latest", async (request) => {
+    const tenant = requireTenantContext(request);
+    const rows = await db
+      .selectFrom("telemetry_data")
+      .innerJoin("devices", "devices.id", "telemetry_data.device_id")
+      .select([
+        "devices.device_uid",
+        "telemetry_data.id as telemetry_id",
+        "telemetry_data.metric_keys_json",
+        "telemetry_data.payload_json",
+        "telemetry_data.received_at",
+        "telemetry_data.topic"
+      ])
+      .where("telemetry_data.tenant_id", "=", tenant.tenantId)
+      .where("devices.tenant_id", "=", tenant.tenantId)
+      .orderBy("telemetry_data.received_at", "desc")
+      .limit(100)
+      .execute();
+
+    return rows.map((row) => toTelemetryHistoryItem(row, undefined)).filter(Boolean);
+  });
+};
+
+function toTelemetryHistoryItem(row: TelemetryHistoryRow, metricKey: string | undefined) {
+  const payload = parseJsonObject(row.payload_json);
+  const metricKeys = parseStringArray(row.metric_keys_json);
+  const value = metricKey ? readMetricValue(payload, metricKey) : null;
+
+  if (metricKey && value === undefined) {
+    return null;
+  }
+
+  return {
+    deviceUid: row.device_uid,
+    id: String(row.telemetry_id),
+    metricKey: metricKey ?? null,
+    metricKeys,
+    payload,
+    receivedAt: serializeDate(row.received_at),
+    topic: row.topic,
+    value: value ?? null
+  };
+}
+
+function parseJsonObject(value: JsonValue | string): Record<string, JsonValue> {
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return isRecord(parsed) ? parsed as Record<string, JsonValue> : {};
+    } catch {
+      return {};
+    }
+  }
+
+  return isRecord(value) ? value : {};
+}
+
+function parseStringArray(value: JsonValue | string): string[] {
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function readMetricValue(payload: Record<string, JsonValue>, metricKey: string): JsonValue | undefined {
+  const metrics = isRecord(payload.metrics) ? payload.metrics as Record<string, JsonValue> : payload;
+  const directValue = readNestedValue(metrics, metricKey);
+
+  if (isRecord(directValue) && "value" in directValue) {
+    return directValue.value as JsonValue;
+  }
+
+  return directValue;
+}
+
+function readNestedValue(payload: Record<string, JsonValue>, keyPath: string): JsonValue | undefined {
+  return keyPath.split(".").reduce<JsonValue | undefined>((current, key) => {
+    if (!isRecord(current)) {
+      return undefined;
+    }
+
+    return current[key];
+  }, payload);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function serializeDate(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : value;
+}

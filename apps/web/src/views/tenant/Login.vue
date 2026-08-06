@@ -12,14 +12,17 @@
       <form class="grid gap-4" @submit.prevent="goToDashboard">
         <label class="grid gap-2 text-sm font-medium text-slate-300">
           Email atau Username
-          <input class="min-h-12 rounded-lg border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/30" type="text" autocomplete="username" />
+          <input v-model.trim="form.emailOrUsername" class="min-h-12 rounded-lg border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/30" type="text" autocomplete="username" />
         </label>
         <label class="grid gap-2 text-sm font-medium text-slate-300">
           Kata Sandi
-          <input class="min-h-12 rounded-lg border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/30" type="password" autocomplete="current-password" />
+          <input v-model="form.password" class="min-h-12 rounded-lg border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/30" type="password" autocomplete="current-password" />
         </label>
-        <button class="mt-2 min-h-12 rounded-full bg-field-green px-5 text-sm font-semibold text-[#102016] hover:bg-field-mint" type="submit">
-          Masuk
+        <div v-if="errorMessage" class="rounded-lg border border-amber-300/25 bg-amber-300/10 p-3 text-sm text-amber-100">
+          {{ errorMessage }}
+        </div>
+        <button class="mt-2 min-h-12 rounded-full bg-field-green px-5 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60" :disabled="isLoading" type="submit">
+          {{ isLoading ? "Masuk..." : "Masuk" }}
         </button>
       </form>
     </section>
@@ -28,11 +31,34 @@
 
 <script setup lang="ts">
 import { Sprout } from "@lucide/vue";
+import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
+import { ApiClientError, loginTenant } from "../../services/apiClient";
 
 const router = useRouter();
+const isLoading = ref(false);
+const errorMessage = ref<string | null>(null);
+const form = reactive({
+  emailOrUsername: "tenant@example.com",
+  password: ""
+});
 
-function goToDashboard(): void {
-  void router.push("/dashboard");
+async function goToDashboard(): Promise<void> {
+  isLoading.value = true;
+  errorMessage.value = null;
+
+  try {
+    await loginTenant({
+      emailOrUsername: form.emailOrUsername,
+      password: form.password
+    });
+    await router.push("/dashboard");
+  } catch (error) {
+    errorMessage.value = error instanceof ApiClientError
+      ? error.message
+      : "API backend belum dapat dihubungi. Jalankan Fastify lokal atau periksa VITE_API_BASE_URL.";
+  } finally {
+    isLoading.value = false;
+  }
 }
 </script>

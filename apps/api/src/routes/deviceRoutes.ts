@@ -1,0 +1,211 @@
+import { randomUUID } from "node:crypto";
+import type { FastifyPluginAsync } from "fastify";
+import { z } from "zod";
+import { db } from "../db/client.js";
+import type { DeviceStatus, JsonValue } from "../db/schema.js";
+import { requireTenantContext, verifyTenant } from "../middleware/verifyTenant.js";
+
+const deviceStatusSchema = z.enum(["online", "offline", "maintenance"]);
+
+const createDeviceSchema = z.object({
+  deviceUid: z.string().trim().min(1).max(120),
+  displayName: z.string().trim().min(1).max(160),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  mqttUsername: z.string().trim().max(160).optional().nullable(),
+  plotId: z.string().trim().min(1).max(36),
+  status: deviceStatusSchema.optional().default("offline"),
+  telemetryTopic: z.string().trim().min(1).max(255)
+});
+
+const routeParamsSchema = z.object({
+  deviceId: z.string().trim().min(1)
+});
+
+type CreateDeviceBody = z.infer<typeof createDeviceSchema>;
+
+interface DeviceRow {
+  created_at: Date | string;
+  device_uid: string;
+  display_name: string;
+  id: string;
+  last_seen_at: Date | string | null;
+  metadata_json: JsonValue | string | null;
+  mqtt_username: string | null;
+  plot_id: string;
+  plot_name: string | null;
+  status: DeviceStatus;
+  telemetry_topic: string;
+  updated_at: Date | string;
+}
+
+export const deviceRoutes: FastifyPluginAsync = async (app) => {
+  app.addHook("preHandler", verifyTenant);
+
+  app.get("/devices", async (request) => {
+    const tenant = requireTenantContext(request);
+    const rows = await db
+      .selectFrom("devices")
+      .leftJoin("plots", "plots.id", "devices.plot_id")
+      .select([
+        "devices.created_at",
+        "devices.device_uid",
+        "devices.display_name",
+        "devices.id",
+        "devices.last_seen_at",
+        "devices.metadata_json",
+        "devices.mqtt_username",
+        "devices.plot_id",
+        "devices.status",
+        "devices.telemetry_topic",
+        "devices.updated_at",
+        "plots.name as plot_name"
+      ])
+      .where("devices.tenant_id", "=", tenant.tenantId)
+      .orderBy("devices.created_at", "desc")
+      .execute();
+
+    return rows.map(toDeviceDto);
+  });
+
+  app.post<{ Body: CreateDeviceBody }>("/devices", async (request, reply) => {
+    const tenant = requireTenantContext(request);
+    const parsed = createDeviceSchema.safeParse(request.body);
+
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: "Invalid device payload",
+        issues: parsed.error.flatten().fieldErrors
+      });
+    }
+
+    const body = parsed.data;
+    const plot = await db
+      .selectFrom("plots")
+      .select(["id", "name"])
+      .where("id", "=", body.plotId)
+      .where("tenant_id", "=", tenant.tenantId)
+      .executeTakeFirst();
+
+    if (!plot) {
+      return reply.code(404).send({
+        error: "Plot not found",
+        message: "The target plot does not exist for this tenant."
+      });
+    }
+
+    const deviceId = randomUUID();
+
+    await db
+      .insertInto("devices")
+      .values({
+        device_uid: body.deviceUid,
+        display_name: body.displayName,
+        id: deviceId,
+        metadata_json: JSON.stringify(body.metadata ?? {}),
+        mqtt_username: body.mqttUsername ?? null,
+        plot_id: body.plotId,
+        status: body.status,
+        telemetry_topic: body.telemetryTopic,
+        tenant_id: tenant.tenantId
+      })
+      .execute();
+
+    const row = await selectDeviceForTenant(deviceId, tenant.tenantId);
+
+    return reply.code(201).send(row ? toDeviceDto(row) : {
+      id: deviceId
+    });
+  });
+
+  app.delete<{ Params: { deviceId: string } }>("/devices/:deviceId", async (request, reply) => {
+    const tenant = requireTenantContext(request);
+    const parsed = routeParamsSchema.safeParse(request.params);
+
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: "Invalid route params",
+        issues: parsed.error.flatten().fieldErrors
+      });
+    }
+
+    const result = await db
+      .deleteFrom("devices")
+      .where("id", "=", parsed.data.deviceId)
+      .where("tenant_id", "=", tenant.tenantId)
+      .executeTakeFirst();
+
+    if (result.numDeletedRows === 0n) {
+      return reply.code(404).send({
+        error: "Device not found",
+        message: "The device does not exist for this tenant."
+      });
+    }
+
+    return reply.code(204).send();
+  });
+};
+
+async function selectDeviceForTenant(deviceId: string, tenantId: string): Promise<DeviceRow | undefined> {
+  return db
+    .selectFrom("devices")
+    .leftJoin("plots", "plots.id", "devices.plot_id")
+    .select([
+      "devices.created_at",
+      "devices.device_uid",
+      "devices.display_name",
+      "devices.id",
+      "devices.last_seen_at",
+      "devices.metadata_json",
+      "devices.mqtt_username",
+      "devices.plot_id",
+      "devices.status",
+      "devices.telemetry_topic",
+      "devices.updated_at",
+      "plots.name as plot_name"
+    ])
+    .where("devices.id", "=", deviceId)
+    .where("devices.tenant_id", "=", tenantId)
+    .executeTakeFirst();
+}
+
+function toDeviceDto(row: DeviceRow) {
+  return {
+    createdAt: serializeDate(row.created_at),
+    deviceUid: row.device_uid,
+    displayName: row.display_name,
+    id: row.id,
+    lastSeenAt: row.last_seen_at ? serializeDate(row.last_seen_at) : null,
+    metadata: parseJsonObject(row.metadata_json),
+    mqttUsername: row.mqtt_username,
+    plotId: row.plot_id,
+    plotName: row.plot_name,
+    status: row.status,
+    telemetryTopic: row.telemetry_topic,
+    updatedAt: serializeDate(row.updated_at)
+  };
+}
+
+function parseJsonObject(value: JsonValue | string | null): Record<string, JsonValue> {
+  if (!value) {
+    return {};
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return isRecord(parsed) ? parsed as Record<string, JsonValue> : {};
+    } catch {
+      return {};
+    }
+  }
+
+  return isRecord(value) ? value : {};
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function serializeDate(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : value;
+}

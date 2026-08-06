@@ -4,6 +4,9 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { env } from "./config/env.js";
 import { closeDatabase, db } from "./db/client.js";
 import { requireTenantContext, verifyTenant } from "./middleware/verifyTenant.js";
+import { cropRoutes } from "./routes/cropRoutes.js";
+import { deviceRoutes } from "./routes/deviceRoutes.js";
+import { telemetryRoutes } from "./routes/telemetryRoutes.js";
 import { startMqttTelemetryService, type MqttTelemetryService } from "./services/mqttService.js";
 
 interface LoginBody {
@@ -87,40 +90,17 @@ export async function buildServer(): Promise<FastifyInstance> {
         .execute();
     });
 
-    tenantRoutes.get("/devices", async (request) => {
-      const tenant = requireTenantContext(request);
-
-      return db
-        .selectFrom("devices")
-        .selectAll()
-        .where("tenant_id", "=", tenant.tenantId)
-        .orderBy("created_at", "desc")
-        .execute();
-    });
-
-    tenantRoutes.get("/crops", async (request) => {
-      const tenant = requireTenantContext(request);
-
-      return db
-        .selectFrom("master_crops")
-        .selectAll()
-        .where("tenant_id", "=", tenant.tenantId)
-        .orderBy("name", "asc")
-        .execute();
-    });
-
-    tenantRoutes.get("/telemetry/latest", async (request) => {
-      const tenant = requireTenantContext(request);
-
-      return db
-        .selectFrom("telemetry_data")
-        .selectAll()
-        .where("tenant_id", "=", tenant.tenantId)
-        .orderBy("received_at", "desc")
-        .limit(100)
-        .execute();
-    });
   }, {
+    prefix: "/api/v1"
+  });
+
+  await app.register(deviceRoutes, {
+    prefix: "/api/v1"
+  });
+  await app.register(cropRoutes, {
+    prefix: "/api/v1"
+  });
+  await app.register(telemetryRoutes, {
     prefix: "/api/v1"
   });
 
