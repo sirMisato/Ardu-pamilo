@@ -102,33 +102,55 @@
         <div class="flex items-center justify-between">
           <div>
             <h2 class="text-lg font-semibold tracking-normal text-white">BMKG Snapshot</h2>
-            <p class="mt-1 text-sm text-slate-400">{{ apiHost }}</p>
+            <p class="mt-1 text-sm text-slate-400">{{ tenantProfileStore.activeFieldLabel }}</p>
           </div>
-          <CloudSun class="h-7 w-7 text-amber-200" />
+          <CloudRain v-if="isRainy(dashboardForecast?.current.condition)" class="h-7 w-7 text-sky-200" />
+          <CloudSun v-else class="h-7 w-7 text-amber-200" />
         </div>
-        <div class="mt-6 grid grid-cols-2 gap-3">
-          <div v-for="weather in weatherSnapshot" :key="weather.label" class="rounded-lg border border-white/10 bg-white/5 p-4">
-            <p class="text-xs text-slate-400">{{ weather.label }}</p>
-            <p class="mt-2 text-lg font-semibold text-white">{{ weather.value }}</p>
+
+        <div class="mt-5 rounded-lg border border-field-mint/20 bg-field-mint/10 p-4">
+          <p class="text-xs text-field-mint">ADM4 {{ tenantProfileStore.activeBmkgAdm4Code || "-" }}</p>
+          <p class="mt-2 text-2xl font-semibold tracking-normal text-white">
+            {{ dashboardForecast ? formatTemperature(dashboardForecast.current.temperatureC) : "Loading" }}
+          </p>
+          <p class="mt-1 text-sm text-slate-300">{{ dashboardForecast?.current.condition ?? "Mengambil data BMKG" }}</p>
+        </div>
+
+        <div class="mt-4 grid gap-3">
+          <div v-for="day in dashboardDailyForecast" :key="day.date" class="rounded-lg border border-white/10 bg-white/5 p-3">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="text-xs font-semibold text-white">{{ day.dateLabel }}</p>
+                <p class="mt-1 text-xs text-slate-400">{{ day.summary }}</p>
+              </div>
+              <strong class="text-sm text-field-mint">{{ formatTemperature(day.averageTemperatureC) }}</strong>
+            </div>
           </div>
         </div>
+
+        <p v-if="weatherError" class="mt-4 text-xs text-amber-100">{{ weatherError }}</p>
       </article>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { CloudSun, Cpu, Sprout, Waves } from "@lucide/vue";
-import { computed, onMounted } from "vue";
+import { CloudRain, CloudSun, Cpu, Sprout, Waves } from "@lucide/vue";
+import { computed, onMounted, ref, watch } from "vue";
 import FieldMap from "../../components/dashboard/FieldMap.vue";
 import { appEnvironment } from "../../config/environment";
+import { fetchBmkgForecast, type BmkgForecastResult } from "../../services/bmkgService";
+import { useTenantProfileStore } from "../../stores/tenantProfileStore";
 import { useTelemetryStore } from "../../stores/telemetryStore";
 
 const telemetryStore = useTelemetryStore();
+const tenantProfileStore = useTenantProfileStore();
+const dashboardForecast = ref<BmkgForecastResult | null>(null);
+const weatherError = ref<string | null>(null);
 
-const apiHost = computed(() => {
+const bmkgHost = computed(() => {
   try {
-    return new URL(appEnvironment.apiBaseUrl).host;
+    return new URL(appEnvironment.bmkgForecastBaseUrl).host;
   } catch {
     return "BMKG endpoint";
   }
@@ -137,6 +159,11 @@ const apiHost = computed(() => {
 onMounted(() => {
   telemetryStore.seedMockTelemetry();
   telemetryStore.connect();
+  void refreshDashboardForecast();
+});
+
+watch(() => tenantProfileStore.activeBmkgAdm4Code, () => {
+  void refreshDashboardForecast();
 });
 
 const topStats = computed(() => [
@@ -158,8 +185,8 @@ const topStats = computed(() => [
   },
   {
     label: "Weather",
-    value: "29.4 C",
-    detail: "BMKG cloudy light rain",
+    value: dashboardForecast.value ? formatTemperature(dashboardForecast.value.current.temperatureC) : "BMKG",
+    detail: dashboardForecast.value?.current.condition ?? bmkgHost.value,
     icon: CloudSun,
     iconClass: "bg-amber-300/10 text-amber-200",
     detailClass: "text-amber-200"
@@ -183,6 +210,21 @@ const cropInfo = [
 ];
 
 const latestMetricCards = computed(() => telemetryStore.latestMetrics.slice(0, 8));
+const dashboardDailyForecast = computed(() => dashboardForecast.value?.daily.slice(0, 3) ?? []);
+
+async function refreshDashboardForecast(): Promise<void> {
+  weatherError.value = null;
+
+  const result = await fetchBmkgForecast({
+    adm4: tenantProfileStore.activeBmkgAdm4Code,
+    baseUrl: appEnvironment.bmkgForecastBaseUrl
+  });
+
+  dashboardForecast.value = result;
+  weatherError.value = result.isMock
+    ? `BMKG fallback: ${result.errorMessage ?? "using mock data."}`
+    : null;
+}
 
 function metricToneClass(metricKey: string): string {
   const palette = [
@@ -200,10 +242,11 @@ function metricToneClass(metricKey: string): string {
   return palette[hash % palette.length] ?? "text-field-mint";
 }
 
-const weatherSnapshot = [
-  { label: "Rainfall", value: "2.4 mm" },
-  { label: "Humidity", value: "78%" },
-  { label: "Wind", value: "8 km/j" },
-  { label: "Updated", value: "13:40" }
-];
+function formatTemperature(value: number | null): string {
+  return value === null ? "-" : `${value} C`;
+}
+
+function isRainy(condition?: string): boolean {
+  return condition?.toLowerCase().includes("hujan") ?? false;
+}
 </script>

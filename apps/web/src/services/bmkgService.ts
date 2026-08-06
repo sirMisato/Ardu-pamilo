@@ -1,7 +1,6 @@
 import { appEnvironment } from "../config/environment";
 
 const defaultForecastBaseUrl = "https://api.bmkg.go.id/publik/prakiraan-cuaca";
-const defaultAdm4Code = "31.71.03.1001";
 const bmkgAttribution = "Data: Badan Meteorologi, Klimatologi, dan Geofisika (BMKG)";
 
 export interface BmkgForecastLocation {
@@ -55,7 +54,7 @@ export interface BmkgForecastResult {
 }
 
 interface FetchForecastOptions {
-  adm4?: string;
+  adm4: string;
   baseUrl?: string;
 }
 
@@ -78,10 +77,19 @@ const weatherCodeDescriptions: Record<number, string> = {
   97: "Hujan Petir"
 };
 
-export async function fetchBmkgForecast(options: FetchForecastOptions = {}): Promise<BmkgForecastResult> {
-  const adm4 = options.adm4 ?? appEnvironment.bmkgForecastAdm4 ?? defaultAdm4Code;
+export async function fetchBmkgForecast(options: FetchForecastOptions): Promise<BmkgForecastResult> {
+  const adm4 = options.adm4.trim();
   const baseUrl = options.baseUrl ?? appEnvironment.bmkgForecastBaseUrl ?? defaultForecastBaseUrl;
-  const forecastUrl = buildForecastUrl(baseUrl, adm4);
+  const forecastUrl = adm4 ? buildForecastUrl(baseUrl, adm4) : baseUrl;
+
+  if (!adm4) {
+    return createMockForecastResult(
+      forecastUrl,
+      "BMKG ADM4 region code is required for the active tenant field.",
+      "unconfigured"
+    );
+  }
+
   const controller = new AbortController();
   const timeoutId = globalThis.setTimeout(() => controller.abort(), 10_000);
 
@@ -98,18 +106,23 @@ export async function fetchBmkgForecast(options: FetchForecastOptions = {}): Pro
     }
 
     const payload = await response.json() as unknown;
-    return parseBmkgForecastResponse(payload, forecastUrl);
+    return parseBmkgForecastResponse(payload, forecastUrl, adm4);
   } catch (error) {
     return createMockForecastResult(
       forecastUrl,
-      error instanceof Error ? error.message : "BMKG forecast request failed."
+      error instanceof Error ? error.message : "BMKG forecast request failed.",
+      adm4
     );
   } finally {
     globalThis.clearTimeout(timeoutId);
   }
 }
 
-export function parseBmkgForecastResponse(payload: unknown, forecastUrl = defaultForecastBaseUrl): BmkgForecastResult {
+export function parseBmkgForecastResponse(
+  payload: unknown,
+  forecastUrl = defaultForecastBaseUrl,
+  requestedAdm4 = ""
+): BmkgForecastResult {
   if (!isRecord(payload)) {
     throw new Error("BMKG payload must be a JSON object.");
   }
@@ -133,7 +146,7 @@ export function parseBmkgForecastResponse(payload: unknown, forecastUrl = defaul
     fetchedAt: new Date().toISOString(),
     forecastUrl,
     isMock: false,
-    location: normalizeLocation(locationPayload),
+    location: normalizeLocation(locationPayload, requestedAdm4),
     current,
     daily: buildDailyForecasts(items),
     items
@@ -143,11 +156,11 @@ export function parseBmkgForecastResponse(payload: unknown, forecastUrl = defaul
 function buildForecastUrl(baseUrl: string, adm4: string): string {
   try {
     const url = new URL(baseUrl);
-    url.searchParams.set("adm4", adm4 || defaultAdm4Code);
+    url.searchParams.set("adm4", adm4);
     return url.toString();
   } catch {
     const url = new URL(defaultForecastBaseUrl);
-    url.searchParams.set("adm4", adm4 || defaultAdm4Code);
+    url.searchParams.set("adm4", adm4);
     return url.toString();
   }
 }
@@ -181,9 +194,9 @@ function flattenWeatherRows(value: unknown): BmkgRecord[] {
   return records;
 }
 
-function normalizeLocation(record: BmkgRecord): BmkgForecastLocation {
+function normalizeLocation(record: BmkgRecord, requestedAdm4: string): BmkgForecastLocation {
   return {
-    adm4: readString(record.adm4, defaultAdm4Code),
+    adm4: readString(record.adm4, requestedAdm4),
     province: readString(record.provinsi, "Indonesia"),
     city: readString(record.kotkab, "Wilayah BMKG"),
     district: readString(record.kecamatan, "-"),
@@ -284,7 +297,7 @@ function normalizeDailyForecast(date: string, dayItems: BmkgForecastItem[]): Bmk
   };
 }
 
-function createMockForecastResult(forecastUrl: string, errorMessage: string): BmkgForecastResult {
+function createMockForecastResult(forecastUrl: string, errorMessage: string, adm4: string): BmkgForecastResult {
   const items = createMockForecastItems();
 
   return {
@@ -293,13 +306,13 @@ function createMockForecastResult(forecastUrl: string, errorMessage: string): Bm
     forecastUrl,
     isMock: true,
     location: {
-      adm4: defaultAdm4Code,
-      province: "DKI Jakarta",
-      city: "Kota Adm. Jakarta Pusat",
-      district: "Kemayoran",
-      village: "Kemayoran",
-      latitude: -6.1647,
-      longitude: 106.8454,
+      adm4,
+      province: "Tenant region",
+      city: "Wilayah BMKG",
+      district: "Active field",
+      village: "Mock forecast",
+      latitude: null,
+      longitude: null,
       timezone: "Asia/Jakarta"
     },
     current: items[0] ?? createFallbackForecastItem(),

@@ -158,8 +158,12 @@
       <h2 class="text-lg font-semibold tracking-normal text-white">Konfigurasi</h2>
       <dl class="mt-5 grid gap-4 md:grid-cols-2">
         <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-          <dt class="text-xs text-slate-400">BMKG ADM4</dt>
-          <dd class="mt-2 text-sm font-semibold text-white">{{ configuredAdm4 }}</dd>
+          <dt class="text-xs text-slate-400">Active Field</dt>
+          <dd class="mt-2 text-sm font-semibold text-white">{{ activeField?.name ?? "-" }}</dd>
+        </div>
+        <div class="rounded-lg border border-white/10 bg-white/5 p-4">
+          <dt class="text-xs text-slate-400">BMKG ADM4 From Tenant Profile</dt>
+          <dd class="mt-2 text-sm font-semibold text-white">{{ activeAdm4 || "-" }}</dd>
         </div>
         <div class="rounded-lg border border-white/10 bg-white/5 p-4">
           <dt class="text-xs text-slate-400">Forecast Endpoint</dt>
@@ -182,12 +186,13 @@ import {
   Thermometer,
   Wind
 } from "@lucide/vue";
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { appEnvironment } from "../../config/environment";
 import {
   fetchBmkgForecast,
   type BmkgForecastResult
 } from "../../services/bmkgService";
+import { useTenantProfileStore } from "../../stores/tenantProfileStore";
 
 type WeatherTab = "forecast" | "monthly" | "config";
 
@@ -195,9 +200,11 @@ const activeTab = ref<WeatherTab>("forecast");
 const forecast = ref<BmkgForecastResult | null>(null);
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
+const tenantProfileStore = useTenantProfileStore();
 
-const configuredAdm4 = computed(() => appEnvironment.bmkgForecastAdm4 || "31.71.03.1001");
 const configuredBaseUrl = computed(() => appEnvironment.bmkgForecastBaseUrl || "https://api.bmkg.go.id/publik/prakiraan-cuaca");
+const activeField = computed(() => tenantProfileStore.activeField);
+const activeAdm4 = computed(() => tenantProfileStore.activeBmkgAdm4Code);
 
 const tabs: Array<{ id: WeatherTab; label: string }> = [
   { id: "forecast", label: "Prakiraan Cuaca" },
@@ -207,7 +214,9 @@ const tabs: Array<{ id: WeatherTab; label: string }> = [
 
 const locationLabel = computed(() => {
   if (!forecast.value) {
-    return "BMKG forecast location";
+    return activeField.value
+      ? `${activeField.value.regionLabel} / ADM4 ${activeAdm4.value}`
+      : "BMKG forecast location";
   }
 
   const location = forecast.value.location;
@@ -264,12 +273,16 @@ onMounted(() => {
   void refreshForecast();
 });
 
+watch(activeAdm4, () => {
+  void refreshForecast();
+});
+
 async function refreshForecast(): Promise<void> {
   isLoading.value = true;
   errorMessage.value = null;
 
   const result = await fetchBmkgForecast({
-    adm4: configuredAdm4.value,
+    adm4: activeAdm4.value,
     baseUrl: configuredBaseUrl.value
   });
 
