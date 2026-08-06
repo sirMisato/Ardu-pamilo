@@ -1,18 +1,19 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 import AppLayout from "../components/layout/AppLayout.vue";
 import SuperAdminLayout from "../components/layout/SuperAdminLayout.vue";
+import SuperAdminLogin from "../views/auth/SuperAdminLogin.vue";
+import TenantLogin from "../views/auth/TenantLogin.vue";
 import SuperAdminDashboard from "../views/superadmin/Dashboard.vue";
 import SuperAdminLicenses from "../views/superadmin/Licenses.vue";
-import SuperAdminLogin from "../views/superadmin/Login.vue";
 import Chart from "../views/tenant/Chart.vue";
 import Dashboard from "../views/tenant/Dashboard.vue";
 import Devices from "../views/tenant/Devices.vue";
-import TenantLogin from "../views/tenant/Login.vue";
 import MasterData from "../views/tenant/MasterData.vue";
 import MQTT from "../views/tenant/MQTT.vue";
-import TenantPlaceholder from "../views/tenant/PlaceholderView.vue";
 import Report from "../views/tenant/Report.vue";
+import Settings from "../views/tenant/Settings.vue";
 import Weather from "../views/tenant/Weather.vue";
+import { useAuthStore } from "../stores/authStore";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -30,6 +31,10 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/",
     component: AppLayout,
+    meta: {
+      requiredRole: "tenant",
+      requiresAuth: true
+    },
     children: [
       {
         path: "dashboard",
@@ -97,7 +102,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: "settings",
         name: "tenant-settings",
-        component: TenantPlaceholder,
+        component: Settings,
         meta: {
           title: "Pengaturan",
           subtitle: "Profil, tampilan, notifikasi, keamanan"
@@ -117,6 +122,10 @@ const routes: RouteRecordRaw[] = [
     path: "/superadmin",
     component: SuperAdminLayout,
     redirect: "/superadmin/dashboard",
+    meta: {
+      requiredRole: "super_admin",
+      requiresAuth: true
+    },
     children: [
       {
         path: "dashboard",
@@ -143,4 +152,36 @@ const routes: RouteRecordRaw[] = [
 export const router = createRouter({
   history: createWebHistory(),
   routes
+});
+
+router.beforeEach((to) => {
+  const authStore = useAuthStore();
+  authStore.restoreFromStorage();
+
+  const isTenantLogin = to.name === "tenant-login";
+  const isSuperAdminLogin = to.name === "superadmin-login";
+
+  if ((isTenantLogin || isSuperAdminLogin) && authStore.isAuthenticated) {
+    return authStore.isSuperAdmin ? "/superadmin/dashboard" : "/dashboard";
+  }
+
+  const requiresAuth = to.matched.some((route) => route.meta.requiresAuth);
+  if (!requiresAuth) {
+    return true;
+  }
+
+  const requiredRole = to.matched.find((route) => typeof route.meta.requiredRole === "string")?.meta.requiredRole;
+  if (!authStore.isAuthenticated) {
+    return requiredRole === "super_admin" ? "/superadmin/login" : "/login";
+  }
+
+  if (requiredRole === "super_admin" && !authStore.isSuperAdmin) {
+    return "/login";
+  }
+
+  if (requiredRole === "tenant" && !authStore.isTenant) {
+    return "/superadmin/dashboard";
+  }
+
+  return true;
 });

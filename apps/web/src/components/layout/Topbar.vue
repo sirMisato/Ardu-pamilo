@@ -19,28 +19,34 @@
           <Bell class="h-5 w-5" />
         </button>
         <div class="ml-1 hidden items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 md:flex">
-          <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-field-green text-xs font-bold text-[#102016]">PF</div>
+          <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-field-green text-xs font-bold text-[#102016]">{{ initials }}</div>
           <div class="min-w-0">
-            <p class="truncate text-sm font-semibold text-white">Pamilo Farm</p>
-            <p class="truncate text-xs text-field-mint">{{ apiHost }}</p>
+            <p class="truncate text-sm font-semibold text-white">{{ profileName }}</p>
+            <p class="truncate text-xs text-field-mint">{{ profileDetail }}</p>
           </div>
         </div>
+        <button class="icon-button" type="button" aria-label="Logout" @click="logout">
+          <LogOut class="h-5 w-5" />
+        </button>
       </div>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
-import { Bell, Menu, Search } from "@lucide/vue";
+import { Bell, LogOut, Menu, Search } from "@lucide/vue";
 import { computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { appEnvironment } from "../../config/environment";
+import { useAuthStore } from "../../stores/authStore";
 
 const emit = defineEmits<{
   toggleSidebar: [];
 }>();
 
 const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
 const title = computed(() => typeof route.meta.title === "string" ? route.meta.title : "PAMILO");
 const subtitle = computed(() => typeof route.meta.subtitle === "string" ? route.meta.subtitle : "Smart Farming SaaS");
 const apiHost = computed(() => {
@@ -50,4 +56,12 @@ const apiHost = computed(() => {
     return "Tenant Owner";
   }
 });
+const profileName = computed(() => authStore.tenant?.accountName ?? "Pamilo Farm");
+const profileDetail = computed(() => authStore.user?.email ?? apiHost.value);
+const initials = computed(() => profileName.value.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "PF");
+
+async function logout(): Promise<void> {
+  authStore.logout();
+  await router.push("/login");
+}
 </script>

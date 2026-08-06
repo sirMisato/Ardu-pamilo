@@ -31,9 +31,9 @@
             <h1 class="text-xl font-semibold tracking-normal text-white">{{ title }}</h1>
             <p class="mt-1 text-sm text-slate-400">{{ subtitle }}</p>
           </div>
-          <RouterLink class="rounded-lg border border-field-mint/30 px-4 py-2 text-sm font-semibold text-field-mint hover:bg-field-mint/10" to="/login">
+          <button class="rounded-lg border border-field-mint/30 px-4 py-2 text-sm font-semibold text-field-mint hover:bg-field-mint/10" type="button" @click="logoutToTenant">
             Tenant Portal
-          </RouterLink>
+          </button>
         </div>
       </header>
       <main class="px-4 pb-8 pt-4 sm:px-6 lg:px-8">
@@ -46,13 +46,21 @@
 <script setup lang="ts">
 import { BadgeCheck, LayoutDashboard, ShieldCheck } from "@lucide/vue";
 import { computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
+import { useAuthStore } from "../../stores/authStore";
 
 const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
 const title = computed(() => typeof route.meta.title === "string" ? route.meta.title : "Super Admin");
 const subtitle = computed(() => typeof route.meta.subtitle === "string" ? route.meta.subtitle : "SaaS control plane");
 const adminItems = [
   { to: "/superadmin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/superadmin/licenses", label: "License Management", icon: BadgeCheck }
 ];
+
+async function logoutToTenant(): Promise<void> {
+  authStore.logout();
+  await router.push("/login");
+}
 </script>

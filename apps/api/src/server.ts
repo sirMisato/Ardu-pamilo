@@ -4,16 +4,13 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { env } from "./config/env.js";
 import { closeDatabase, db } from "./db/client.js";
 import { requireTenantContext, verifyTenant } from "./middleware/verifyTenant.js";
+import { adminRoutes } from "./routes/adminRoutes.js";
+import { authRoutes } from "./routes/authRoutes.js";
 import { cropRoutes } from "./routes/cropRoutes.js";
 import { deviceRoutes } from "./routes/deviceRoutes.js";
+import { settingsRoutes } from "./routes/settingsRoutes.js";
 import { telemetryRoutes } from "./routes/telemetryRoutes.js";
 import { startMqttTelemetryService, type MqttTelemetryService } from "./services/mqttService.js";
-
-interface LoginBody {
-  emailOrUsername: string;
-  password: string;
-  tenantId?: string;
-}
 
 export async function buildServer(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -39,33 +36,9 @@ export async function buildServer(): Promise<FastifyInstance> {
     time: new Date().toISOString()
   }));
 
-  app.post<{ Body: LoginBody }>("/api/v1/auth/login", async (request, reply) => {
-    if (env.nodeEnv === "production") {
-      return reply.code(501).send({
-        error: "Not implemented",
-        message: "Production login must validate password_hash from tenants before issuing JWTs."
-      });
-    }
-
-    const tenantId = request.body.tenantId?.trim() || "mock-tenant";
-    const token = app.jwt.sign(
-      {
-        role: "tenant_admin",
-        sub: request.body.emailOrUsername,
-        tenant_id: tenantId
-      },
-      {
-        expiresIn: "8h"
-      }
-    );
-
-    return {
-      accessToken: token,
-      tenant: {
-        id: tenantId,
-        role: "tenant_admin"
-      }
-    };
+  await app.register(authRoutes);
+  await app.register(adminRoutes, {
+    prefix: "/api/admin"
   });
 
   app.register(async (tenantRoutes) => {
@@ -101,6 +74,9 @@ export async function buildServer(): Promise<FastifyInstance> {
     prefix: "/api/v1"
   });
   await app.register(telemetryRoutes, {
+    prefix: "/api/v1"
+  });
+  await app.register(settingsRoutes, {
     prefix: "/api/v1"
   });
 

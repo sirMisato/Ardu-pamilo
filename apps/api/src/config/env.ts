@@ -6,6 +6,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   FRONTEND_ORIGIN: z.string().default("http://localhost:5173"),
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
+  JWT_EXPIRES_IN: z.string().default("8h"),
   LOG_LEVEL: z.string().default("info"),
   MQTT_BROKER_URL: z.string().default("mqtt://127.0.0.1:1883"),
   MQTT_CLIENT_ID: z.string().default("pamilo-api-local"),
@@ -14,7 +15,9 @@ const envSchema = z.object({
   MQTT_TELEMETRY_TOPIC: z.string().default("pamilo/v1/tenants/+/devices/+/telemetry"),
   MQTT_USERNAME: z.string().optional(),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  PORT: z.coerce.number().int().positive().default(3000)
+  PORT: z.coerce.number().int().positive().default(3000),
+  SUPER_ADMIN_EMAIL: z.string().email().optional(),
+  SUPER_ADMIN_PASSWORD_HASH: z.string().optional()
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -34,6 +37,7 @@ export const env = {
   },
   frontendOrigin: parsedEnv.data.FRONTEND_ORIGIN,
   jwtSecret: parsedEnv.data.JWT_SECRET,
+  jwtExpiresIn: parsedEnv.data.JWT_EXPIRES_IN,
   logLevel: parsedEnv.data.LOG_LEVEL,
   mqtt: {
     brokerUrl: parsedEnv.data.MQTT_BROKER_URL,
@@ -44,5 +48,9 @@ export const env = {
     username: parsedEnv.data.MQTT_USERNAME || undefined
   },
   nodeEnv: parsedEnv.data.NODE_ENV,
-  port: parsedEnv.data.PORT
+  port: parsedEnv.data.PORT,
+  superAdmin: {
+    email: parsedEnv.data.SUPER_ADMIN_EMAIL || undefined,
+    passwordHash: parsedEnv.data.SUPER_ADMIN_PASSWORD_HASH || undefined
+  }
 } as const;

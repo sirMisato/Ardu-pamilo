@@ -23,8 +23,26 @@ export class ApiClientError extends Error {
 export interface TenantLoginResponse {
   accessToken: string;
   tenant: {
+    accountName?: string;
     id: string;
-    role: string;
+    licenseExpiresAt?: string | null;
+    licenseStatus?: string;
+    maxDevices?: number;
+    maxPlots?: number;
+    ownerEmail?: string;
+    role: "tenant_admin" | "tenant_user";
+  };
+  user: {
+    email: string;
+    role: "tenant_admin" | "tenant_user";
+  };
+}
+
+export interface SuperAdminLoginResponse {
+  accessToken: string;
+  user: {
+    email: string;
+    role: "super_admin";
   };
 }
 
@@ -129,7 +147,16 @@ export async function loginTenant(credentials: {
   password: string;
   tenantId?: string;
 }): Promise<TenantLoginResponse> {
-  const response = await apiPost<TenantLoginResponse>("/api/v1/auth/login", credentials);
+  const response = await apiPost<TenantLoginResponse>("/api/auth/login", credentials);
+  setAccessToken(response.accessToken);
+  return response;
+}
+
+export async function loginSuperAdmin(credentials: {
+  email: string;
+  password: string;
+}): Promise<SuperAdminLoginResponse> {
+  const response = await apiPost<SuperAdminLoginResponse>("/api/auth/admin", credentials);
   setAccessToken(response.accessToken);
   return response;
 }

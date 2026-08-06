@@ -83,11 +83,20 @@ export interface TelemetryDataTable {
   created_at: Timestamp;
 }
 
+export interface TenantSettingsTable {
+  tenant_id: string;
+  display_preferences_json: JsonColumn;
+  notification_preferences_json: JsonColumn;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
 export interface Database {
   devices: DevicesTable;
   master_crops: MasterCropsTable;
   plots: PlotsTable;
   telemetry_data: TelemetryDataTable;
+  tenant_settings: TenantSettingsTable;
   tenants: TenantsTable;
 }
 
@@ -109,3 +118,7 @@ export type MasterCropUpdate = Updateable<MasterCropsTable>;
 
 export type TelemetryRecord = Selectable<TelemetryDataTable>;
 export type NewTelemetryRecord = Insertable<TelemetryDataTable>;
+
+export type TenantSettings = Selectable<TenantSettingsTable>;
+export type NewTenantSettings = Insertable<TenantSettingsTable>;
+export type TenantSettingsUpdate = Updateable<TenantSettingsTable>;
