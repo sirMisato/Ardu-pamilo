@@ -20,7 +20,10 @@ services:
       REDIS_URL: redis://redis:6379
       VICTORIA_METRICS_URL: http://victoriametrics:8428
       TELEMETRY_STORAGE_ADAPTER: redis-victoria-hybrid
-      BMKG_BASE_URL: ${BMKG_BASE_URL:-https://api.bmkg.go.id}
+      BMKG_WEATHER_ADAPTER: ${BMKG_WEATHER_ADAPTER:-http}
+      BMKG_WEATHER_BASE_URL: ${BMKG_WEATHER_BASE_URL:-https://api.bmkg.go.id/publik/prakiraan-cuaca}
+      BMKG_WEATHER_CACHE_TTL_MS: ${BMKG_WEATHER_CACHE_TTL_MS:-21600000}
+      BMKG_WEATHER_TIMEOUT_MS: ${BMKG_WEATHER_TIMEOUT_MS:-8000}
       PAMILO_MYSQL_MODE: ${PAMILO_MYSQL_MODE:-not_configured_until_tls_decision}
       MYSQL_HOST: ${MYSQL_HOST:-}
       MYSQL_PORT: ${MYSQL_PORT:-3306}
@@ -182,4 +185,3 @@ volumes:
   emqx-log:
   redis-data:
   victoriametrics-data:
-

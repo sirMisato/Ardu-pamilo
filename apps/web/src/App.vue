@@ -171,62 +171,13 @@
             </section>
 
             <section class="dashboard-grid">
-              <article class="overview-card weather-overview">
-                <div class="section-heading">
-                  <div>
-                    <span class="eyebrow">Weather intelligence</span>
-                    <h2>External weather station overview</h2>
-                    <p>{{ weatherLabel || "BMKG forecast mengikuti ADM4 plot aktif." }}</p>
-                  </div>
-                  <button class="link-button" type="button" @click="setActiveView('weather')">Manage <ArrowRight :size="16" /></button>
-                </div>
-
-                <div v-if="weather && weather.forecast.length" class="weather-dashboard">
-                  <div class="station-card">
-                    <div class="station-title">
-                      <CloudSun :size="22" />
-                      <div>
-                        <strong>BMKG Forecast</strong>
-                        <span>{{ selectedPlot?.name ?? "Plot aktif" }}</span>
-                      </div>
-                    </div>
-                    <dl class="station-metrics">
-                      <div>
-                        <dt>Temperature</dt>
-                        <dd>{{ formatWeatherTemperature(weather.forecast[0]?.temperature_c ?? null) }}</dd>
-                      </div>
-                      <div>
-                        <dt>Humidity</dt>
-                        <dd>{{ formatNullableNumber(weather.forecast[0]?.humidity_pct ?? null, "%") }}</dd>
-                      </div>
-                      <div>
-                        <dt>Updated</dt>
-                        <dd>{{ weather.fetched_at ? formatTimestamp(weather.fetched_at) : "-" }}</dd>
-                      </div>
-                    </dl>
-                  </div>
-
-                  <div class="forecast-stack">
-                    <article v-for="point in compactForecast" :key="point.utc_datetime" class="forecast-card">
-                      <div>
-                        <strong>{{ formatTimestamp(point.utc_datetime) }}</strong>
-                        <span>{{ point.weather_desc }}</span>
-                      </div>
-                      <dl>
-                        <div>
-                          <dt>RH</dt>
-                          <dd>{{ formatNullableNumber(point.humidity_pct, "%") }}</dd>
-                        </div>
-                        <div>
-                          <dt>Wind</dt>
-                          <dd>{{ formatNullableNumber(point.wind_speed_kph, "km/j") }}</dd>
-                        </div>
-                      </dl>
-                    </article>
-                  </div>
-                </div>
-                <p v-else class="empty-state">{{ weatherEmptyState }}</p>
-              </article>
+              <BmkgWeatherWidget
+                :empty-state="weatherEmptyState"
+                :plot-name="selectedPlot?.name ?? 'Plot aktif'"
+                :show-manage="true"
+                :weather="weather"
+                @open-weather="setActiveView('weather')"
+              />
 
               <article class="overview-card">
                 <div class="section-heading">
@@ -238,17 +189,7 @@
                   <span class="live-badge">Live</span>
                 </div>
 
-                <div v-if="latestTelemetry.length" class="metric-card-grid">
-                  <article v-for="reading in latestMetricCards" :key="reading.metric" class="metric-card" :class="metricToneClass(reading.metric)">
-                    <div>
-                      <span>{{ formatMetricName(reading.metric) }}</span>
-                      <small>{{ reading.node_id }}</small>
-                    </div>
-                    <strong>{{ formatTelemetryValue(reading) }}</strong>
-                    <div class="progress-track"><span :style="{ width: metricProgress(reading) }"></span></div>
-                  </article>
-                </div>
-                <p v-else class="empty-state">Belum ada telemetry.</p>
+                <DynamicMetricCards :readings="latestTelemetry" />
               </article>
             </section>
 
@@ -396,49 +337,15 @@
           </template>
 
           <template v-else-if="activeView === 'charts'">
-            <section class="toolbar-row">
-              <select v-model="historyMetric" aria-label="Metric history">
-                <option v-for="metric in telemetryMetricOptions" :key="metric" :value="metric">
-                  {{ formatMetricName(metric) }}
-                </option>
-              </select>
-              <button class="ghost-button" :disabled="historyBusy" type="button" @click="loadTelemetryHistory()">
-                <RefreshCw :size="16" /> Refresh Now
-              </button>
-              <button class="ghost-button" type="button"><Download :size="16" /> Export CSV</button>
-            </section>
-
-            <section class="metric-card-grid wide">
-              <article v-for="reading in latestMetricCards" :key="reading.metric" class="metric-card" :class="metricToneClass(reading.metric)">
-                <div>
-                  <span>{{ formatMetricName(reading.metric) }}</span>
-                  <small>{{ reading.unit || reading.value_type }}</small>
-                </div>
-                <strong>{{ formatTelemetryValue(reading) }}</strong>
-                <div class="progress-track"><span :style="{ width: metricProgress(reading) }"></span></div>
-              </article>
-            </section>
-
-            <section class="chart-panel">
-              <div class="section-heading">
-                <div>
-                  <span class="eyebrow">{{ historyMetric }}</span>
-                  <h2>{{ formatMetricName(historyMetric) }} Trend Line</h2>
-                  <p>History telemetry pada rentang waktu plot aktif.</p>
-                </div>
-              </div>
-              <div v-if="telemetryHistoryBars.length" class="history-chart">
-                <span v-for="bar in telemetryHistoryBars" :key="bar.key" :style="{ height: bar.height }"></span>
-              </div>
-              <div v-if="telemetryHistoryPoints.length" class="history-list">
-                <div v-for="point in telemetryHistoryPoints" :key="point.ts + point.metric + point.device_id" class="history-row">
-                  <span>{{ formatTimestamp(point.ts) }}</span>
-                  <strong>{{ formatTelemetryValue(point) }}</strong>
-                  <small>{{ point.device_id }} / seq {{ point.seq }}</small>
-                </div>
-              </div>
-              <p v-else class="empty-state">History belum tersedia.</p>
-            </section>
+            <DynamicMetricCards :limit="12" :readings="latestTelemetry" wide />
+            <DynamicTelemetryChart
+              :busy="historyBusy"
+              :histories="telemetryHistories"
+              :metric-options="telemetryMetricOptions"
+              :selected-metric="historyMetric"
+              @refresh="loadDashboard(selectedPlotId)"
+              @update:selected-metric="selectHistoryMetric"
+            />
           </template>
 
           <template v-else-if="activeView === 'weather'">
@@ -550,7 +457,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import {
   Activity,
   ArrowRight,
@@ -585,6 +492,7 @@ import {
   getFarms,
   getHealthReady,
   getMe,
+  getPlotDashboard,
   getPlotLatestTelemetry,
   getPlotTelemetryHistory,
   getPlotWeather,
@@ -592,6 +500,7 @@ import {
   logout,
   updatePlotGeometry,
   type FarmPayload,
+  type DashboardPayload,
   type HealthReadyPayload,
   type MePayload,
   type PlotPayload,
@@ -600,7 +509,10 @@ import {
   type WeatherForecastPointPayload,
   type WeatherPayload
 } from "./api.js";
+import BmkgWeatherWidget from "./components/BmkgWeatherWidget.vue";
 import DeviceManagement from "./components/DeviceManagement.vue";
+import DynamicMetricCards from "./components/DynamicMetricCards.vue";
+import DynamicTelemetryChart from "./components/DynamicTelemetryChart.vue";
 import MapView from "./components/MapView.vue";
 import { useDeviceManagementStore } from "./stores/device-management.js";
 
@@ -609,8 +521,10 @@ type ActiveView = "dashboard" | "map" | "charts" | "weather" | "devices" | "repo
 const auth = ref<MePayload | null>(null);
 const farms = ref<FarmPayload[]>([]);
 const plots = ref<PlotPayload[]>([]);
+const dashboard = ref<DashboardPayload | null>(null);
 const latestTelemetry = ref<TelemetryReadingPayload[]>([]);
 const telemetryHistory = ref<TelemetryHistoryPayload | null>(null);
+const telemetryHistories = ref<TelemetryHistoryPayload[]>([]);
 const weather = ref<WeatherPayload | null>(null);
 const runtimeStatus = ref<HealthReadyPayload | null>(null);
 const pendingPlotGeometry = ref<PolygonGeometry | null>(null);
@@ -625,6 +539,7 @@ const workspaceBusy = ref(false);
 const historyBusy = ref(false);
 const runtimeBusy = ref(false);
 const error = ref<string | null>(null);
+let dashboardPollTimer: number | null = null;
 
 const form = reactive({
   email: "multi@example.test",
@@ -648,28 +563,15 @@ const runtimeDependencyRows = computed(() => Object.entries(runtimeStatus.value?
   status
 })));
 const telemetryHistoryPoints = computed(() => telemetryHistory.value?.points ?? []);
-const telemetryHistoryBars = computed(() => {
-  const points = telemetryHistoryPoints.value;
-  const values = points
-    .map((point) => point.value)
-    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
-  const minimum = values.length > 0 ? Math.min(...values) : 0;
-  const maximum = values.length > 0 ? Math.max(...values) : 1;
-  const span = maximum - minimum || 1;
-
-  return points.map((point) => ({
-    key: `${point.device_id}:${point.node_id}:${point.metric}:${point.ts}:${point.seq}`,
-    point,
-    height: typeof point.value === "number" && Number.isFinite(point.value)
-      ? `${24 + ((point.value - minimum) / span) * 76}%`
-      : "8%"
-  }));
-});
 const telemetryMetricOptions = computed(() => {
   const options = new Set<string>(metricCodes);
 
   for (const reading of latestTelemetry.value) {
     options.add(reading.metric);
+  }
+
+  for (const history of telemetryHistories.value) {
+    options.add(history.metric);
   }
 
   return [...options];
@@ -859,6 +761,8 @@ async function loadTenantWorkspace(): Promise<void> {
       deviceStore.reset();
       latestTelemetry.value = [];
       telemetryHistory.value = null;
+      telemetryHistories.value = [];
+      dashboard.value = null;
       weather.value = null;
       selectedPlotId.value = "";
     }
@@ -879,6 +783,8 @@ async function loadPlots(farmId: string): Promise<void> {
       deviceStore.reset();
       latestTelemetry.value = [];
       telemetryHistory.value = null;
+      telemetryHistories.value = [];
+      dashboard.value = null;
       weather.value = null;
       selectedPlotId.value = "";
       return;
@@ -894,6 +800,8 @@ async function loadPlots(farmId: string): Promise<void> {
       deviceStore.reset();
       latestTelemetry.value = [];
       telemetryHistory.value = null;
+      telemetryHistories.value = [];
+      dashboard.value = null;
       weather.value = null;
     }
   } finally {
@@ -922,9 +830,7 @@ async function selectPlot(plotId: string): Promise<void> {
 
 async function loadPlotRuntime(plotId: string): Promise<void> {
   await deviceStore.loadForPlot(plotId);
-  await loadLatestTelemetry(plotId);
-  await loadTelemetryHistory(plotId);
-  await loadWeather(plotId);
+  await loadDashboard(plotId);
 }
 
 async function loadRuntimeStatus(): Promise<void> {
@@ -963,6 +869,47 @@ async function loadLatestTelemetry(plotId: string): Promise<void> {
   }
 }
 
+async function loadDashboard(plotId: string, options: { silent?: boolean } = {}): Promise<void> {
+  if (!plotId) {
+    return;
+  }
+
+  if (!options.silent) {
+    workspaceBusy.value = true;
+    error.value = null;
+  }
+
+  try {
+    const response = await getPlotDashboard(plotId);
+    if (!response.data) {
+      if (!options.silent) {
+        error.value = response.error?.message ?? "Gagal memuat dashboard.";
+      }
+      return;
+    }
+
+    dashboard.value = response.data;
+    latestTelemetry.value = response.data.telemetry.latest;
+    telemetryHistories.value = response.data.telemetry.histories;
+    weather.value = response.data.weather;
+
+    const preferredMetric = response.data.telemetry.latest.find((reading) => reading.metric === historyMetric.value)?.metric
+      ?? response.data.telemetry.latest[0]?.metric
+      ?? response.data.telemetry.histories[0]?.metric;
+
+    if (preferredMetric) {
+      historyMetric.value = preferredMetric;
+    }
+
+    syncSelectedHistory();
+    scheduleDashboardPolling(response.data.realtime.poll_interval_ms);
+  } finally {
+    if (!options.silent) {
+      workspaceBusy.value = false;
+    }
+  }
+}
+
 async function loadTelemetryHistory(plotId = selectedPlotId.value): Promise<void> {
   if (!plotId) {
     telemetryHistory.value = null;
@@ -987,6 +934,10 @@ async function loadTelemetryHistory(plotId = selectedPlotId.value): Promise<void
     }
 
     telemetryHistory.value = response.data;
+    telemetryHistories.value = [
+      ...telemetryHistories.value.filter((history) => history.metric !== response.data?.metric),
+      response.data
+    ];
   } finally {
     historyBusy.value = false;
   }
@@ -1037,6 +988,8 @@ async function submitFarm(): Promise<void> {
     deviceStore.reset();
     latestTelemetry.value = [];
     telemetryHistory.value = null;
+    telemetryHistories.value = [];
+    dashboard.value = null;
     weather.value = null;
     selectedPlotId.value = "";
   } finally {
@@ -1116,14 +1069,52 @@ function resetWorkspace(): void {
   deviceStore.reset();
   latestTelemetry.value = [];
   telemetryHistory.value = null;
+  telemetryHistories.value = [];
+  dashboard.value = null;
   weather.value = null;
   runtimeStatus.value = null;
   activeFarmId.value = "";
   selectedPlotId.value = "";
+  stopDashboardPolling();
 }
 
 function setActiveView(view: ActiveView): void {
   activeView.value = view;
+}
+
+async function selectHistoryMetric(metric: string): Promise<void> {
+  historyMetric.value = metric;
+  syncSelectedHistory();
+
+  if (!telemetryHistory.value && selectedPlotId.value) {
+    await loadTelemetryHistory(selectedPlotId.value);
+  }
+}
+
+function syncSelectedHistory(): void {
+  telemetryHistory.value = telemetryHistories.value.find((history) => history.metric === historyMetric.value)
+    ?? telemetryHistories.value[0]
+    ?? null;
+}
+
+function scheduleDashboardPolling(intervalMs: number): void {
+  stopDashboardPolling();
+
+  const clampedIntervalMs = Math.max(5000, Math.min(intervalMs, 60_000));
+  dashboardPollTimer = window.setInterval(() => {
+    if (isSignedIn.value && selectedPlotId.value) {
+      void loadDashboard(selectedPlotId.value, {
+        silent: true
+      });
+    }
+  }, clampedIntervalMs);
+}
+
+function stopDashboardPolling(): void {
+  if (dashboardPollTimer !== null) {
+    window.clearInterval(dashboardPollTimer);
+    dashboardPollTimer = null;
+  }
 }
 
 function formatHectares(value: number): string {
@@ -1187,6 +1178,7 @@ function formatWeatherTemperature(value: number | null): string {
 function formatWeatherDetail(point: WeatherForecastPointPayload): string {
   return [
     `RH ${formatNullableNumber(point.humidity_pct, "%")}`,
+    `Hujan ${formatNullableNumber(point.rainfall_mm, "mm")}`,
     `Angin ${formatNullableNumber(point.wind_speed_kph, "km/j")}`,
     `Awan ${formatNullableNumber(point.cloud_cover_pct, "%")}`
   ].join(" / ");
@@ -1317,5 +1309,9 @@ function createHistoryRange(readings: TelemetryReadingPayload[]): {
 
 onMounted(() => {
   void refreshSession();
+});
+
+onBeforeUnmount(() => {
+  stopDashboardPolling();
 });
 </script>

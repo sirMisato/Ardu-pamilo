@@ -7,12 +7,15 @@ export interface WeatherForecastPoint {
   localDatetime: string;
   temperatureC: number | null;
   humidityPct: number | null;
+  rainfallMm: number | null;
   weatherDesc: string;
   weatherDescEn: string;
+  weatherCode: number | null;
   windSpeedKph: number | null;
   windDirection: string | null;
   cloudCoverPct: number | null;
   visibilityText: string | null;
+  iconUrl: string | null;
 }
 
 export interface WeatherSnapshot {
@@ -62,12 +65,15 @@ export function parseWeatherForecastPoint(input: unknown): ValidationResult<Weat
     localDatetime,
     temperatureC: readNullableNumber(input, "t", errors),
     humidityPct: readNullableNumber(input, "hu", errors),
+    rainfallMm: readNullableNumber(input, "tp", errors),
     weatherDesc,
     weatherDescEn,
+    weatherCode: readNullableNumber(input, "weather", errors),
     windSpeedKph: readNullableNumber(input, "ws", errors),
     windDirection: readNullableString(input, "wd", errors),
     cloudCoverPct: readNullableNumber(input, "tcc", errors),
-    visibilityText: readNullableString(input, "vs_text", errors)
+    visibilityText: readNullableString(input, "vs_text", errors),
+    iconUrl: readNullableString(input, "image", errors)
   };
 
   if (errors.length > 0) {

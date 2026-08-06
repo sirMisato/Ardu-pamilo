@@ -107,12 +107,15 @@ export interface WeatherForecastPointPayload {
   local_datetime: string;
   temperature_c: number | null;
   humidity_pct: number | null;
+  rainfall_mm: number | null;
   weather_desc: string;
   weather_desc_en: string;
+  weather_code: number | null;
   wind_speed_kph: number | null;
   wind_direction: string | null;
   cloud_cover_pct: number | null;
   visibility_text: string | null;
+  icon_url: string | null;
 }
 
 export interface WeatherPayload {
@@ -140,6 +143,56 @@ export interface TelemetryHistoryPayload {
   to: string;
   resolution: string;
   points: TelemetryReadingPayload[];
+}
+
+export interface DashboardMetricSummaryPayload {
+  metric: string;
+  label: string;
+  latest_value: number | string | boolean | null;
+  unit: string;
+  value_type: TelemetryValueType;
+  latest_at: string;
+  sample_count: number;
+  min: number | null;
+  max: number | null;
+  average: number | null;
+}
+
+export interface DashboardPayload {
+  plot: {
+    id: string;
+    name: string;
+    farm_id: string;
+    area_ha: number;
+    adm4_code: string | null;
+    mapping_status: string;
+    centroid: {
+      lat: number;
+      lng: number;
+    };
+  };
+  devices: {
+    total: number;
+    online: number;
+    offline: number;
+    items: Array<{
+      id: string;
+      serial_no: string;
+      label: string | null;
+      status: string;
+      last_seen_at: string | null;
+    }>;
+  };
+  telemetry: {
+    latest: TelemetryReadingPayload[];
+    metrics: DashboardMetricSummaryPayload[];
+    histories: TelemetryHistoryPayload[];
+  };
+  weather: WeatherPayload;
+  realtime: {
+    poll_interval_ms: number;
+    generated_at: string;
+  };
 }
 
 export async function getHealthReady(): Promise<HealthReadyPayload> {
@@ -341,6 +394,10 @@ export async function getPlotTelemetryHistory(input: {
 
 export async function getPlotWeather(plotId: string): Promise<ApiEnvelope<WeatherPayload>> {
   return request<WeatherPayload>(`/api/v1/plots/${encodeURIComponent(plotId)}/weather`);
+}
+
+export async function getPlotDashboard(plotId: string): Promise<ApiEnvelope<DashboardPayload>> {
+  return request<DashboardPayload>(`/api/v1/plots/${encodeURIComponent(plotId)}/dashboard`);
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<ApiEnvelope<T>> {

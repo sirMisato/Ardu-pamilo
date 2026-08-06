@@ -41,7 +41,7 @@ export async function registerWeatherRoutes(app: FastifyInstance, deps: WeatherR
       return ok(request, emptyWeatherPayload(plot, "missing"));
     }
 
-    const snapshot = deps.weather.findByAdm4Code(plot.adm4Code);
+    const snapshot = await deps.weather.getByAdm4Code(plot.adm4Code);
     if (!snapshot) {
       return ok(request, emptyWeatherPayload(plot, "missing"));
     }
@@ -88,12 +88,15 @@ function toWeatherPayload(plot: PlotRecord, snapshot: WeatherSnapshot): {
     local_datetime: string;
     temperature_c: number | null;
     humidity_pct: number | null;
+    rainfall_mm: number | null;
     weather_desc: string;
     weather_desc_en: string;
+    weather_code: number | null;
     wind_speed_kph: number | null;
     wind_direction: string | null;
     cloud_cover_pct: number | null;
     visibility_text: string | null;
+    icon_url: string | null;
   }>;
 } {
   return {
@@ -110,12 +113,15 @@ function toWeatherPayload(plot: PlotRecord, snapshot: WeatherSnapshot): {
       local_datetime: point.localDatetime,
       temperature_c: point.temperatureC,
       humidity_pct: point.humidityPct,
+      rainfall_mm: point.rainfallMm,
       weather_desc: point.weatherDesc,
       weather_desc_en: point.weatherDescEn,
+      weather_code: point.weatherCode,
       wind_speed_kph: point.windSpeedKph,
       wind_direction: point.windDirection,
       cloud_cover_pct: point.cloudCoverPct,
-      visibility_text: point.visibilityText
+      visibility_text: point.visibilityText,
+      icon_url: point.iconUrl
     }))
   };
 }

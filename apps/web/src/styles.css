@@ -704,7 +704,8 @@ a {
 .station-metrics,
 .metric-card-grid,
 .map-metric-grid,
-.runtime-grid {
+.runtime-grid,
+.dynamic-chart-stack {
   display: grid;
   gap: 12px;
 }

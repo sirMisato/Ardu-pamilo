@@ -7,6 +7,7 @@ import { registerAuthRoutes } from "./modules/auth/routes.js";
 import { InMemorySessionStore, type SessionStore } from "./modules/auth/session-store.js";
 import { InMemoryDeviceRepository, type DeviceRepository } from "./modules/devices/device-repository.js";
 import { registerDeviceRoutes } from "./modules/devices/routes.js";
+import { registerDashboardRoutes } from "./modules/dashboard/routes.js";
 import { InMemoryFarmRepository, type FarmRepository } from "./modules/farms/farm-repository.js";
 import { registerFarmRoutes } from "./modules/farms/routes.js";
 import { InMemoryPlotRepository, type PlotRepository } from "./modules/plots/plot-repository.js";
@@ -22,7 +23,7 @@ import {
 import { RedisVictoriaTelemetryRepository } from "./modules/telemetry/redis-victoria-telemetry-repository.js";
 import { InMemoryTelemetryRepository, type TelemetryRepository } from "./modules/telemetry/telemetry-repository.js";
 import { registerTelemetryRoutes } from "./modules/telemetry/routes.js";
-import { InMemoryWeatherRepository, type WeatherRepository } from "./modules/weather/weather-repository.js";
+import { BmkgWeatherRepository, InMemoryWeatherRepository, type WeatherRepository } from "./modules/weather/weather-repository.js";
 import { registerWeatherRoutes } from "./modules/weather/routes.js";
 
 export interface HealthPayload {
@@ -62,6 +63,7 @@ function now(): string {
 
 export function createAppDependencies(overrides: Partial<AppDependencies> = {}): AppDependencies {
   const defaultTelemetry = createDefaultTelemetryDependency();
+  const defaultWeather = createDefaultWeatherDependency();
 
   return {
     auditLog: overrides.auditLog ?? new InMemoryAuditLog(),
@@ -78,12 +80,12 @@ export function createAppDependencies(overrides: Partial<AppDependencies> = {}):
       redis: defaultTelemetry.redis,
       telemetry: overrides.telemetryStatus ?? (overrides.telemetry ? "custom_test" : defaultTelemetry.status),
       victoriametrics: defaultTelemetry.victoriametrics,
-      weather: "in_memory_local"
+      weather: overrides.weather ? "custom_test" : defaultWeather.status
     },
     sessionStore: overrides.sessionStore ?? new InMemorySessionStore(),
     telemetry: overrides.telemetry ?? defaultTelemetry.repository,
     telemetryStatus: overrides.telemetryStatus ?? (overrides.telemetry ? "custom_test" : defaultTelemetry.status),
-    weather: overrides.weather ?? new InMemoryWeatherRepository()
+    weather: overrides.weather ?? defaultWeather.repository
   };
 }
 
@@ -121,6 +123,7 @@ export function buildApp(overrides: Partial<AppDependencies> = {}): FastifyInsta
     await registerDeviceRoutes(instance, deps);
     await registerTelemetryRoutes(instance, deps);
     await registerWeatherRoutes(instance, deps);
+    await registerDashboardRoutes(instance, deps);
   });
 
   return app;
@@ -192,4 +195,70 @@ function createDefaultTelemetryDependency(): {
     status: "in_memory_local",
     victoriametrics: "not_configured_local"
   };
+}
+
+function createDefaultWeatherDependency(): {
+  repository: WeatherRepository;
+  status: string;
+} {
+  if (process.env.NODE_ENV === "test") {
+    return {
+      repository: new InMemoryWeatherRepository(),
+      status: "in_memory_local"
+    };
+  }
+
+  const adapter = process.env.BMKG_WEATHER_ADAPTER?.trim() ?? "";
+  const enabled = process.env.BMKG_WEATHER_ENABLED?.trim().toLowerCase() === "true";
+
+  if (adapter === "http" || enabled) {
+    return {
+      repository: new BmkgWeatherRepository({
+        baseUrl: resolveBmkgWeatherBaseUrl(),
+        cacheTtlMs: parsePositiveInteger(process.env.BMKG_WEATHER_CACHE_TTL_MS, 6 * 60 * 60 * 1000),
+        requestTimeoutMs: parsePositiveInteger(process.env.BMKG_WEATHER_TIMEOUT_MS, 8000)
+      }),
+      status: "bmkg_http_cache"
+    };
+  }
+
+  return {
+    repository: new InMemoryWeatherRepository(),
+    status: "in_memory_local"
+  };
+}
+
+function parsePositiveInteger(value: string | undefined, fallback: number): number {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function resolveBmkgWeatherBaseUrl(): string | undefined {
+  const explicit = process.env.BMKG_WEATHER_BASE_URL?.trim();
+  if (explicit) {
+    return explicit;
+  }
+
+  const legacyRoot = process.env.BMKG_BASE_URL?.trim();
+  if (!legacyRoot) {
+    return undefined;
+  }
+
+  try {
+    const url = new URL(legacyRoot);
+    if (url.pathname.includes("/publik/prakiraan-cuaca")) {
+      return url.toString();
+    }
+
+    url.pathname = "/publik/prakiraan-cuaca";
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return undefined;
+  }
 }
