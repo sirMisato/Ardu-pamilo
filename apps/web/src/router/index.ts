@@ -6,8 +6,12 @@ import SuperAdminLicenses from "../views/superadmin/Licenses.vue";
 import SuperAdminLogin from "../views/superadmin/Login.vue";
 import Chart from "../views/tenant/Chart.vue";
 import Dashboard from "../views/tenant/Dashboard.vue";
+import Devices from "../views/tenant/Devices.vue";
 import TenantLogin from "../views/tenant/Login.vue";
+import MasterData from "../views/tenant/MasterData.vue";
+import MQTT from "../views/tenant/MQTT.vue";
 import TenantPlaceholder from "../views/tenant/PlaceholderView.vue";
+import Report from "../views/tenant/Report.vue";
 import Weather from "../views/tenant/Weather.vue";
 
 const routes: RouteRecordRaw[] = [
@@ -48,7 +52,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: "report",
         name: "tenant-report",
-        component: TenantPlaceholder,
+        component: Report,
         meta: {
           title: "Report",
           subtitle: "Exportable telemetry and field logs"
@@ -66,7 +70,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: "mqtt",
         name: "tenant-mqtt",
-        component: TenantPlaceholder,
+        component: MQTT,
         meta: {
           title: "MQTT",
           subtitle: "Tambah topic dan daftar koneksi sensor"
@@ -75,7 +79,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: "devices",
         name: "tenant-devices",
-        component: TenantPlaceholder,
+        component: Devices,
         meta: {
           title: "Perangkat",
           subtitle: "Tambah dan kelola daftar perangkat"
@@ -84,7 +88,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: "master-data",
         name: "tenant-master-data",
-        component: TenantPlaceholder,
+        component: MasterData,
         meta: {
           title: "Master Data",
           subtitle: "Crop type, zona area, dan threshold tanaman"
