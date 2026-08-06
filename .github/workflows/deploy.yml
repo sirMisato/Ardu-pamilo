@@ -45,16 +45,29 @@ jobs:
         uses: appleboy/ssh-action@v1.2.0
         env:
           APP_DIR: ${{ vars.VPS_APP_DIR }}
+          BMKG_BASE_URL: ${{ vars.BMKG_BASE_URL }}
+          DEPLOY_HOST: ${{ secrets.VPS_HOST }}
+          EMQX_DASHBOARD_PASSWORD: ${{ secrets.EMQX_DASHBOARD_PASSWORD }}
+          EMQX_DASHBOARD_USERNAME: ${{ secrets.EMQX_DASHBOARD_USERNAME }}
+          MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
+          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
+          MYSQL_USER: ${{ secrets.MYSQL_USER }}
+          MQTT_SERVICE_PASSWORD: ${{ secrets.MQTT_SERVICE_PASSWORD }}
+          MQTT_SERVICE_USERNAME: ${{ secrets.MQTT_SERVICE_USERNAME }}
+          PUBLIC_WEB_ORIGIN: ${{ vars.PUBLIC_WEB_ORIGIN }}
           REPOSITORY: ${{ github.repository }}
           REF_NAME: ${{ github.ref_name }}
           REPO_TOKEN: ${{ github.token }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
           SUDO_PASSWORD: ${{ secrets.VPS_PASSWORD }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT || 22 }}
-          envs: APP_DIR,REPOSITORY,REF_NAME,REPO_TOKEN,SUDO_PASSWORD
+          envs: APP_DIR,BMKG_BASE_URL,DEPLOY_HOST,EMQX_DASHBOARD_PASSWORD,EMQX_DASHBOARD_USERNAME,MYSQL_DATABASE,MYSQL_HOST,MYSQL_PASSWORD,MYSQL_PORT,MYSQL_USER,MQTT_SERVICE_PASSWORD,MQTT_SERVICE_USERNAME,PUBLIC_WEB_ORIGIN,REF_NAME,REPOSITORY,REPO_TOKEN,SESSION_SECRET,SUDO_PASSWORD
           script: |
             set -euo pipefail
 
@@ -86,8 +99,22 @@ jobs:
                 git "$@"
             }
 
+            require_env() {
+              variable_name="$1"
+              eval "variable_value=\${$variable_name:-}"
+              if [ -z "$variable_value" ]; then
+                echo "Missing required GitHub secret or variable: $variable_name"
+                exit 1
+              fi
+            }
+
             if [ -z "${APP_DIR:-}" ]; then
               APP_DIR="/opt/pamilo-saas"
+            fi
+
+            if [ -z "${PUBLIC_WEB_ORIGIN:-}" ]; then
+              PUBLIC_WEB_ORIGIN="http://${DEPLOY_HOST}"
+              export PUBLIC_WEB_ORIGIN
             fi
 
             case "$APP_DIR" in
@@ -112,16 +139,39 @@ jobs:
             git checkout "$REF_NAME"
             git reset --hard "origin/$REF_NAME"
 
-            test -f production.env
             test -f infra/emqx/base.hocon
             test -f infra/emqx/acl.conf
-            test -d infra/emqx/certs
 
-            sudo_run docker compose --env-file production.env -f docker-compose.yml config --quiet
-            sudo_run docker compose --env-file production.env -f docker-compose.yml pull --ignore-buildable
-            sudo_run docker compose --env-file production.env -f docker-compose.yml build --pull
-            sudo_run docker compose --env-file production.env -f docker-compose.yml up -d --remove-orphans
-            sudo_run docker compose --env-file production.env -f docker-compose.yml ps
+            if [ ! -f apps/api/Dockerfile ] || [ ! -f apps/web/Dockerfile ]; then
+              echo "Application Dockerfiles are not present yet. Repository synced; skipping Docker deploy until app source is generated."
+              exit 0
+            fi
+
+            require_env EMQX_DASHBOARD_PASSWORD
+            require_env EMQX_DASHBOARD_USERNAME
+            require_env MYSQL_DATABASE
+            require_env MYSQL_HOST
+            require_env MYSQL_PASSWORD
+            require_env MYSQL_USER
+            require_env MQTT_SERVICE_PASSWORD
+            require_env MQTT_SERVICE_USERNAME
+            require_env PUBLIC_WEB_ORIGIN
+            require_env SESSION_SECRET
+
+            mkdir -p infra/emqx/certs
+            if [ ! -f infra/emqx/certs/server.crt ] || [ ! -f infra/emqx/certs/server.key ]; then
+              openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
+                -keyout infra/emqx/certs/server.key \
+                -out infra/emqx/certs/server.crt \
+                -subj "/CN=pamilo-emqx"
+              chmod 600 infra/emqx/certs/server.key
+            fi
+
+            sudo_run docker compose -f docker-compose.yml config --quiet
+            sudo_run docker compose -f docker-compose.yml pull --ignore-buildable
+            sudo_run docker compose -f docker-compose.yml build --pull
+            sudo_run docker compose -f docker-compose.yml up -d --remove-orphans
+            sudo_run docker compose -f docker-compose.yml ps
 
             sudo_run docker image prune -af --filter "until=168h"
             sudo_run docker builder prune -af --filter "until=168h"

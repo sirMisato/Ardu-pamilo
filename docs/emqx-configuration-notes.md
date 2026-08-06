@@ -102,19 +102,43 @@ allow subscribe pamilo/v1/tenants/+/devices/+/events
 
 For production, prefer EMQX built-in authentication and authorization backed by MySQL or a managed secret provisioning flow. File-based ACLs are acceptable only as a bootstrap mechanism.
 
-## Required Files On VPS
+## Required Runtime Inputs
 
-The deploy workflow expects these files to already exist on the VPS:
+The deploy workflow creates `infra/emqx/certs` with a bootstrap self-signed certificate if no certificate exists yet. Replace it with a real certificate before production device onboarding.
+
+The workflow expects these GitHub Secrets:
 
 ```txt
-production.env
-infra/emqx/base.hocon
-infra/emqx/acl.conf
-infra/emqx/certs/server.crt
-infra/emqx/certs/server.key
+EMQX_DASHBOARD_PASSWORD
+EMQX_DASHBOARD_USERNAME
+MYSQL_DATABASE
+MYSQL_HOST
+MYSQL_PASSWORD
+MYSQL_USER
+MQTT_SERVICE_PASSWORD
+MQTT_SERVICE_USERNAME
+SESSION_SECRET
+VPS_HOST
+VPS_PASSWORD
+VPS_PORT
+VPS_USERNAME
 ```
 
-Do not commit `production.env` or private TLS keys.
+The workflow expects this GitHub Variable:
+
+```txt
+PUBLIC_WEB_ORIGIN
+```
+
+Optional:
+
+```txt
+BMKG_BASE_URL
+MYSQL_PORT
+VPS_APP_DIR
+```
+
+Do not commit production secrets or private TLS keys.
 
 ## Bootstrap MQTT Credentials
 
