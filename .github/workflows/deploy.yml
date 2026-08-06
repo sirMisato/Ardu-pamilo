@@ -76,6 +76,58 @@ jobs:
               printf '%s\n' "$SUDO_PASSWORD" | sudo -S -p '' "$@"
             }
 
+            install_docker_if_missing() {
+              if command -v docker >/dev/null 2>&1 && sudo_run docker compose version >/dev/null 2>&1; then
+                return
+              fi
+
+              if ! command -v apt-get >/dev/null 2>&1; then
+                echo "Docker is missing and automatic installation currently supports apt-based VPS images only."
+                exit 1
+              fi
+
+              . /etc/os-release
+              docker_repo_os="${ID:-}"
+              if [ "$docker_repo_os" != "ubuntu" ] && [ "$docker_repo_os" != "debian" ]; then
+                case "${ID_LIKE:-}" in
+                  *ubuntu*) docker_repo_os="ubuntu" ;;
+                  *debian*) docker_repo_os="debian" ;;
+                  *)
+                    echo "Docker is missing and this OS is not recognized as Ubuntu/Debian compatible."
+                    exit 1
+                    ;;
+                esac
+              fi
+
+              docker_codename="${VERSION_CODENAME:-${UBUNTU_CODENAME:-}}"
+              if [ -z "$docker_codename" ] && command -v lsb_release >/dev/null 2>&1; then
+                docker_codename="$(lsb_release -cs)"
+              fi
+
+              if [ -z "$docker_codename" ]; then
+                echo "Unable to determine OS codename for Docker apt repository."
+                exit 1
+              fi
+
+              sudo_run apt-get update
+              sudo_run apt-get install -y ca-certificates curl gnupg
+              sudo_run install -m 0755 -d /etc/apt/keyrings
+              curl -fsSL "https://download.docker.com/linux/${docker_repo_os}/gpg" | sudo_run tee /etc/apt/keyrings/docker.asc >/dev/null
+              sudo_run chmod a+r /etc/apt/keyrings/docker.asc
+              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/${docker_repo_os} ${docker_codename} stable" | sudo_run tee /etc/apt/sources.list.d/docker.list >/dev/null
+              sudo_run apt-get update
+              sudo_run apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+              if command -v systemctl >/dev/null 2>&1; then
+                sudo_run systemctl enable --now docker
+              else
+                sudo_run service docker start
+              fi
+
+              sudo_run docker version
+              sudo_run docker compose version
+            }
+
             ASKPASS_DIR="$(mktemp -d)"
             trap 'rm -rf "$ASKPASS_DIR"' EXIT
             cat > "$ASKPASS_DIR/git-askpass.sh" <<'EOF'
@@ -207,6 +259,7 @@ jobs:
               chmod 600 infra/emqx/certs/server.key
             fi
 
+            install_docker_if_missing
             sudo_run docker compose -f docker-compose.yml config --quiet
             sudo_run docker compose -f docker-compose.yml pull --ignore-buildable
             sudo_run docker compose -f docker-compose.yml build --pull
