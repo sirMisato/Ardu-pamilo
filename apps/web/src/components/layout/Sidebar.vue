@@ -29,7 +29,7 @@
         <p class="text-xs font-medium text-field-mint">Realtime Telemetry</p>
         <div class="mt-3 flex items-center gap-2">
           <span class="h-2.5 w-2.5 rounded-full bg-field-green shadow-[0_0_0_6px_rgba(167,232,175,0.12)]"></span>
-          <span class="text-xs text-slate-300">SSE channel ready</span>
+          <span class="min-w-0 truncate text-xs text-slate-300">{{ mqttTransportLabel }}</span>
         </div>
       </div>
     </div>
@@ -49,7 +49,9 @@ import {
   Sprout,
   TabletSmartphone
 } from "@lucide/vue";
+import { computed } from "vue";
 import { useRoute } from "vue-router";
+import { appEnvironment } from "../../config/environment";
 
 defineProps<{
   mobile?: boolean;
@@ -60,6 +62,13 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
+const mqttTransportLabel = computed(() => {
+  try {
+    return new URL(appEnvironment.mqttWebSocketUrl).host;
+  } catch {
+    return "MQTT WebSocket ready";
+  }
+});
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: Gauge },
   { to: "/chart", label: "Grafik", icon: BarChart3 },

@@ -3,6 +3,9 @@ dist/
 .env
 .env.*
 !.env.example
+!apps/web/.env
+!apps/web/.env.production
+!apps/web/.env.example
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

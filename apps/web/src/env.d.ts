@@ -1,5 +1,16 @@
 /// <reference types="vite/client" />
 
+interface ImportMetaEnv {
+  readonly VITE_WEB_BASE_URL: string;
+  readonly VITE_API_BASE_URL: string;
+  readonly VITE_MQTT_BROKER_URL: string;
+  readonly VITE_MQTT_WEBSOCKET_URL: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
 declare module "*.vue" {
   import type { DefineComponent } from "vue";
 

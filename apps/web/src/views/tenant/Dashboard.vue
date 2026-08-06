@@ -128,7 +128,7 @@
         <div class="flex items-center justify-between">
           <div>
             <h2 class="text-lg font-semibold tracking-normal text-white">BMKG Snapshot</h2>
-            <p class="mt-1 text-sm text-slate-400">Kecamatan demo</p>
+            <p class="mt-1 text-sm text-slate-400">{{ apiHost }}</p>
           </div>
           <CloudSun class="h-7 w-7 text-amber-200" />
         </div>
@@ -145,6 +145,16 @@
 
 <script setup lang="ts">
 import { Activity, CloudSun, Cpu, MapPin, Sprout, Waves } from "@lucide/vue";
+import { computed } from "vue";
+import { appEnvironment } from "../../config/environment";
+
+const apiHost = computed(() => {
+  try {
+    return new URL(appEnvironment.apiBaseUrl).host;
+  } catch {
+    return "BMKG endpoint";
+  }
+});
 
 const topStats = [
   {

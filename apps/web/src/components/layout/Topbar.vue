@@ -22,7 +22,7 @@
           <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-field-green text-xs font-bold text-[#102016]">PF</div>
           <div class="min-w-0">
             <p class="truncate text-sm font-semibold text-white">Pamilo Farm</p>
-            <p class="truncate text-xs text-field-mint">Tenant Owner</p>
+            <p class="truncate text-xs text-field-mint">{{ apiHost }}</p>
           </div>
         </div>
       </div>
@@ -34,6 +34,7 @@
 import { Bell, Menu, Search } from "@lucide/vue";
 import { computed } from "vue";
 import { useRoute } from "vue-router";
+import { appEnvironment } from "../../config/environment";
 
 const emit = defineEmits<{
   toggleSidebar: [];
@@ -42,4 +43,11 @@ const emit = defineEmits<{
 const route = useRoute();
 const title = computed(() => typeof route.meta.title === "string" ? route.meta.title : "PAMILO");
 const subtitle = computed(() => typeof route.meta.subtitle === "string" ? route.meta.subtitle : "Smart Farming SaaS");
+const apiHost = computed(() => {
+  try {
+    return new URL(appEnvironment.apiBaseUrl).host;
+  } catch {
+    return "Tenant Owner";
+  }
+});
 </script>
