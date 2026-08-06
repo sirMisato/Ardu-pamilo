@@ -10,6 +10,9 @@ concurrency:
   group: production-deploy
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     name: Build and deploy to VPS
@@ -44,13 +47,14 @@ jobs:
           APP_DIR: ${{ vars.VPS_APP_DIR }}
           REPOSITORY: ${{ github.repository }}
           REF_NAME: ${{ github.ref_name }}
+          REPO_TOKEN: ${{ github.token }}
           SUDO_PASSWORD: ${{ secrets.VPS_PASSWORD }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT || 22 }}
-          envs: APP_DIR,REPOSITORY,REF_NAME,SUDO_PASSWORD
+          envs: APP_DIR,REPOSITORY,REF_NAME,REPO_TOKEN,SUDO_PASSWORD
           script: |
             set -euo pipefail
 
@@ -61,6 +65,25 @@ jobs:
               fi
 
               printf '%s\n' "$SUDO_PASSWORD" | sudo -S -p '' "$@"
+            }
+
+            ASKPASS_DIR="$(mktemp -d)"
+            trap 'rm -rf "$ASKPASS_DIR"' EXIT
+            cat > "$ASKPASS_DIR/git-askpass.sh" <<'EOF'
+            #!/usr/bin/env sh
+            case "$1" in
+              *Username*) printf '%s\n' "$GIT_USERNAME" ;;
+              *Password*) printf '%s\n' "$GIT_PASSWORD" ;;
+              *) printf '\n' ;;
+            esac
+            EOF
+            chmod 700 "$ASKPASS_DIR/git-askpass.sh"
+
+            git_with_token() {
+              GIT_ASKPASS="$ASKPASS_DIR/git-askpass.sh" \
+                GIT_USERNAME="x-access-token" \
+                GIT_PASSWORD="$REPO_TOKEN" \
+                git "$@"
             }
 
             if [ -z "${APP_DIR:-}" ]; then
@@ -81,11 +104,11 @@ jobs:
             sudo_run chown -R "$REMOTE_USER:$REMOTE_GROUP" "$APP_DIR"
 
             if [ ! -d "$APP_DIR/.git" ]; then
-              git clone "https://github.com/${REPOSITORY}.git" "$APP_DIR"
+              git_with_token clone "https://github.com/${REPOSITORY}.git" "$APP_DIR"
             fi
 
             cd "$APP_DIR"
-            git fetch origin "$REF_NAME"
+            git_with_token fetch origin "$REF_NAME"
             git checkout "$REF_NAME"
             git reset --hard "origin/$REF_NAME"
 
