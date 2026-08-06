@@ -107,13 +107,8 @@ jobs:
     environment: production
 
     steps:
-      - name: Install SSH password client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y sshpass
-
-      - name: Deploy to VPS
-        shell: bash
+      - name: Deploy over SSH with appleboy
+        uses: appleboy/ssh-action@v1.2.0
         env:
           APP_DIR: ${{ vars.VPS_APP_DIR }}
           DATABASE_SSL: ${{ vars.DATABASE_SSL }}
@@ -143,258 +138,211 @@ jobs:
           VITE_MQTT_BROKER_URL: ${{ vars.VITE_MQTT_BROKER_URL }}
           VITE_MQTT_WEBSOCKET_URL: ${{ vars.VITE_MQTT_WEBSOCKET_URL }}
           VITE_WEB_BASE_URL: ${{ vars.VITE_WEB_BASE_URL }}
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_HOST_DEFAULT: ${{ env.VPS_HOST_DEFAULT }}
-          VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
-          VPS_PORT: ${{ secrets.VPS_PORT }}
-          VPS_USERNAME: ${{ secrets.VPS_USERNAME }}
           WEB_HOST: ${{ vars.WEB_HOST }}
-        run: |
-          set -euo pipefail
+        with:
+          host: ${{ secrets.VPS_HOST || env.VPS_HOST_DEFAULT }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 30m
+          envs: APP_DIR,DATABASE_SSL,DATABASE_URL,EMQX_DASHBOARD_PASSWORD,EMQX_DASHBOARD_USERNAME,FRONTEND_ORIGIN,JWT_EXPIRES_IN,JWT_SECRET,LETSENCRYPT_EMAIL,LOG_LEVEL,MQTT_BROKER_URL,MQTT_CLIENT_ID,MQTT_HOST,MQTT_INGEST_ENABLED,MQTT_PASSWORD,MQTT_TELEMETRY_TOPIC,MQTT_USERNAME,REF_NAME,REPOSITORY,REPO_TOKEN,SUPER_ADMIN_EMAIL,SUPER_ADMIN_PASSWORD_HASH,SUDO_PASSWORD,VITE_API_BASE_URL,VITE_BMKG_FORECAST_BASE_URL,VITE_MQTT_BROKER_URL,VITE_MQTT_WEBSOCKET_URL,VITE_WEB_BASE_URL,WEB_HOST
+          script: |
+            set -euo pipefail
 
-          : "${VPS_PASSWORD:?Missing VPS_PASSWORD secret}"
-          : "${VPS_USERNAME:?Missing VPS_USERNAME secret}"
-          : "${DATABASE_URL:?Missing DATABASE_URL secret}"
-          : "${JWT_SECRET:?Missing JWT_SECRET secret}"
-          : "${SUPER_ADMIN_PASSWORD_HASH:?Missing SUPER_ADMIN_PASSWORD_HASH secret}"
+            : "${SUDO_PASSWORD:?Missing VPS_PASSWORD secret}"
+            : "${DATABASE_URL:?Missing DATABASE_URL secret}"
+            : "${JWT_SECRET:?Missing JWT_SECRET secret}"
+            : "${SUPER_ADMIN_PASSWORD_HASH:?Missing SUPER_ADMIN_PASSWORD_HASH secret}"
 
-          APP_DIR="${APP_DIR:-/opt/pamilo-saas}"
-          DATABASE_SSL="${DATABASE_SSL:-true}"
-          EMQX_DASHBOARD_USERNAME="${EMQX_DASHBOARD_USERNAME:-admin}"
-          FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-https://sedayafarm.keycloud.id}"
-          JWT_EXPIRES_IN="${JWT_EXPIRES_IN:-8h}"
-          LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-admin@sedayafarm.keycloud.id}"
-          LOG_LEVEL="${LOG_LEVEL:-info}"
-          MQTT_BROKER_URL="${MQTT_BROKER_URL:-mqtt://emqx:1883}"
-          MQTT_CLIENT_ID="${MQTT_CLIENT_ID:-pamilo-api-production}"
-          MQTT_HOST="${MQTT_HOST:-mqtt.keycloud.id}"
-          MQTT_INGEST_ENABLED="${MQTT_INGEST_ENABLED:-true}"
-          MQTT_TELEMETRY_TOPIC="${MQTT_TELEMETRY_TOPIC:-pamilo/v1/tenants/+/devices/+/telemetry}"
-          SUPER_ADMIN_EMAIL="${SUPER_ADMIN_EMAIL:-admin@sedayafarm.keycloud.id}"
-          VITE_WEB_BASE_URL="${VITE_WEB_BASE_URL:-https://sedayafarm.keycloud.id}"
-          VITE_API_BASE_URL="${VITE_API_BASE_URL:-https://sedayafarm.keycloud.id}"
-          VITE_MQTT_BROKER_URL="${VITE_MQTT_BROKER_URL:-mqtts://mqtt.keycloud.id:8883}"
-          VITE_MQTT_WEBSOCKET_URL="${VITE_MQTT_WEBSOCKET_URL:-wss://mqtt.keycloud.id:8084/mqtt}"
-          VITE_BMKG_FORECAST_BASE_URL="${VITE_BMKG_FORECAST_BASE_URL:-https://api.bmkg.go.id/publik/prakiraan-cuaca}"
-          VPS_HOST="${VPS_HOST:-$VPS_HOST_DEFAULT}"
-          VPS_PORT="${VPS_PORT:-22}"
-          WEB_HOST="${WEB_HOST:-sedayafarm.keycloud.id}"
+            APP_DIR="${APP_DIR:-/opt/pamilo-saas}"
+            DATABASE_SSL="${DATABASE_SSL:-true}"
+            EMQX_DASHBOARD_USERNAME="${EMQX_DASHBOARD_USERNAME:-admin}"
+            FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-https://sedayafarm.keycloud.id}"
+            JWT_EXPIRES_IN="${JWT_EXPIRES_IN:-8h}"
+            LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-admin@sedayafarm.keycloud.id}"
+            LOG_LEVEL="${LOG_LEVEL:-info}"
+            MQTT_BROKER_URL="${MQTT_BROKER_URL:-mqtt://emqx:1883}"
+            MQTT_CLIENT_ID="${MQTT_CLIENT_ID:-pamilo-api-production}"
+            MQTT_HOST="${MQTT_HOST:-mqtt.keycloud.id}"
+            MQTT_INGEST_ENABLED="${MQTT_INGEST_ENABLED:-true}"
+            MQTT_TELEMETRY_TOPIC="${MQTT_TELEMETRY_TOPIC:-pamilo/v1/tenants/+/devices/+/telemetry}"
+            SUPER_ADMIN_EMAIL="${SUPER_ADMIN_EMAIL:-admin@sedayafarm.keycloud.id}"
+            VITE_WEB_BASE_URL="${VITE_WEB_BASE_URL:-https://sedayafarm.keycloud.id}"
+            VITE_API_BASE_URL="${VITE_API_BASE_URL:-https://sedayafarm.keycloud.id}"
+            VITE_MQTT_BROKER_URL="${VITE_MQTT_BROKER_URL:-mqtts://mqtt.keycloud.id:8883}"
+            VITE_MQTT_WEBSOCKET_URL="${VITE_MQTT_WEBSOCKET_URL:-wss://mqtt.keycloud.id:8084/mqtt}"
+            VITE_BMKG_FORECAST_BASE_URL="${VITE_BMKG_FORECAST_BASE_URL:-https://api.bmkg.go.id/publik/prakiraan-cuaca}"
+            WEB_HOST="${WEB_HOST:-sedayafarm.keycloud.id}"
 
-          remote_export() {
-            local name="$1"
-            local value="${!name:-}"
-            printf 'export %s=%q\n' "$name" "$value"
-          }
+            sudo_run() {
+              if sudo -n true 2>/dev/null; then
+                sudo "$@"
+                return
+              fi
 
-          {
-            remote_export APP_DIR
-            remote_export DATABASE_SSL
-            remote_export DATABASE_URL
-            remote_export EMQX_DASHBOARD_PASSWORD
-            remote_export EMQX_DASHBOARD_USERNAME
-            remote_export FRONTEND_ORIGIN
-            remote_export JWT_EXPIRES_IN
-            remote_export JWT_SECRET
-            remote_export LETSENCRYPT_EMAIL
-            remote_export LOG_LEVEL
-            remote_export MQTT_BROKER_URL
-            remote_export MQTT_CLIENT_ID
-            remote_export MQTT_HOST
-            remote_export MQTT_INGEST_ENABLED
-            remote_export MQTT_PASSWORD
-            remote_export MQTT_TELEMETRY_TOPIC
-            remote_export MQTT_USERNAME
-            remote_export REF_NAME
-            remote_export REPOSITORY
-            remote_export REPO_TOKEN
-            remote_export SUPER_ADMIN_EMAIL
-            remote_export SUPER_ADMIN_PASSWORD_HASH
-            remote_export SUDO_PASSWORD
-            remote_export VITE_API_BASE_URL
-            remote_export VITE_BMKG_FORECAST_BASE_URL
-            remote_export VITE_MQTT_BROKER_URL
-            remote_export VITE_MQTT_WEBSOCKET_URL
-            remote_export VITE_WEB_BASE_URL
-            remote_export WEB_HOST
-            cat <<'REMOTE_SCRIPT'
-          set -euo pipefail
+              printf '%s\n' "$SUDO_PASSWORD" | sudo -S -p '' "$@"
+            }
 
-          sudo_run() {
-            if sudo -n true 2>/dev/null; then
-              sudo "$@"
-              return
+            install_docker_if_missing() {
+              if command -v docker >/dev/null 2>&1 && sudo_run docker compose version >/dev/null 2>&1; then
+                echo "Docker and Docker Compose are already available on this VPS."
+                return
+              fi
+
+              if ! command -v apt-get >/dev/null 2>&1; then
+                echo "Docker is missing and automatic installation currently supports apt-based VPS images only."
+                exit 1
+              fi
+
+              . /etc/os-release
+              docker_repo_os="${ID:-}"
+              if [ "$docker_repo_os" != "ubuntu" ] && [ "$docker_repo_os" != "debian" ]; then
+                case "${ID_LIKE:-}" in
+                  *ubuntu*) docker_repo_os="ubuntu" ;;
+                  *debian*) docker_repo_os="debian" ;;
+                  *)
+                    echo "Docker is missing and this OS is not recognized as Ubuntu/Debian compatible."
+                    exit 1
+                    ;;
+                esac
+              fi
+
+              docker_codename="${VERSION_CODENAME:-${UBUNTU_CODENAME:-}}"
+              if [ -z "$docker_codename" ] && command -v lsb_release >/dev/null 2>&1; then
+                docker_codename="$(lsb_release -cs)"
+              fi
+
+              if [ -z "$docker_codename" ]; then
+                echo "Unable to determine OS codename for Docker apt repository."
+                exit 1
+              fi
+
+              sudo_run apt-get update
+              sudo_run apt-get install -y ca-certificates curl gnupg
+              sudo_run install -m 0755 -d /etc/apt/keyrings
+              curl -fsSL "https://download.docker.com/linux/${docker_repo_os}/gpg" | sudo_run tee /etc/apt/keyrings/docker.asc >/dev/null
+              sudo_run chmod a+r /etc/apt/keyrings/docker.asc
+              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/${docker_repo_os} ${docker_codename} stable" | sudo_run tee /etc/apt/sources.list.d/docker.list >/dev/null
+              sudo_run apt-get update
+              sudo_run apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+              if command -v systemctl >/dev/null 2>&1; then
+                sudo_run systemctl enable --now docker
+              else
+                sudo_run service docker start
+              fi
+
+              sudo_run docker version
+              sudo_run docker compose version
+            }
+
+            require_env() {
+              variable_name="$1"
+              eval "variable_value=\${$variable_name:-}"
+              if [ -z "$variable_value" ]; then
+                echo "Missing required GitHub secret or variable: $variable_name"
+                exit 1
+              fi
+            }
+
+            git_with_token() {
+              GIT_ASKPASS="$ASKPASS_DIR/git-askpass.sh" \
+                GIT_USERNAME="x-access-token" \
+                GIT_PASSWORD="$REPO_TOKEN" \
+                git "$@"
+            }
+
+            case "$APP_DIR" in
+              ""|"/"|"/opt"|"/opt/")
+                echo "Refusing unsafe APP_DIR: $APP_DIR"
+                exit 1
+                ;;
+            esac
+
+            ASKPASS_DIR="$(mktemp -d)"
+            trap 'rm -rf "$ASKPASS_DIR"' EXIT
+            cat > "$ASKPASS_DIR/git-askpass.sh" <<'EOF'
+            #!/usr/bin/env sh
+            case "$1" in
+              *Username*) printf '%s\n' "$GIT_USERNAME" ;;
+              *Password*) printf '%s\n' "$GIT_PASSWORD" ;;
+              *) printf '\n' ;;
+            esac
+            EOF
+            chmod 700 "$ASKPASS_DIR/git-askpass.sh"
+
+            if [ -z "${EMQX_DASHBOARD_PASSWORD:-}" ]; then
+              SECRETS_DIR="$APP_DIR/.deploy-secrets"
+              sudo_run mkdir -p "$SECRETS_DIR"
+              sudo_run chown -R "$(id -un):$(id -gn)" "$SECRETS_DIR"
+              chmod 700 "$SECRETS_DIR"
+
+              if [ ! -f "$SECRETS_DIR/emqx-dashboard-password" ] || ! grep -Eq '^[A-Za-z0-9]{32,}$' "$SECRETS_DIR/emqx-dashboard-password"; then
+                openssl rand -hex 32 > "$SECRETS_DIR/emqx-dashboard-password"
+                chmod 600 "$SECRETS_DIR/emqx-dashboard-password"
+              fi
+
+              EMQX_DASHBOARD_PASSWORD="$(cat "$SECRETS_DIR/emqx-dashboard-password")"
+              export EMQX_DASHBOARD_PASSWORD
             fi
 
-            printf '%s\n' "$SUDO_PASSWORD" | sudo -S -p '' "$@"
-          }
+            require_env DATABASE_URL
+            require_env EMQX_DASHBOARD_PASSWORD
+            require_env EMQX_DASHBOARD_USERNAME
+            require_env JWT_SECRET
+            require_env SUPER_ADMIN_EMAIL
+            require_env SUPER_ADMIN_PASSWORD_HASH
 
-          install_docker_if_missing() {
-            if command -v docker >/dev/null 2>&1 && sudo_run docker compose version >/dev/null 2>&1; then
-              echo "Docker and Docker Compose are already available on this VPS."
-              return
+            sudo_run mkdir -p "$APP_DIR"
+            sudo_run chown -R "$(id -un):$(id -gn)" "$APP_DIR"
+
+            if [ ! -d "$APP_DIR/.git" ]; then
+              git_with_token clone "https://github.com/${REPOSITORY}.git" "$APP_DIR"
             fi
 
-            if ! command -v apt-get >/dev/null 2>&1; then
-              echo "Docker is missing and automatic installation currently supports apt-based VPS images only."
-              exit 1
-            fi
+            cd "$APP_DIR"
+            git_with_token fetch origin "$REF_NAME"
+            git checkout "$REF_NAME"
+            git reset --hard "origin/$REF_NAME"
 
-            . /etc/os-release
-            docker_repo_os="${ID:-}"
-            if [ "$docker_repo_os" != "ubuntu" ] && [ "$docker_repo_os" != "debian" ]; then
-              case "${ID_LIKE:-}" in
-                *ubuntu*) docker_repo_os="ubuntu" ;;
-                *debian*) docker_repo_os="debian" ;;
-                *)
-                  echo "Docker is missing and this OS is not recognized as Ubuntu/Debian compatible."
-                  exit 1
-                  ;;
-              esac
-            fi
+            compose() {
+              sudo_run env \
+                DATABASE_SSL="$DATABASE_SSL" \
+                DATABASE_URL="$DATABASE_URL" \
+                EMQX_DASHBOARD_PASSWORD="$EMQX_DASHBOARD_PASSWORD" \
+                EMQX_DASHBOARD_USERNAME="$EMQX_DASHBOARD_USERNAME" \
+                FRONTEND_ORIGIN="$FRONTEND_ORIGIN" \
+                JWT_EXPIRES_IN="$JWT_EXPIRES_IN" \
+                JWT_SECRET="$JWT_SECRET" \
+                LETSENCRYPT_EMAIL="$LETSENCRYPT_EMAIL" \
+                LOG_LEVEL="$LOG_LEVEL" \
+                MQTT_BROKER_URL="$MQTT_BROKER_URL" \
+                MQTT_CLIENT_ID="$MQTT_CLIENT_ID" \
+                MQTT_HOST="$MQTT_HOST" \
+                MQTT_INGEST_ENABLED="$MQTT_INGEST_ENABLED" \
+                MQTT_PASSWORD="$MQTT_PASSWORD" \
+                MQTT_TELEMETRY_TOPIC="$MQTT_TELEMETRY_TOPIC" \
+                MQTT_USERNAME="$MQTT_USERNAME" \
+                SUPER_ADMIN_EMAIL="$SUPER_ADMIN_EMAIL" \
+                SUPER_ADMIN_PASSWORD_HASH="$SUPER_ADMIN_PASSWORD_HASH" \
+                VITE_API_BASE_URL="$VITE_API_BASE_URL" \
+                VITE_BMKG_FORECAST_BASE_URL="$VITE_BMKG_FORECAST_BASE_URL" \
+                VITE_MQTT_BROKER_URL="$VITE_MQTT_BROKER_URL" \
+                VITE_MQTT_WEBSOCKET_URL="$VITE_MQTT_WEBSOCKET_URL" \
+                VITE_WEB_BASE_URL="$VITE_WEB_BASE_URL" \
+                WEB_HOST="$WEB_HOST" \
+                docker compose -f docker-compose.yml "$@"
+            }
 
-            docker_codename="${VERSION_CODENAME:-${UBUNTU_CODENAME:-}}"
-            if [ -z "$docker_codename" ] && command -v lsb_release >/dev/null 2>&1; then
-              docker_codename="$(lsb_release -cs)"
-            fi
+            test -f apps/web/Dockerfile
+            test -f apps/api/Dockerfile
+            test -f apps/web/package-lock.json
+            test -f apps/api/package-lock.json
+            test -f infra/emqx/base.hocon
+            test -f infra/emqx/acl.conf
 
-            if [ -z "$docker_codename" ]; then
-              echo "Unable to determine OS codename for Docker apt repository."
-              exit 1
-            fi
-
-            sudo_run apt-get update
-            sudo_run apt-get install -y ca-certificates curl gnupg
-            sudo_run install -m 0755 -d /etc/apt/keyrings
-            curl -fsSL "https://download.docker.com/linux/${docker_repo_os}/gpg" | sudo_run tee /etc/apt/keyrings/docker.asc >/dev/null
-            sudo_run chmod a+r /etc/apt/keyrings/docker.asc
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/${docker_repo_os} ${docker_codename} stable" | sudo_run tee /etc/apt/sources.list.d/docker.list >/dev/null
-            sudo_run apt-get update
-            sudo_run apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-            if command -v systemctl >/dev/null 2>&1; then
-              sudo_run systemctl enable --now docker
-            else
-              sudo_run service docker start
-            fi
-
-            sudo_run docker version
-            sudo_run docker compose version
-          }
-
-          ASKPASS_DIR="$(mktemp -d)"
-          trap 'rm -rf "$ASKPASS_DIR"' EXIT
-          cat > "$ASKPASS_DIR/git-askpass.sh" <<'EOF'
-          #!/usr/bin/env sh
-          case "$1" in
-            *Username*) printf '%s\n' "$GIT_USERNAME" ;;
-            *Password*) printf '%s\n' "$GIT_PASSWORD" ;;
-            *) printf '\n' ;;
-          esac
-          EOF
-          chmod 700 "$ASKPASS_DIR/git-askpass.sh"
-
-          git_with_token() {
-            GIT_ASKPASS="$ASKPASS_DIR/git-askpass.sh" \
-              GIT_USERNAME="x-access-token" \
-              GIT_PASSWORD="$REPO_TOKEN" \
-              git "$@"
-          }
-
-          require_env() {
-            variable_name="$1"
-            eval "variable_value=\${$variable_name:-}"
-            if [ -z "$variable_value" ]; then
-              echo "Missing required GitHub secret or variable: $variable_name"
-              exit 1
-            fi
-          }
-
-          case "$APP_DIR" in
-            ""|"/"|"/opt"|"/opt/")
-              echo "Refusing unsafe APP_DIR: $APP_DIR"
-              exit 1
-              ;;
-          esac
-
-          if [ -z "${EMQX_DASHBOARD_PASSWORD:-}" ]; then
-            SECRETS_DIR="$APP_DIR/.deploy-secrets"
-            sudo_run mkdir -p "$SECRETS_DIR"
-            sudo_run chown -R "$(id -un):$(id -gn)" "$SECRETS_DIR"
-            chmod 700 "$SECRETS_DIR"
-
-            if [ ! -f "$SECRETS_DIR/emqx-dashboard-password" ] || ! grep -Eq '^[A-Za-z0-9]{32,}$' "$SECRETS_DIR/emqx-dashboard-password"; then
-              openssl rand -hex 32 > "$SECRETS_DIR/emqx-dashboard-password"
-              chmod 600 "$SECRETS_DIR/emqx-dashboard-password"
-            fi
-
-            EMQX_DASHBOARD_PASSWORD="$(cat "$SECRETS_DIR/emqx-dashboard-password")"
-            export EMQX_DASHBOARD_PASSWORD
-          fi
-
-          require_env DATABASE_URL
-          require_env EMQX_DASHBOARD_PASSWORD
-          require_env EMQX_DASHBOARD_USERNAME
-          require_env JWT_SECRET
-          require_env SUPER_ADMIN_EMAIL
-          require_env SUPER_ADMIN_PASSWORD_HASH
-
-          sudo_run mkdir -p "$APP_DIR"
-          sudo_run chown -R "$(id -un):$(id -gn)" "$APP_DIR"
-
-          if [ ! -d "$APP_DIR/.git" ]; then
-            git_with_token clone "https://github.com/${REPOSITORY}.git" "$APP_DIR"
-          fi
-
-          cd "$APP_DIR"
-          git_with_token fetch origin "$REF_NAME"
-          git checkout "$REF_NAME"
-          git reset --hard "origin/$REF_NAME"
-
-          compose() {
-            sudo_run env \
-              DATABASE_SSL="$DATABASE_SSL" \
-              DATABASE_URL="$DATABASE_URL" \
-              EMQX_DASHBOARD_PASSWORD="$EMQX_DASHBOARD_PASSWORD" \
-              EMQX_DASHBOARD_USERNAME="$EMQX_DASHBOARD_USERNAME" \
-              FRONTEND_ORIGIN="$FRONTEND_ORIGIN" \
-              JWT_EXPIRES_IN="$JWT_EXPIRES_IN" \
-              JWT_SECRET="$JWT_SECRET" \
-              LETSENCRYPT_EMAIL="$LETSENCRYPT_EMAIL" \
-              LOG_LEVEL="$LOG_LEVEL" \
-              MQTT_BROKER_URL="$MQTT_BROKER_URL" \
-              MQTT_CLIENT_ID="$MQTT_CLIENT_ID" \
-              MQTT_HOST="$MQTT_HOST" \
-              MQTT_INGEST_ENABLED="$MQTT_INGEST_ENABLED" \
-              MQTT_PASSWORD="$MQTT_PASSWORD" \
-              MQTT_TELEMETRY_TOPIC="$MQTT_TELEMETRY_TOPIC" \
-              MQTT_USERNAME="$MQTT_USERNAME" \
-              SUPER_ADMIN_EMAIL="$SUPER_ADMIN_EMAIL" \
-              SUPER_ADMIN_PASSWORD_HASH="$SUPER_ADMIN_PASSWORD_HASH" \
-              VITE_API_BASE_URL="$VITE_API_BASE_URL" \
-              VITE_BMKG_FORECAST_BASE_URL="$VITE_BMKG_FORECAST_BASE_URL" \
-              VITE_MQTT_BROKER_URL="$VITE_MQTT_BROKER_URL" \
-              VITE_MQTT_WEBSOCKET_URL="$VITE_MQTT_WEBSOCKET_URL" \
-              VITE_WEB_BASE_URL="$VITE_WEB_BASE_URL" \
-              WEB_HOST="$WEB_HOST" \
-              docker compose -f docker-compose.yml "$@"
-          }
-
-          test -f apps/web/Dockerfile
-          test -f apps/api/Dockerfile
-          test -f apps/web/package-lock.json
-          test -f apps/api/package-lock.json
-          test -f infra/emqx/base.hocon
-          test -f infra/emqx/acl.conf
-
-          install_docker_if_missing
-          compose config --quiet
-          compose up -d --build --remove-orphans
-          compose ps
-          sudo_run docker system prune -af --volumes
-          REMOTE_SCRIPT
-          } | SSHPASS="$VPS_PASSWORD" sshpass -e ssh \
-            -p "$VPS_PORT" \
-            -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            "$VPS_USERNAME@$VPS_HOST" \
-            'bash -s'
+            install_docker_if_missing
+            compose config --quiet
+            compose up -d --build --remove-orphans
+            compose ps
+            sudo_run docker system prune -af --volumes
