@@ -1,0 +1,48 @@
+import "dotenv/config";
+import { z } from "zod";
+
+const envSchema = z.object({
+  DATABASE_SSL: z.enum(["true", "false"]).default("false"),
+  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  FRONTEND_ORIGIN: z.string().default("http://localhost:5173"),
+  JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
+  LOG_LEVEL: z.string().default("info"),
+  MQTT_BROKER_URL: z.string().default("mqtt://127.0.0.1:1883"),
+  MQTT_CLIENT_ID: z.string().default("pamilo-api-local"),
+  MQTT_INGEST_ENABLED: z.enum(["true", "false"]).default("false"),
+  MQTT_PASSWORD: z.string().optional(),
+  MQTT_TELEMETRY_TOPIC: z.string().default("pamilo/v1/tenants/+/devices/+/telemetry"),
+  MQTT_USERNAME: z.string().optional(),
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  PORT: z.coerce.number().int().positive().default(3000)
+});
+
+const parsedEnv = envSchema.safeParse(process.env);
+
+if (!parsedEnv.success) {
+  const details = parsedEnv.error.issues
+    .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+    .join("; ");
+
+  throw new Error(`Invalid API environment: ${details}`);
+}
+
+export const env = {
+  database: {
+    ssl: parsedEnv.data.DATABASE_SSL === "true",
+    url: parsedEnv.data.DATABASE_URL
+  },
+  frontendOrigin: parsedEnv.data.FRONTEND_ORIGIN,
+  jwtSecret: parsedEnv.data.JWT_SECRET,
+  logLevel: parsedEnv.data.LOG_LEVEL,
+  mqtt: {
+    brokerUrl: parsedEnv.data.MQTT_BROKER_URL,
+    clientId: parsedEnv.data.MQTT_CLIENT_ID,
+    enabled: parsedEnv.data.MQTT_INGEST_ENABLED === "true",
+    password: parsedEnv.data.MQTT_PASSWORD || undefined,
+    telemetryTopic: parsedEnv.data.MQTT_TELEMETRY_TOPIC,
+    username: parsedEnv.data.MQTT_USERNAME || undefined
+  },
+  nodeEnv: parsedEnv.data.NODE_ENV,
+  port: parsedEnv.data.PORT
+} as const;
