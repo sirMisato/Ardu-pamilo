@@ -5,6 +5,12 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      deploy_to_vps:
+        description: Run the VPS deployment after validation
+        required: true
+        default: false
+        type: boolean
 
 concurrency:
   group: production-deploy
@@ -14,10 +20,9 @@ permissions:
   contents: read
 
 jobs:
-  deploy:
-    name: Build and deploy to VPS
+  validate:
+    name: Validate deployment files
     runs-on: ubuntu-latest
-    environment: production
 
     steps:
       - name: Checkout
@@ -39,6 +44,20 @@ jobs:
           VITE_MQTT_WEBSOCKET_URL: wss://mqtt.keycloud.id:8084/mqtt
           VITE_WEB_BASE_URL: https://sedayafarm.keycloud.id
           WEB_HOST: sedayafarm.keycloud.id
+
+      - name: Skip VPS deploy
+        run: echo "VPS deployment is paused. Run this workflow manually with deploy_to_vps=true when ready."
+
+  deploy:
+    name: Deploy to VPS
+    needs: validate
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_to_vps == true }}
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
