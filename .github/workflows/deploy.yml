@@ -253,6 +253,21 @@ jobs:
             require_env EMQX_DASHBOARD_PASSWORD
             require_env EMQX_DASHBOARD_USERNAME
 
+            compose() {
+              sudo_run env \
+                EMQX_DASHBOARD_PASSWORD="$EMQX_DASHBOARD_PASSWORD" \
+                EMQX_DASHBOARD_USERNAME="$EMQX_DASHBOARD_USERNAME" \
+                LETSENCRYPT_EMAIL="$LETSENCRYPT_EMAIL" \
+                MQTT_HOST="$MQTT_HOST" \
+                VITE_API_BASE_URL="$VITE_API_BASE_URL" \
+                VITE_BMKG_FORECAST_BASE_URL="$VITE_BMKG_FORECAST_BASE_URL" \
+                VITE_MQTT_BROKER_URL="$VITE_MQTT_BROKER_URL" \
+                VITE_MQTT_WEBSOCKET_URL="$VITE_MQTT_WEBSOCKET_URL" \
+                VITE_WEB_BASE_URL="$VITE_WEB_BASE_URL" \
+                WEB_HOST="$WEB_HOST" \
+                docker compose -f docker-compose.yml "$@"
+            }
+
             test -f apps/web/Dockerfile
             test -f apps/web/package-lock.json
             test -f infra/emqx/base.hocon
@@ -270,11 +285,11 @@ jobs:
             echo "Checking Docker availability on VPS."
             install_docker_if_missing
             echo "Docker is ready for deployment."
-            sudo_run docker compose -f docker-compose.yml config --quiet
-            sudo_run docker compose -f docker-compose.yml pull --ignore-buildable
-            sudo_run docker compose -f docker-compose.yml build --pull
-            sudo_run docker compose -f docker-compose.yml up -d --remove-orphans
-            sudo_run docker compose -f docker-compose.yml ps
+            compose config --quiet
+            compose pull --ignore-buildable
+            compose build --pull
+            compose up -d --remove-orphans
+            compose ps
 
             sudo_run docker image prune -af --filter "until=168h"
             sudo_run docker builder prune -af --filter "until=168h"
