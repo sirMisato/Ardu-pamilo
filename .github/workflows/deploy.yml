@@ -44,21 +44,42 @@ jobs:
           APP_DIR: ${{ vars.VPS_APP_DIR }}
           REPOSITORY: ${{ github.repository }}
           REF_NAME: ${{ github.ref_name }}
+          SUDO_PASSWORD: ${{ secrets.VPS_PASSWORD }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT || 22 }}
-          envs: APP_DIR,REPOSITORY,REF_NAME
+          envs: APP_DIR,REPOSITORY,REF_NAME,SUDO_PASSWORD
           script_stop: true
           script: |
             set -euo pipefail
+
+            sudo_run() {
+              if sudo -n true 2>/dev/null; then
+                sudo "$@"
+                return
+              fi
+
+              printf '%s\n' "$SUDO_PASSWORD" | sudo -S -p '' "$@"
+            }
 
             if [ -z "${APP_DIR:-}" ]; then
               APP_DIR="/opt/pamilo-saas"
             fi
 
-            mkdir -p "$APP_DIR"
+            case "$APP_DIR" in
+              ""|"/"|"/opt"|"/opt/")
+                echo "Refusing unsafe APP_DIR: $APP_DIR"
+                exit 1
+                ;;
+            esac
+
+            REMOTE_USER="$(id -un)"
+            REMOTE_GROUP="$(id -gn)"
+
+            sudo_run mkdir -p "$APP_DIR"
+            sudo_run chown -R "$REMOTE_USER:$REMOTE_GROUP" "$APP_DIR"
 
             if [ ! -d "$APP_DIR/.git" ]; then
               git clone "https://github.com/${REPOSITORY}.git" "$APP_DIR"
@@ -74,11 +95,11 @@ jobs:
             test -f infra/emqx/acl.conf
             test -d infra/emqx/certs
 
-            docker compose --env-file production.env -f docker-compose.yml config --quiet
-            docker compose --env-file production.env -f docker-compose.yml pull --ignore-buildable
-            docker compose --env-file production.env -f docker-compose.yml build --pull
-            docker compose --env-file production.env -f docker-compose.yml up -d --remove-orphans
-            docker compose --env-file production.env -f docker-compose.yml ps
+            sudo_run docker compose --env-file production.env -f docker-compose.yml config --quiet
+            sudo_run docker compose --env-file production.env -f docker-compose.yml pull --ignore-buildable
+            sudo_run docker compose --env-file production.env -f docker-compose.yml build --pull
+            sudo_run docker compose --env-file production.env -f docker-compose.yml up -d --remove-orphans
+            sudo_run docker compose --env-file production.env -f docker-compose.yml ps
 
-            docker image prune -af --filter "until=168h"
-            docker builder prune -af --filter "until=168h"
+            sudo_run docker image prune -af --filter "until=168h"
+            sudo_run docker builder prune -af --filter "until=168h"
