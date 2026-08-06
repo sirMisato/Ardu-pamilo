@@ -1,0 +1,13 @@
+.git
+.github
+**/node_modules
+**/dist
+**/.vite
+**/.vite-temp
+**/.vue-global-types
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store

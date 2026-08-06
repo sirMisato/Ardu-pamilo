@@ -1,6 +1,73 @@
 name: pamilo-saas
 
 services:
+  edge:
+    image: traefik:v3.1
+    restart: unless-stopped
+    command:
+      - --api.dashboard=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.mqtt.address=:1883
+      - --entrypoints.mqtts.address=:8883
+      - --entrypoints.mqttws.address=:8083
+      - --entrypoints.mqttwss.address=:8084
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL:-admin@sedayafarm.keycloud.id}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+    ports:
+      - "80:80"
+      - "443:443"
+      - "1883:1883"
+      - "8883:8883"
+      - "8083:8083"
+      - "8084:8084"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-letsencrypt:/letsencrypt
+    depends_on:
+      frontend:
+        condition: service_healthy
+      emqx:
+        condition: service_healthy
+    networks:
+      - public-edge
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_WEB_BASE_URL: ${VITE_WEB_BASE_URL:-https://sedayafarm.keycloud.id}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://sedayafarm.keycloud.id}
+        VITE_MQTT_BROKER_URL: ${VITE_MQTT_BROKER_URL:-mqtts://mqtt.keycloud.id:8883}
+        VITE_MQTT_WEBSOCKET_URL: ${VITE_MQTT_WEBSOCKET_URL:-wss://mqtt.keycloud.id:8084/mqtt}
+        VITE_BMKG_FORECAST_BASE_URL: ${VITE_BMKG_FORECAST_BASE_URL:-https://api.bmkg.go.id/publik/prakiraan-cuaca}
+        VITE_BMKG_FORECAST_ADM4: ${VITE_BMKG_FORECAST_ADM4:-31.71.03.1001}
+    restart: unless-stopped
+    expose:
+      - "80"
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=pamilo-public-edge
+      - traefik.http.routers.pamilo-web.rule=Host(`${WEB_HOST:-sedayafarm.keycloud.id}`)
+      - traefik.http.routers.pamilo-web.entrypoints=websecure
+      - traefik.http.routers.pamilo-web.tls.certresolver=letsencrypt
+      - traefik.http.routers.pamilo-web.service=pamilo-web
+      - traefik.http.services.pamilo-web.loadbalancer.server.port=80
+    networks:
+      - public-edge
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 6
+
   emqx:
     image: emqx/emqx:5.8
     restart: unless-stopped
@@ -14,12 +81,34 @@ services:
       - ./infra/emqx/base.hocon:/opt/emqx/etc/base.hocon:ro
       - ./infra/emqx/acl.conf:/opt/emqx/etc/acl.conf:ro
       - ./infra/emqx/certs:/opt/emqx/certs:ro
-    ports:
-      - "8883:8883"
-      - "127.0.0.1:18083:18083"
     expose:
       - "1883"
+      - "8883"
+      - "8083"
+      - "8084"
+    ports:
+      - "127.0.0.1:18083:18083"
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=pamilo-public-edge
+      - traefik.tcp.routers.emqx-mqtt.rule=HostSNI(`*`)
+      - traefik.tcp.routers.emqx-mqtt.entrypoints=mqtt
+      - traefik.tcp.routers.emqx-mqtt.service=emqx-mqtt
+      - traefik.tcp.services.emqx-mqtt.loadbalancer.server.port=1883
+      - traefik.tcp.routers.emqx-mqtts.rule=HostSNI(`${MQTT_HOST:-mqtt.keycloud.id}`)
+      - traefik.tcp.routers.emqx-mqtts.entrypoints=mqtts
+      - traefik.tcp.routers.emqx-mqtts.tls.certresolver=letsencrypt
+      - traefik.tcp.routers.emqx-mqtts.service=emqx-mqtt
+      - traefik.http.routers.emqx-ws.rule=Host(`${MQTT_HOST:-mqtt.keycloud.id}`) && PathPrefix(`/mqtt`)
+      - traefik.http.routers.emqx-ws.entrypoints=mqttws
+      - traefik.http.routers.emqx-ws.service=emqx-ws
+      - traefik.http.routers.emqx-wss.rule=Host(`${MQTT_HOST:-mqtt.keycloud.id}`) && PathPrefix(`/mqtt`)
+      - traefik.http.routers.emqx-wss.entrypoints=mqttwss
+      - traefik.http.routers.emqx-wss.tls.certresolver=letsencrypt
+      - traefik.http.routers.emqx-wss.service=emqx-ws
+      - traefik.http.services.emqx-ws.loadbalancer.server.port=8083
     networks:
+      - public-edge
       - mqtt-private
     healthcheck:
       test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
@@ -27,76 +116,16 @@ services:
       timeout: 10s
       retries: 6
 
-  backend:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-    restart: unless-stopped
-    depends_on:
-      emqx:
-        condition: service_healthy
-    environment:
-      NODE_ENV: production
-      PORT: "3000"
-      PUBLIC_WEB_ORIGIN: ${PUBLIC_WEB_ORIGIN:?set PUBLIC_WEB_ORIGIN}
-      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET}
-      MYSQL_HOST: ${MYSQL_HOST:?set MYSQL_HOST}
-      MYSQL_PORT: ${MYSQL_PORT:-3306}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:?set MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD}
-      MQTT_BROKER_URL: mqtt://emqx:1883
-      MQTT_SERVICE_USERNAME: ${MQTT_SERVICE_USERNAME:?set MQTT_SERVICE_USERNAME}
-      MQTT_SERVICE_PASSWORD: ${MQTT_SERVICE_PASSWORD:?set MQTT_SERVICE_PASSWORD}
-      MQTT_TOPIC_ROOT: pamilo/v1/tenants
-      BMKG_BASE_URL: ${BMKG_BASE_URL:-https://api.bmkg.go.id}
-      REALTIME_TRANSPORT: sse
-    expose:
-      - "3000"
-    networks:
-      - app-private
-      - mqtt-private
-      - backend-egress
-    healthcheck:
-      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
-      interval: 20s
-      timeout: 10s
-      retries: 6
-
-  frontend:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-    restart: unless-stopped
-    depends_on:
-      backend:
-        condition: service_healthy
-    environment:
-      API_ORIGIN: http://backend:3000
-    ports:
-      - "80:80"
-      - "443:443"
-    networks:
-      - app-private
-      - public-edge
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health || exit 1"]
-      interval: 20s
-      timeout: 10s
-      retries: 6
-
 networks:
   public-edge:
+    name: pamilo-public-edge
     driver: bridge
-  app-private:
-    driver: bridge
-    internal: true
   mqtt-private:
+    name: pamilo-mqtt-private
     driver: bridge
     internal: true
-  backend-egress:
-    driver: bridge
 
 volumes:
   emqx-data:
   emqx-log:
+  traefik-letsencrypt:

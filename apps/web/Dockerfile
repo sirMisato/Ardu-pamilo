@@ -1,7 +1,22 @@
 FROM node:22-alpine AS build
 
 WORKDIR /app
-COPY apps/web/package*.json ./
+
+ARG VITE_WEB_BASE_URL=https://sedayafarm.keycloud.id
+ARG VITE_API_BASE_URL=https://sedayafarm.keycloud.id
+ARG VITE_MQTT_BROKER_URL=mqtts://mqtt.keycloud.id:8883
+ARG VITE_MQTT_WEBSOCKET_URL=wss://mqtt.keycloud.id:8084/mqtt
+ARG VITE_BMKG_FORECAST_BASE_URL=https://api.bmkg.go.id/publik/prakiraan-cuaca
+ARG VITE_BMKG_FORECAST_ADM4=31.71.03.1001
+
+ENV VITE_WEB_BASE_URL=${VITE_WEB_BASE_URL}
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ENV VITE_MQTT_BROKER_URL=${VITE_MQTT_BROKER_URL}
+ENV VITE_MQTT_WEBSOCKET_URL=${VITE_MQTT_WEBSOCKET_URL}
+ENV VITE_BMKG_FORECAST_BASE_URL=${VITE_BMKG_FORECAST_BASE_URL}
+ENV VITE_BMKG_FORECAST_ADM4=${VITE_BMKG_FORECAST_ADM4}
+
+COPY apps/web/package.json apps/web/package-lock.json ./
 RUN npm ci
 
 COPY apps/web/ ./

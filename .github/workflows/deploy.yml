@@ -29,45 +29,43 @@ jobs:
       - name: Validate compose file
         run: docker compose -f docker-compose.yml config --quiet
         env:
-          PUBLIC_WEB_ORIGIN: https://example.com
-          SESSION_SECRET: placeholder-session-secret-for-ci-validation
-          MYSQL_HOST: mysql.example.com
-          MYSQL_PORT: 3306
-          MYSQL_DATABASE: pamilo
-          MYSQL_USER: pamilo
-          MYSQL_PASSWORD: placeholder
-          MQTT_SERVICE_USERNAME: pamilo_ingestor
-          MQTT_SERVICE_PASSWORD: placeholder
           EMQX_DASHBOARD_USERNAME: admin
           EMQX_DASHBOARD_PASSWORD: placeholder
+          LETSENCRYPT_EMAIL: admin@sedayafarm.keycloud.id
+          MQTT_HOST: mqtt.keycloud.id
+          VITE_API_BASE_URL: https://sedayafarm.keycloud.id
+          VITE_BMKG_FORECAST_ADM4: 31.71.03.1001
+          VITE_BMKG_FORECAST_BASE_URL: https://api.bmkg.go.id/publik/prakiraan-cuaca
+          VITE_MQTT_BROKER_URL: mqtts://mqtt.keycloud.id:8883
+          VITE_MQTT_WEBSOCKET_URL: wss://mqtt.keycloud.id:8084/mqtt
+          VITE_WEB_BASE_URL: https://sedayafarm.keycloud.id
+          WEB_HOST: sedayafarm.keycloud.id
 
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
         env:
           APP_DIR: ${{ vars.VPS_APP_DIR }}
-          BMKG_BASE_URL: ${{ vars.BMKG_BASE_URL }}
-          DEPLOY_HOST: ${{ secrets.VPS_HOST }}
           EMQX_DASHBOARD_PASSWORD: ${{ secrets.EMQX_DASHBOARD_PASSWORD }}
           EMQX_DASHBOARD_USERNAME: ${{ secrets.EMQX_DASHBOARD_USERNAME }}
-          MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
-          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
-          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-          MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
-          MYSQL_USER: ${{ secrets.MYSQL_USER }}
-          MQTT_SERVICE_PASSWORD: ${{ secrets.MQTT_SERVICE_PASSWORD }}
-          MQTT_SERVICE_USERNAME: ${{ secrets.MQTT_SERVICE_USERNAME }}
-          PUBLIC_WEB_ORIGIN: ${{ vars.PUBLIC_WEB_ORIGIN }}
-          REPOSITORY: ${{ github.repository }}
+          LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
+          MQTT_HOST: ${{ vars.MQTT_HOST }}
           REF_NAME: ${{ github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
           REPO_TOKEN: ${{ github.token }}
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
           SUDO_PASSWORD: ${{ secrets.VPS_PASSWORD }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_BMKG_FORECAST_ADM4: ${{ vars.VITE_BMKG_FORECAST_ADM4 }}
+          VITE_BMKG_FORECAST_BASE_URL: ${{ vars.VITE_BMKG_FORECAST_BASE_URL }}
+          VITE_MQTT_BROKER_URL: ${{ vars.VITE_MQTT_BROKER_URL }}
+          VITE_MQTT_WEBSOCKET_URL: ${{ vars.VITE_MQTT_WEBSOCKET_URL }}
+          VITE_WEB_BASE_URL: ${{ vars.VITE_WEB_BASE_URL }}
+          WEB_HOST: ${{ vars.WEB_HOST }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT || 22 }}
-          envs: APP_DIR,BMKG_BASE_URL,DEPLOY_HOST,EMQX_DASHBOARD_PASSWORD,EMQX_DASHBOARD_USERNAME,MYSQL_DATABASE,MYSQL_HOST,MYSQL_PASSWORD,MYSQL_PORT,MYSQL_USER,MQTT_SERVICE_PASSWORD,MQTT_SERVICE_USERNAME,PUBLIC_WEB_ORIGIN,REF_NAME,REPOSITORY,REPO_TOKEN,SESSION_SECRET,SUDO_PASSWORD
+          envs: APP_DIR,EMQX_DASHBOARD_PASSWORD,EMQX_DASHBOARD_USERNAME,LETSENCRYPT_EMAIL,MQTT_HOST,REF_NAME,REPOSITORY,REPO_TOKEN,SUDO_PASSWORD,VITE_API_BASE_URL,VITE_BMKG_FORECAST_ADM4,VITE_BMKG_FORECAST_BASE_URL,VITE_MQTT_BROKER_URL,VITE_MQTT_WEBSOCKET_URL,VITE_WEB_BASE_URL,WEB_HOST
           script: |
             set -euo pipefail
 
@@ -110,11 +108,52 @@ jobs:
 
             if [ -z "${APP_DIR:-}" ]; then
               APP_DIR="/opt/pamilo-saas"
+              export APP_DIR
             fi
 
-            if [ -z "${PUBLIC_WEB_ORIGIN:-}" ]; then
-              PUBLIC_WEB_ORIGIN="http://${DEPLOY_HOST}"
-              export PUBLIC_WEB_ORIGIN
+            if [ -z "${WEB_HOST:-}" ]; then
+              WEB_HOST="sedayafarm.keycloud.id"
+              export WEB_HOST
+            fi
+
+            if [ -z "${MQTT_HOST:-}" ]; then
+              MQTT_HOST="mqtt.keycloud.id"
+              export MQTT_HOST
+            fi
+
+            if [ -z "${LETSENCRYPT_EMAIL:-}" ]; then
+              LETSENCRYPT_EMAIL="admin@sedayafarm.keycloud.id"
+              export LETSENCRYPT_EMAIL
+            fi
+
+            if [ -z "${VITE_WEB_BASE_URL:-}" ]; then
+              VITE_WEB_BASE_URL="https://${WEB_HOST}"
+              export VITE_WEB_BASE_URL
+            fi
+
+            if [ -z "${VITE_API_BASE_URL:-}" ]; then
+              VITE_API_BASE_URL="https://${WEB_HOST}"
+              export VITE_API_BASE_URL
+            fi
+
+            if [ -z "${VITE_MQTT_BROKER_URL:-}" ]; then
+              VITE_MQTT_BROKER_URL="mqtts://${MQTT_HOST}:8883"
+              export VITE_MQTT_BROKER_URL
+            fi
+
+            if [ -z "${VITE_MQTT_WEBSOCKET_URL:-}" ]; then
+              VITE_MQTT_WEBSOCKET_URL="wss://${MQTT_HOST}:8084/mqtt"
+              export VITE_MQTT_WEBSOCKET_URL
+            fi
+
+            if [ -z "${VITE_BMKG_FORECAST_BASE_URL:-}" ]; then
+              VITE_BMKG_FORECAST_BASE_URL="https://api.bmkg.go.id/publik/prakiraan-cuaca"
+              export VITE_BMKG_FORECAST_BASE_URL
+            fi
+
+            if [ -z "${VITE_BMKG_FORECAST_ADM4:-}" ]; then
+              VITE_BMKG_FORECAST_ADM4="31.71.03.1001"
+              export VITE_BMKG_FORECAST_ADM4
             fi
 
             case "$APP_DIR" in
@@ -139,24 +178,32 @@ jobs:
             git checkout "$REF_NAME"
             git reset --hard "origin/$REF_NAME"
 
-            test -f infra/emqx/base.hocon
-            test -f infra/emqx/acl.conf
+            SECRETS_DIR="$APP_DIR/.deploy-secrets"
+            mkdir -p "$SECRETS_DIR"
+            chmod 700 "$SECRETS_DIR"
 
-            if [ ! -f apps/api/Dockerfile ] || [ ! -f apps/web/Dockerfile ]; then
-              echo "Application Dockerfiles are not present yet. Repository synced; skipping Docker deploy until app source is generated."
-              exit 0
+            if [ -z "${EMQX_DASHBOARD_USERNAME:-}" ]; then
+              EMQX_DASHBOARD_USERNAME="admin"
+              export EMQX_DASHBOARD_USERNAME
+            fi
+
+            if [ -z "${EMQX_DASHBOARD_PASSWORD:-}" ]; then
+              if [ ! -f "$SECRETS_DIR/emqx-dashboard-password" ]; then
+                openssl rand -base64 36 > "$SECRETS_DIR/emqx-dashboard-password"
+                chmod 600 "$SECRETS_DIR/emqx-dashboard-password"
+              fi
+
+              EMQX_DASHBOARD_PASSWORD="$(cat "$SECRETS_DIR/emqx-dashboard-password")"
+              export EMQX_DASHBOARD_PASSWORD
             fi
 
             require_env EMQX_DASHBOARD_PASSWORD
             require_env EMQX_DASHBOARD_USERNAME
-            require_env MYSQL_DATABASE
-            require_env MYSQL_HOST
-            require_env MYSQL_PASSWORD
-            require_env MYSQL_USER
-            require_env MQTT_SERVICE_PASSWORD
-            require_env MQTT_SERVICE_USERNAME
-            require_env PUBLIC_WEB_ORIGIN
-            require_env SESSION_SECRET
+
+            test -f apps/web/Dockerfile
+            test -f apps/web/package-lock.json
+            test -f infra/emqx/base.hocon
+            test -f infra/emqx/acl.conf
 
             mkdir -p infra/emqx/certs
             if [ ! -f infra/emqx/certs/server.crt ] || [ ! -f infra/emqx/certs/server.key ]; then
