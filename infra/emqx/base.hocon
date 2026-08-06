@@ -2,31 +2,10 @@ listeners.tcp.default {
   bind = "0.0.0.0:1883"
 }
 
-listeners.ssl.default {
-  bind = "0.0.0.0:8883"
-
-  ssl_options {
-    certfile = "/opt/emqx/certs/server.crt"
-    keyfile = "/opt/emqx/certs/server.key"
-  }
-}
-
 listeners.ws.default {
   bind = "0.0.0.0:8083"
   websocket {
     mqtt_path = "/mqtt"
-  }
-}
-
-listeners.wss.default {
-  bind = "0.0.0.0:8084"
-  websocket {
-    mqtt_path = "/mqtt"
-  }
-
-  ssl_options {
-    certfile = "/opt/emqx/certs/server.crt"
-    keyfile = "/opt/emqx/certs/server.key"
   }
 }
 

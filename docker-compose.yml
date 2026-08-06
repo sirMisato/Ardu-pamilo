@@ -34,7 +34,7 @@ services:
       frontend:
         condition: service_healthy
       emqx:
-        condition: service_healthy
+        condition: service_started
     networks:
       - public-edge
 
@@ -69,6 +69,7 @@ services:
 
   emqx:
     image: emqx/emqx:5.8
+    hostname: emqx
     restart: unless-stopped
     environment:
       EMQX_NODE_NAME: emqx@emqx
@@ -79,12 +80,9 @@ services:
       - emqx-log:/opt/emqx/log
       - ./infra/emqx/base.hocon:/opt/emqx/etc/base.hocon:ro
       - ./infra/emqx/acl.conf:/opt/emqx/etc/acl.conf:ro
-      - ./infra/emqx/certs:/opt/emqx/certs:ro
     expose:
       - "1883"
-      - "8883"
       - "8083"
-      - "8084"
     ports:
       - "127.0.0.1:18083:18083"
     labels:
@@ -110,10 +108,11 @@ services:
       - public-edge
       - mqtt-private
     healthcheck:
-      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
-      interval: 20s
-      timeout: 10s
-      retries: 6
+      test: ["CMD-SHELL", "/opt/emqx/bin/emqx_ctl status >/dev/null 2>&1 || /opt/emqx/bin/emqx ctl status >/dev/null 2>&1"]
+      start_period: 60s
+      interval: 30s
+      timeout: 15s
+      retries: 10
 
 networks:
   public-edge:

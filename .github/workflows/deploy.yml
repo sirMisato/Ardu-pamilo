@@ -273,23 +273,25 @@ jobs:
             test -f infra/emqx/base.hocon
             test -f infra/emqx/acl.conf
 
-            mkdir -p infra/emqx/certs
-            if [ ! -f infra/emqx/certs/server.crt ] || [ ! -f infra/emqx/certs/server.key ]; then
-              openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
-                -keyout infra/emqx/certs/server.key \
-                -out infra/emqx/certs/server.crt \
-                -subj "/CN=pamilo-emqx"
-              chmod 600 infra/emqx/certs/server.key
-            fi
-
             echo "Checking Docker availability on VPS."
             install_docker_if_missing
             echo "Docker is ready for deployment."
             compose config --quiet
             compose pull --ignore-buildable
             compose build --pull
-            compose up -d --remove-orphans
+            if ! compose up -d --remove-orphans; then
+              echo "Compose deployment failed. Recent service logs:"
+              compose ps || true
+              compose logs --tail=200 emqx || true
+              compose logs --tail=120 frontend edge || true
+              exit 1
+            fi
             compose ps
+            if ! compose exec -T emqx sh -lc '/opt/emqx/bin/emqx_ctl status >/dev/null 2>&1 || /opt/emqx/bin/emqx ctl status >/dev/null 2>&1'; then
+              echo "EMQX did not report ready after deployment. Recent EMQX logs:"
+              compose logs --tail=200 emqx || true
+              exit 1
+            fi
 
             sudo_run docker image prune -af --filter "until=168h"
             sudo_run docker builder prune -af --filter "until=168h"

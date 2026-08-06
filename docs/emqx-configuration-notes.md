@@ -2,24 +2,30 @@
 
 ## Production Listener Strategy
 
-Expose only MQTT over TLS to devices:
+Expose MQTT and MQTT-over-WebSocket through the edge reverse proxy:
 
 ```txt
-8883/tcp -> public device MQTT TLS
+1883/tcp -> public MQTT, proxied by Traefik to EMQX 1883
+8883/tcp -> public MQTT over TLS, TLS terminates at Traefik then proxies to EMQX 1883
+8083/tcp -> public MQTT over WebSocket at /mqtt, proxied by Traefik to EMQX 8083
+8084/tcp -> public MQTT over secure WebSocket at /mqtt, TLS terminates at Traefik then proxies to EMQX 8083
 18083/tcp -> EMQX dashboard, restrict by firewall or VPN
-1883/tcp -> internal Docker network only
 ```
 
-The backend ingestion service connects internally to:
+EMQX itself listens internally on plain MQTT and WebSocket:
 
 ```txt
 mqtt://emqx:1883
+ws://emqx:8083/mqtt
 ```
 
 Devices should connect externally to:
 
 ```txt
-mqtts://<your-domain>:8883
+mqtt://mqtt.keycloud.id:1883
+mqtts://mqtt.keycloud.id:8883
+ws://mqtt.keycloud.id:8083/mqtt
+wss://mqtt.keycloud.id:8084/mqtt
 ```
 
 ## Dynamic Topic Subscription
@@ -104,7 +110,7 @@ For production, prefer EMQX built-in authentication and authorization backed by 
 
 ## Required Runtime Inputs
 
-The deploy workflow creates `infra/emqx/certs` with a bootstrap self-signed certificate if no certificate exists yet. Replace it with a real certificate before production device onboarding.
+Traefik obtains and renews public TLS certificates through Let's Encrypt. EMQX does not need a mounted TLS key for the current single-VPS deployment because public `mqtts` and `wss` traffic is terminated by Traefik before being proxied to EMQX.
 
 The workflow expects these GitHub Secrets:
 
