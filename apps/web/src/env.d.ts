@@ -3,6 +3,8 @@
 interface ImportMetaEnv {
   readonly VITE_WEB_BASE_URL: string;
   readonly VITE_API_BASE_URL: string;
+  readonly VITE_BMKG_FORECAST_ADM4: string;
+  readonly VITE_BMKG_FORECAST_BASE_URL: string;
   readonly VITE_MQTT_BROKER_URL: string;
   readonly VITE_MQTT_WEBSOCKET_URL: string;
 }

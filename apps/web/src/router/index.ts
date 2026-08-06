@@ -4,9 +4,11 @@ import SuperAdminLayout from "../components/layout/SuperAdminLayout.vue";
 import SuperAdminDashboard from "../views/superadmin/Dashboard.vue";
 import SuperAdminLicenses from "../views/superadmin/Licenses.vue";
 import SuperAdminLogin from "../views/superadmin/Login.vue";
+import Chart from "../views/tenant/Chart.vue";
 import Dashboard from "../views/tenant/Dashboard.vue";
 import TenantLogin from "../views/tenant/Login.vue";
 import TenantPlaceholder from "../views/tenant/PlaceholderView.vue";
+import Weather from "../views/tenant/Weather.vue";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -37,7 +39,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: "chart",
         name: "tenant-chart",
-        component: TenantPlaceholder,
+        component: Chart,
         meta: {
           title: "Grafik",
           subtitle: "Dynamic charts from MQTT metric keys"
@@ -55,7 +57,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: "weather",
         name: "tenant-weather",
-        component: TenantPlaceholder,
+        component: Weather,
         meta: {
           title: "Weather Station",
           subtitle: "Prakiraan cuaca, laporan bulanan, konfigurasi"
