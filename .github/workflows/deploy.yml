@@ -77,8 +77,15 @@ jobs:
             }
 
             install_docker_if_missing() {
-              if command -v docker >/dev/null 2>&1 && sudo_run docker compose version >/dev/null 2>&1; then
-                return
+              if command -v docker >/dev/null 2>&1; then
+                if sudo_run docker compose version >/dev/null 2>&1; then
+                  echo "Docker and Docker Compose are already available on this VPS."
+                  return
+                fi
+
+                echo "Docker CLI is present, but Docker Compose plugin is missing. Installing Docker packages."
+              else
+                echo "Docker CLI is missing. Installing Docker Engine and Docker Compose plugin."
               fi
 
               if ! command -v apt-get >/dev/null 2>&1; then
@@ -109,6 +116,7 @@ jobs:
                 exit 1
               fi
 
+              echo "Using Docker apt repository for ${docker_repo_os} ${docker_codename}."
               sudo_run apt-get update
               sudo_run apt-get install -y ca-certificates curl gnupg
               sudo_run install -m 0755 -d /etc/apt/keyrings
@@ -259,7 +267,9 @@ jobs:
               chmod 600 infra/emqx/certs/server.key
             fi
 
+            echo "Checking Docker availability on VPS."
             install_docker_if_missing
+            echo "Docker is ready for deployment."
             sudo_run docker compose -f docker-compose.yml config --quiet
             sudo_run docker compose -f docker-compose.yml pull --ignore-buildable
             sudo_run docker compose -f docker-compose.yml build --pull
