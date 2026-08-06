@@ -151,7 +151,6 @@ jobs:
 
             : "${SUDO_PASSWORD:?Missing VPS_PASSWORD secret}"
             : "${DATABASE_URL:?Missing DATABASE_URL secret}"
-            : "${JWT_SECRET:?Missing JWT_SECRET secret}"
             : "${SUPER_ADMIN_PASSWORD_HASH:?Missing SUPER_ADMIN_PASSWORD_HASH secret}"
 
             APP_DIR="${APP_DIR:-/opt/pamilo-saas}"
@@ -271,12 +270,22 @@ jobs:
             EOF
             chmod 700 "$ASKPASS_DIR/git-askpass.sh"
 
-            if [ -z "${EMQX_DASHBOARD_PASSWORD:-}" ]; then
-              SECRETS_DIR="$APP_DIR/.deploy-secrets"
-              sudo_run mkdir -p "$SECRETS_DIR"
-              sudo_run chown -R "$(id -un):$(id -gn)" "$SECRETS_DIR"
-              chmod 700 "$SECRETS_DIR"
+            SECRETS_DIR="$APP_DIR/.deploy-secrets"
+            sudo_run mkdir -p "$SECRETS_DIR"
+            sudo_run chown -R "$(id -un):$(id -gn)" "$SECRETS_DIR"
+            chmod 700 "$SECRETS_DIR"
 
+            if [ -z "${JWT_SECRET:-}" ]; then
+              if [ ! -f "$SECRETS_DIR/jwt-secret" ] || [ "$(wc -c < "$SECRETS_DIR/jwt-secret")" -lt 32 ]; then
+                openssl rand -hex 48 > "$SECRETS_DIR/jwt-secret"
+                chmod 600 "$SECRETS_DIR/jwt-secret"
+              fi
+
+              JWT_SECRET="$(cat "$SECRETS_DIR/jwt-secret")"
+              export JWT_SECRET
+            fi
+
+            if [ -z "${EMQX_DASHBOARD_PASSWORD:-}" ]; then
               if [ ! -f "$SECRETS_DIR/emqx-dashboard-password" ] || ! grep -Eq '^[A-Za-z0-9]{32,}$' "$SECRETS_DIR/emqx-dashboard-password"; then
                 openssl rand -hex 32 > "$SECRETS_DIR/emqx-dashboard-password"
                 chmod 600 "$SECRETS_DIR/emqx-dashboard-password"
