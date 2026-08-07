@@ -30,13 +30,6 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik-letsencrypt:/letsencrypt
-    depends_on:
-      backend:
-        condition: service_healthy
-      emqx:
-        condition: service_healthy
-      frontend:
-        condition: service_healthy
     networks:
       - public-edge
 
@@ -79,6 +72,11 @@ services:
     environment:
       DATABASE_SSL: ${DATABASE_SSL:-true}
       DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      DEMO_TENANT_EMAIL: ${DEMO_TENANT_EMAIL:-demo@sedayafarm.local}
+      DEMO_TENANT_ENABLED: ${DEMO_TENANT_ENABLED:-false}
+      DEMO_TENANT_ID: ${DEMO_TENANT_ID:-demo-tenant}
+      DEMO_TENANT_NAME: ${DEMO_TENANT_NAME:-PAMILO Demo Farm}
+      DEMO_TENANT_PASSWORD: ${DEMO_TENANT_PASSWORD:-}
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-https://sedayafarm.keycloud.id}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
@@ -105,9 +103,6 @@ services:
       - traefik.http.routers.pamilo-api.tls.certresolver=letsencrypt
       - traefik.http.routers.pamilo-api.service=pamilo-api
       - traefik.http.services.pamilo-api.loadbalancer.server.port=3000
-    depends_on:
-      emqx:
-        condition: service_healthy
     networks:
       - public-edge
       - mqtt-private

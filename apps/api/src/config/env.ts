@@ -4,6 +4,11 @@ import { z } from "zod";
 const envSchema = z.object({
   DATABASE_SSL: z.enum(["true", "false"]).default("false"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  DEMO_TENANT_EMAIL: z.string().email().default("demo@sedayafarm.local"),
+  DEMO_TENANT_ENABLED: z.enum(["true", "false"]).default("false"),
+  DEMO_TENANT_ID: z.string().trim().min(1).max(36).default("demo-tenant"),
+  DEMO_TENANT_NAME: z.string().trim().min(1).max(160).default("PAMILO Demo Farm"),
+  DEMO_TENANT_PASSWORD: z.string().min(8).optional(),
   FRONTEND_ORIGIN: z.string().default("http://localhost:5173"),
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   JWT_EXPIRES_IN: z.string().default("8h"),
@@ -34,6 +39,13 @@ export const env = {
   database: {
     ssl: parsedEnv.data.DATABASE_SSL === "true",
     url: parsedEnv.data.DATABASE_URL
+  },
+  demoTenant: {
+    email: parsedEnv.data.DEMO_TENANT_EMAIL,
+    enabled: parsedEnv.data.DEMO_TENANT_ENABLED === "true",
+    id: parsedEnv.data.DEMO_TENANT_ID,
+    name: parsedEnv.data.DEMO_TENANT_NAME,
+    password: parsedEnv.data.DEMO_TENANT_PASSWORD
   },
   frontendOrigin: parsedEnv.data.FRONTEND_ORIGIN,
   jwtSecret: parsedEnv.data.JWT_SECRET,

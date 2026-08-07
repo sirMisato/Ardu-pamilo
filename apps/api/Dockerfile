@@ -30,4 +30,4 @@ USER pamilo
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "node dist/db/migrate.js && node dist/server.js"]
+CMD ["sh", "-c", "node dist/db/migrate.js && node dist/db/seedDemo.js && node dist/server.js"]

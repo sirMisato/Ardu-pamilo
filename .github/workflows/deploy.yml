@@ -113,6 +113,11 @@ jobs:
           APP_DIR: ${{ vars.VPS_APP_DIR }}
           DATABASE_SSL: ${{ vars.DATABASE_SSL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DEMO_TENANT_EMAIL: ${{ vars.DEMO_TENANT_EMAIL }}
+          DEMO_TENANT_ENABLED: ${{ vars.DEMO_TENANT_ENABLED }}
+          DEMO_TENANT_ID: ${{ vars.DEMO_TENANT_ID }}
+          DEMO_TENANT_NAME: ${{ vars.DEMO_TENANT_NAME }}
+          DEMO_TENANT_PASSWORD: ${{ secrets.DEMO_TENANT_PASSWORD }}
           EMQX_DASHBOARD_PASSWORD: ${{ secrets.EMQX_DASHBOARD_PASSWORD }}
           EMQX_DASHBOARD_USERNAME: ${{ vars.EMQX_DASHBOARD_USERNAME }}
           FRONTEND_ORIGIN: ${{ vars.FRONTEND_ORIGIN }}
@@ -145,7 +150,7 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT || 22 }}
           command_timeout: 30m
-          envs: APP_DIR,DATABASE_SSL,DATABASE_URL,EMQX_DASHBOARD_PASSWORD,EMQX_DASHBOARD_USERNAME,FRONTEND_ORIGIN,JWT_EXPIRES_IN,JWT_SECRET,LETSENCRYPT_EMAIL,LOG_LEVEL,MQTT_BROKER_URL,MQTT_CLIENT_ID,MQTT_HOST,MQTT_INGEST_ENABLED,MQTT_PASSWORD,MQTT_TELEMETRY_TOPIC,MQTT_USERNAME,REF_NAME,REPOSITORY,REPO_TOKEN,SUPER_ADMIN_EMAIL,SUPER_ADMIN_PASSWORD_HASH,SUDO_PASSWORD,VITE_API_BASE_URL,VITE_BMKG_FORECAST_BASE_URL,VITE_MQTT_BROKER_URL,VITE_MQTT_WEBSOCKET_URL,VITE_WEB_BASE_URL,WEB_HOST
+          envs: APP_DIR,DATABASE_SSL,DATABASE_URL,DEMO_TENANT_EMAIL,DEMO_TENANT_ENABLED,DEMO_TENANT_ID,DEMO_TENANT_NAME,DEMO_TENANT_PASSWORD,EMQX_DASHBOARD_PASSWORD,EMQX_DASHBOARD_USERNAME,FRONTEND_ORIGIN,JWT_EXPIRES_IN,JWT_SECRET,LETSENCRYPT_EMAIL,LOG_LEVEL,MQTT_BROKER_URL,MQTT_CLIENT_ID,MQTT_HOST,MQTT_INGEST_ENABLED,MQTT_PASSWORD,MQTT_TELEMETRY_TOPIC,MQTT_USERNAME,REF_NAME,REPOSITORY,REPO_TOKEN,SUPER_ADMIN_EMAIL,SUPER_ADMIN_PASSWORD_HASH,SUDO_PASSWORD,VITE_API_BASE_URL,VITE_BMKG_FORECAST_BASE_URL,VITE_MQTT_BROKER_URL,VITE_MQTT_WEBSOCKET_URL,VITE_WEB_BASE_URL,WEB_HOST
           script: |
             set -euo pipefail
 
@@ -154,6 +159,10 @@ jobs:
 
             APP_DIR="${APP_DIR:-/opt/pamilo-saas}"
             DATABASE_SSL="${DATABASE_SSL:-true}"
+            DEMO_TENANT_EMAIL="${DEMO_TENANT_EMAIL:-demo@sedayafarm.local}"
+            DEMO_TENANT_ENABLED="${DEMO_TENANT_ENABLED:-true}"
+            DEMO_TENANT_ID="${DEMO_TENANT_ID:-demo-tenant}"
+            DEMO_TENANT_NAME="${DEMO_TENANT_NAME:-PAMILO Demo Farm}"
             EMQX_DASHBOARD_USERNAME="${EMQX_DASHBOARD_USERNAME:-admin}"
             FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-https://sedayafarm.keycloud.id}"
             JWT_EXPIRES_IN="${JWT_EXPIRES_IN:-8h}"
@@ -305,7 +314,20 @@ jobs:
               export EMQX_DASHBOARD_PASSWORD
             fi
 
+            if [ "$DEMO_TENANT_ENABLED" = "true" ] && [ -z "${DEMO_TENANT_PASSWORD:-}" ]; then
+              if [ ! -f "$SECRETS_DIR/demo-tenant-password" ] || [ "$(wc -c < "$SECRETS_DIR/demo-tenant-password")" -lt 12 ]; then
+                printf 'PamiloDemo-%s-Aa1!\n' "$(openssl rand -hex 8)" > "$SECRETS_DIR/demo-tenant-password"
+                chmod 600 "$SECRETS_DIR/demo-tenant-password"
+              fi
+
+              DEMO_TENANT_PASSWORD="$(cat "$SECRETS_DIR/demo-tenant-password")"
+              export DEMO_TENANT_PASSWORD
+            fi
+
             require_env DATABASE_URL
+            if [ "$DEMO_TENANT_ENABLED" = "true" ]; then
+              require_env DEMO_TENANT_PASSWORD
+            fi
             require_env EMQX_DASHBOARD_PASSWORD
             require_env EMQX_DASHBOARD_USERNAME
             require_env JWT_SECRET
@@ -325,6 +347,11 @@ jobs:
               sudo_run env \
                 DATABASE_SSL="$DATABASE_SSL" \
                 DATABASE_URL="$DATABASE_URL" \
+                DEMO_TENANT_EMAIL="$DEMO_TENANT_EMAIL" \
+                DEMO_TENANT_ENABLED="$DEMO_TENANT_ENABLED" \
+                DEMO_TENANT_ID="$DEMO_TENANT_ID" \
+                DEMO_TENANT_NAME="$DEMO_TENANT_NAME" \
+                DEMO_TENANT_PASSWORD="$DEMO_TENANT_PASSWORD" \
                 EMQX_DASHBOARD_PASSWORD="$EMQX_DASHBOARD_PASSWORD" \
                 EMQX_DASHBOARD_USERNAME="$EMQX_DASHBOARD_USERNAME" \
                 FRONTEND_ORIGIN="$FRONTEND_ORIGIN" \
@@ -394,6 +421,7 @@ jobs:
 
             compose exec -T frontend wget -qO- http://127.0.0.1/health >/dev/null
             compose exec -T backend node -e "fetch('http://127.0.0.1:3000/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"
+            compose exec -T backend node -e "fetch('http://127.0.0.1:3000/api/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({emailOrUsername:process.env.DEMO_TENANT_EMAIL,password:process.env.DEMO_TENANT_PASSWORD})}).then(async(response)=>{if(!response.ok){console.error(await response.text());process.exit(1)} const body=await response.json(); process.exit(body.accessToken?0:1)}).catch((error)=>{console.error(error);process.exit(1)})"
 
             if ! smoke_check_url "https://${WEB_HOST}/health"; then
               dump_compose_diagnostics
