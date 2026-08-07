@@ -151,7 +151,6 @@ jobs:
 
             : "${SUDO_PASSWORD:?Missing VPS_PASSWORD secret}"
             : "${DATABASE_URL:?Missing DATABASE_URL secret}"
-            : "${SUPER_ADMIN_PASSWORD_HASH:?Missing SUPER_ADMIN_PASSWORD_HASH secret}"
 
             APP_DIR="${APP_DIR:-/opt/pamilo-saas}"
             DATABASE_SSL="${DATABASE_SSL:-true}"
@@ -283,6 +282,17 @@ jobs:
 
               JWT_SECRET="$(cat "$SECRETS_DIR/jwt-secret")"
               export JWT_SECRET
+            fi
+
+            if [ -z "${SUPER_ADMIN_PASSWORD_HASH:-}" ]; then
+              if [ ! -f "$SECRETS_DIR/super-admin-password-hash" ]; then
+                printf 'disabled-super-admin-login-%s\n' "$(openssl rand -hex 32)" > "$SECRETS_DIR/super-admin-password-hash"
+                chmod 600 "$SECRETS_DIR/super-admin-password-hash"
+              fi
+
+              SUPER_ADMIN_PASSWORD_HASH="$(cat "$SECRETS_DIR/super-admin-password-hash")"
+              export SUPER_ADMIN_PASSWORD_HASH
+              echo "SUPER_ADMIN_PASSWORD_HASH is not configured. Super admin login is disabled until the GitHub secret is set."
             fi
 
             if [ -z "${EMQX_DASHBOARD_PASSWORD:-}" ]; then
