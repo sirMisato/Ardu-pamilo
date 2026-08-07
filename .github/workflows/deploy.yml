@@ -309,9 +309,6 @@ jobs:
             require_env EMQX_DASHBOARD_PASSWORD
             require_env EMQX_DASHBOARD_USERNAME
             require_env JWT_SECRET
-            require_env SUPER_ADMIN_EMAIL
-            require_env SUPER_ADMIN_PASSWORD_HASH
-
             sudo_run mkdir -p "$APP_DIR"
             sudo_run chown -R "$(id -un):$(id -gn)" "$APP_DIR"
 
