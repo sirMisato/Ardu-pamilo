@@ -1,0 +1,71 @@
+http:
+  routers:
+    pamilo-api:
+      rule: "Host(`sedayafarm.keycloud.id`) && PathPrefix(`/api`)"
+      entryPoints:
+        - websecure
+      priority: 100
+      service: pamilo-api
+      tls:
+        certResolver: letsencrypt
+
+    pamilo-web:
+      rule: "Host(`sedayafarm.keycloud.id`)"
+      entryPoints:
+        - websecure
+      priority: 10
+      service: pamilo-web
+      tls:
+        certResolver: letsencrypt
+
+    emqx-ws:
+      rule: "Host(`mqtt.keycloud.id`) && PathPrefix(`/mqtt`)"
+      entryPoints:
+        - mqttws
+      service: emqx-ws
+
+    emqx-wss:
+      rule: "Host(`mqtt.keycloud.id`) && PathPrefix(`/mqtt`)"
+      entryPoints:
+        - mqttwss
+      service: emqx-ws
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    pamilo-api:
+      loadBalancer:
+        servers:
+          - url: "http://backend:3000"
+
+    pamilo-web:
+      loadBalancer:
+        servers:
+          - url: "http://frontend:80"
+
+    emqx-ws:
+      loadBalancer:
+        servers:
+          - url: "http://emqx:8083"
+
+tcp:
+  routers:
+    emqx-mqtt:
+      rule: "HostSNI(`*`)"
+      entryPoints:
+        - mqtt
+      service: emqx-mqtt
+
+    emqx-mqtts:
+      rule: "HostSNI(`mqtt.keycloud.id`)"
+      entryPoints:
+        - mqtts
+      service: emqx-mqtt
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    emqx-mqtt:
+      loadBalancer:
+        servers:
+          - address: "emqx:1883"
