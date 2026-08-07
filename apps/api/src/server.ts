@@ -36,6 +36,12 @@ export async function buildServer(): Promise<FastifyInstance> {
     time: new Date().toISOString()
   }));
 
+  app.get("/api/health", async () => ({
+    ok: true,
+    service: "pamilo-api",
+    time: new Date().toISOString()
+  }));
+
   await app.register(authRoutes);
   await app.register(adminRoutes, {
     prefix: "/api/admin"

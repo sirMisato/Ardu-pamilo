@@ -353,6 +353,32 @@ jobs:
                 docker compose -f docker-compose.yml "$@"
             }
 
+            dump_compose_diagnostics() {
+              echo "Docker Compose service status:"
+              compose ps || true
+              echo "Recent reverse-proxy logs:"
+              compose logs --tail=160 reverse-proxy || true
+              echo "Recent frontend logs:"
+              compose logs --tail=120 frontend || true
+              echo "Recent backend logs:"
+              compose logs --tail=200 backend || true
+              echo "Recent EMQX logs:"
+              compose logs --tail=200 emqx || true
+            }
+
+            smoke_check_url() {
+              smoke_url="$1"
+              for attempt in 1 2 3 4 5 6; do
+                echo "Smoke check attempt ${attempt}: ${smoke_url}"
+                if sudo_run docker run --rm curlimages/curl:8.11.1 -fsSkL --max-time 20 "$smoke_url" >/dev/null; then
+                  return 0
+                fi
+                sleep 10
+              done
+
+              return 1
+            }
+
             test -f apps/web/Dockerfile
             test -f apps/api/Dockerfile
             test -f apps/web/package-lock.json
@@ -362,6 +388,26 @@ jobs:
 
             install_docker_if_missing
             compose config --quiet
-            compose up -d --build --remove-orphans
+            if ! compose up -d --build --remove-orphans; then
+              dump_compose_diagnostics
+              exit 1
+            fi
+
             compose ps
+
+            compose exec -T frontend wget -qO- http://127.0.0.1/health >/dev/null
+            compose exec -T backend node -e "fetch('http://127.0.0.1:3000/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"
+
+            if ! smoke_check_url "https://${WEB_HOST}/health"; then
+              dump_compose_diagnostics
+              echo "Public web health check failed: https://${WEB_HOST}/health"
+              exit 1
+            fi
+
+            if ! smoke_check_url "https://${WEB_HOST}/api/health"; then
+              dump_compose_diagnostics
+              echo "Public API health check failed: https://${WEB_HOST}/api/health"
+              exit 1
+            fi
+
             sudo_run docker system prune -af --volumes
