@@ -4,7 +4,7 @@ import { z } from "zod";
 const envSchema = z.object({
   DATABASE_SSL: z.enum(["true", "false"]).default("false"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-  DEMO_TENANT_EMAIL: z.string().email().default("demo@sedayafarm.local"),
+  DEMO_TENANT_EMAIL: z.string().email().default("tenant@sedayafarm.local"),
   DEMO_TENANT_ENABLED: z.enum(["true", "false"]).default("false"),
   DEMO_TENANT_ID: z.string().trim().min(1).max(36).default("demo-tenant"),
   DEMO_TENANT_NAME: z.string().trim().min(1).max(160).default("PAMILO Demo Farm"),
