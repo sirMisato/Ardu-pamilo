@@ -155,44 +155,197 @@
     </section>
 
     <section v-else class="panel-surface p-6">
-      <h2 class="text-lg font-semibold tracking-normal text-white">Konfigurasi</h2>
-      <dl class="mt-5 grid gap-4 md:grid-cols-2">
-        <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-          <dt class="text-xs text-slate-400">Active Field</dt>
-          <dd class="mt-2 text-sm font-semibold text-white">{{ activeField?.name ?? "-" }}</dd>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-lg font-semibold tracking-normal text-white">Konfigurasi</h2>
+        <button
+          class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-field-green px-4 text-sm font-semibold text-[#102016] transition hover:bg-field-mint"
+          type="button"
+          @click="openCreateConfigForm"
+        >
+          <Plus class="h-4 w-4" />
+          Tambah
+        </button>
+      </div>
+
+      <form
+        v-if="isConfigFormOpen"
+        class="mt-5 rounded-lg border border-field-mint/20 bg-field-mint/10 p-4"
+        @submit.prevent="submitWeatherConfig"
+      >
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h3 class="text-base font-semibold text-white">{{ configFormTitle }}</h3>
+          <button class="icon-button" type="button" aria-label="Tutup form" @click="closeConfigForm">
+            <X class="h-4 w-4" />
+          </button>
         </div>
-        <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-          <dt class="text-xs text-slate-400">BMKG ADM4 From Tenant Profile</dt>
-          <dd class="mt-2 text-sm font-semibold text-white">{{ activeAdm4 || "-" }}</dd>
+
+        <div class="mt-4 grid gap-4 md:grid-cols-2">
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-300">Nama</span>
+            <input
+              v-model.trim="configForm.name"
+              class="min-h-11 w-full rounded-lg border border-white/10 bg-[#07111f] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              required
+              type="text"
+            />
+          </label>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-300">Field</span>
+            <select
+              v-model="configForm.fieldId"
+              class="min-h-11 w-full rounded-lg border border-white/10 bg-[#07111f] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              required
+              @change="syncConfigField"
+            >
+              <option v-for="field in tenantProfileStore.fields" :key="field.id" :value="field.id">
+                {{ field.name }}
+              </option>
+            </select>
+          </label>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-300">ADM4 BMKG</span>
+            <input
+              v-model.trim="configForm.bmkgAdm4Code"
+              class="min-h-11 w-full rounded-lg border border-white/10 bg-[#07111f] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              required
+              type="text"
+            />
+          </label>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-300">Endpoint</span>
+            <input
+              v-model.trim="configForm.baseUrl"
+              class="min-h-11 w-full rounded-lg border border-white/10 bg-[#07111f] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              required
+              type="url"
+            />
+          </label>
+
+          <label class="space-y-2 md:col-span-2">
+            <span class="text-sm font-medium text-slate-300">Catatan</span>
+            <textarea
+              v-model.trim="configForm.notes"
+              class="min-h-20 w-full rounded-lg border border-white/10 bg-[#07111f] px-3 py-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+            ></textarea>
+          </label>
+
+          <label class="inline-flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-3 text-sm font-medium text-slate-300">
+            <input v-model="configForm.isEnabled" class="h-4 w-4 accent-[#a7e8af]" type="checkbox" />
+            Aktif
+          </label>
         </div>
-        <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-          <dt class="text-xs text-slate-400">Forecast Endpoint</dt>
-          <dd class="mt-2 break-all text-sm font-semibold text-white">{{ configuredBaseUrl }}</dd>
+
+        <div class="mt-5 flex flex-wrap justify-end gap-3">
+          <button
+            class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 text-sm font-semibold text-slate-300 hover:border-field-mint/30 hover:text-field-mint"
+            type="button"
+            @click="closeConfigForm"
+          >
+            Batal
+          </button>
+          <button
+            class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-field-green px-4 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60"
+            :disabled="!canSubmitConfig"
+            type="submit"
+          >
+            <Save class="h-4 w-4" />
+            Simpan
+          </button>
         </div>
-      </dl>
+      </form>
+
+      <div class="mt-5 overflow-x-auto rounded-lg border border-white/10">
+        <table class="min-w-[880px] w-full text-left text-sm">
+          <thead class="border-b border-white/10 bg-white/5 text-xs uppercase tracking-wide text-slate-400">
+            <tr>
+              <th class="px-4 py-3 font-semibold">Nama</th>
+              <th class="px-4 py-3 font-semibold">Field</th>
+              <th class="px-4 py-3 font-semibold">ADM4</th>
+              <th class="px-4 py-3 font-semibold">Endpoint</th>
+              <th class="px-4 py-3 font-semibold">Status</th>
+              <th class="px-4 py-3 text-right font-semibold">Aksi</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/10">
+            <tr v-for="config in weatherConfigs" :key="config.id" class="hover:bg-white/[0.03]">
+              <td class="px-4 py-4">
+                <p class="font-semibold text-white">{{ config.name }}</p>
+                <p v-if="config.notes" class="mt-1 truncate text-xs text-slate-400">{{ config.notes }}</p>
+              </td>
+              <td class="px-4 py-4 text-slate-300">{{ config.fieldName }}</td>
+              <td class="px-4 py-4 font-semibold text-field-mint">{{ config.bmkgAdm4Code }}</td>
+              <td class="max-w-[260px] px-4 py-4">
+                <span class="block truncate text-slate-300">{{ config.baseUrl }}</span>
+              </td>
+              <td class="px-4 py-4">
+                <span
+                  class="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold"
+                  :class="config.id === weatherConfigStore.activeConfigId ? 'bg-field-mint/10 text-field-mint' : config.isEnabled ? 'bg-white/5 text-slate-300' : 'bg-slate-700/40 text-slate-500'"
+                >
+                  <span class="h-2 w-2 rounded-full" :class="config.isEnabled ? 'bg-field-mint' : 'bg-slate-500'"></span>
+                  {{ config.id === weatherConfigStore.activeConfigId ? "Aktif" : config.isEnabled ? "Enabled" : "Disabled" }}
+                </span>
+              </td>
+              <td class="px-4 py-4">
+                <div class="flex justify-end gap-2">
+                  <button
+                    class="icon-button"
+                    type="button"
+                    :aria-label="`Aktifkan ${config.name}`"
+                    :disabled="!config.isEnabled"
+                    @click="activateWeatherConfig(config.id)"
+                  >
+                    <CheckCircle2 class="h-4 w-4" />
+                  </button>
+                  <button class="icon-button" type="button" :aria-label="`Edit ${config.name}`" @click="openEditConfigForm(config.id)">
+                    <Pencil class="h-4 w-4" />
+                  </button>
+                  <button class="icon-button" type="button" :aria-label="`Hapus ${config.name}`" @click="deleteWeatherConfig(config.id)">
+                    <Trash2 class="h-4 w-4" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div v-if="weatherConfigs.length === 0" class="p-8 text-center text-sm text-slate-400">
+          Belum ada konfigurasi weather.
+        </div>
+      </div>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import {
+  CheckCircle2,
   CloudRain,
   CloudSun,
   Droplets,
   Eye,
   Loader2,
+  Pencil,
+  Plus,
   RefreshCw,
+  Save,
   SunMedium,
   Thermometer,
-  Wind
+  Trash2,
+  Wind,
+  X
 } from "@lucide/vue";
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { appEnvironment } from "../../config/environment";
 import {
   fetchBmkgForecast,
   type BmkgForecastResult
 } from "../../services/bmkgService";
 import { useTenantProfileStore } from "../../stores/tenantProfileStore";
+import { useWeatherConfigStore, type WeatherConfigInput } from "../../stores/weatherConfigStore";
 
 type WeatherTab = "forecast" | "monthly" | "config";
 
@@ -201,10 +354,16 @@ const forecast = ref<BmkgForecastResult | null>(null);
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
 const tenantProfileStore = useTenantProfileStore();
+const weatherConfigStore = useWeatherConfigStore();
 
-const configuredBaseUrl = computed(() => appEnvironment.bmkgForecastBaseUrl || "https://api.bmkg.go.id/publik/prakiraan-cuaca");
-const activeField = computed(() => tenantProfileStore.activeField);
-const activeAdm4 = computed(() => tenantProfileStore.activeBmkgAdm4Code);
+const fallbackBaseUrl = computed(() => appEnvironment.bmkgForecastBaseUrl || "https://api.bmkg.go.id/publik/prakiraan-cuaca");
+const configuredBaseUrl = computed(() => weatherConfigStore.activeBaseUrl || fallbackBaseUrl.value);
+const activeField = computed(() => {
+  const fieldId = weatherConfigStore.activeConfig?.fieldId;
+  return tenantProfileStore.fields.find((field) => field.id === fieldId) ?? tenantProfileStore.activeField;
+});
+const activeAdm4 = computed(() => weatherConfigStore.activeAdm4Code || tenantProfileStore.activeBmkgAdm4Code);
+const weatherConfigs = computed(() => weatherConfigStore.configs);
 
 const tabs: Array<{ id: WeatherTab; label: string }> = [
   { id: "forecast", label: "Prakiraan Cuaca" },
@@ -225,6 +384,25 @@ const locationLabel = computed(() => {
 
 const dailyForecast = computed(() => forecast.value?.daily.slice(0, 3) ?? []);
 const hourlyForecast = computed(() => forecast.value?.items.slice(0, 8) ?? []);
+const isConfigFormOpen = ref(false);
+const editingConfigId = ref<string | null>(null);
+const configForm = reactive<WeatherConfigInput>({
+  baseUrl: "",
+  bmkgAdm4Code: "",
+  fieldId: "",
+  fieldName: "",
+  isEnabled: true,
+  name: "",
+  notes: ""
+});
+const configFormTitle = computed(() => editingConfigId.value ? "Edit Konfigurasi" : "Tambah Konfigurasi");
+const canSubmitConfig = computed(() => {
+  return configForm.name.trim().length > 0
+    && configForm.fieldId.length > 0
+    && configForm.fieldName.trim().length > 0
+    && configForm.bmkgAdm4Code.trim().length > 0
+    && configForm.baseUrl.trim().length > 0;
+});
 
 const currentWeatherMetrics = computed(() => {
   const current = forecast.value?.current;
@@ -270,10 +448,11 @@ const currentWeatherMetrics = computed(() => {
 });
 
 onMounted(() => {
+  weatherConfigStore.ensureDefaults(tenantProfileStore.fields, fallbackBaseUrl.value);
   void refreshForecast();
 });
 
-watch(activeAdm4, () => {
+watch([activeAdm4, configuredBaseUrl], () => {
   void refreshForecast();
 });
 
@@ -291,6 +470,89 @@ async function refreshForecast(): Promise<void> {
     ? `BMKG live data belum bisa diambil: ${result.errorMessage ?? "menggunakan data contoh."}`
     : null;
   isLoading.value = false;
+}
+
+function openCreateConfigForm(): void {
+  const field = activeField.value ?? tenantProfileStore.fields[0] ?? null;
+  editingConfigId.value = null;
+  Object.assign(configForm, {
+    baseUrl: configuredBaseUrl.value,
+    bmkgAdm4Code: field?.bmkgAdm4Code ?? activeAdm4.value,
+    fieldId: field?.id ?? "",
+    fieldName: field?.name ?? "",
+    isEnabled: true,
+    name: field ? `BMKG ${field.name}` : "BMKG Field",
+    notes: field?.regionLabel ?? ""
+  });
+  isConfigFormOpen.value = true;
+}
+
+function openEditConfigForm(configId: string): void {
+  const config = weatherConfigStore.configs.find((item) => item.id === configId);
+  if (!config) {
+    return;
+  }
+
+  editingConfigId.value = config.id;
+  Object.assign(configForm, {
+    baseUrl: config.baseUrl,
+    bmkgAdm4Code: config.bmkgAdm4Code,
+    fieldId: config.fieldId,
+    fieldName: config.fieldName,
+    isEnabled: config.isEnabled,
+    name: config.name,
+    notes: config.notes
+  });
+  isConfigFormOpen.value = true;
+}
+
+function closeConfigForm(): void {
+  isConfigFormOpen.value = false;
+  editingConfigId.value = null;
+}
+
+function syncConfigField(): void {
+  const field = tenantProfileStore.fields.find((item) => item.id === configForm.fieldId);
+  if (!field) {
+    return;
+  }
+
+  configForm.fieldName = field.name;
+  configForm.bmkgAdm4Code = field.bmkgAdm4Code;
+  configForm.notes = field.regionLabel;
+}
+
+function submitWeatherConfig(): void {
+  if (!canSubmitConfig.value) {
+    return;
+  }
+
+  if (editingConfigId.value) {
+    weatherConfigStore.updateConfig(editingConfigId.value, { ...configForm });
+  } else {
+    weatherConfigStore.createConfig({ ...configForm });
+  }
+
+  closeConfigForm();
+}
+
+function activateWeatherConfig(configId: string): void {
+  const config = weatherConfigStore.configs.find((item) => item.id === configId);
+  if (!config) {
+    return;
+  }
+
+  weatherConfigStore.setActiveConfig(configId);
+  tenantProfileStore.setActiveField(config.fieldId);
+}
+
+function deleteWeatherConfig(configId: string): void {
+  const config = weatherConfigStore.configs.find((item) => item.id === configId);
+  if (!config || !window.confirm(`Hapus konfigurasi ${config.name}?`)) {
+    return;
+  }
+
+  weatherConfigStore.deleteConfig(configId);
 }
 
 function formatTemperature(value: number | null): string {
