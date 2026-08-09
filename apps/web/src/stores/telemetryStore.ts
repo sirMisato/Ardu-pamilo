@@ -20,6 +20,8 @@ export interface DynamicMetric {
 
 export interface DeviceTelemetry {
   deviceId: string;
+  latitude: number | null;
+  longitude: number | null;
   nodeId: string;
   topic: string;
   online: boolean;
@@ -79,6 +81,12 @@ export const useTelemetryStore = defineStore("telemetry", () => {
       return;
     }
 
+    if (!appEnvironment.mqttUsername || !appEnvironment.mqttPassword) {
+      connectionState.value = "error";
+      errorMessage.value = "MQTT WebSocket credentials belum diatur.";
+      return;
+    }
+
     connectionState.value = "connecting";
     errorMessage.value = null;
 
@@ -87,8 +95,10 @@ export const useTelemetryStore = defineStore("telemetry", () => {
       clientId: `pamilo-web-${crypto.randomUUID()}`,
       connectTimeout: 10_000,
       keepalive: 30,
+      password: appEnvironment.mqttPassword,
       protocolVersion: 5,
-      reconnectPeriod: 5_000
+      reconnectPeriod: 5_000,
+      username: appEnvironment.mqttUsername
     };
 
     const mqttClient = mqtt.connect(appEnvironment.mqttWebSocketUrl, options);
@@ -174,6 +184,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
       ?? now;
     const metricSource = isRecord(payload.metrics) ? payload.metrics : payload;
     const units = isRecord(payload.units) ? payload.units : {};
+    const location = readPayloadLocation(payload);
     const previous = devices.value[deviceId];
     const nextMetrics = {
       ...(previous?.metrics ?? {})
@@ -194,6 +205,8 @@ export const useTelemetryStore = defineStore("telemetry", () => {
       ...devices.value,
       [deviceId]: {
         deviceId,
+        latitude: location?.latitude ?? previous?.latitude ?? null,
+        longitude: location?.longitude ?? previous?.longitude ?? null,
         nodeId,
         topic: topicName,
         online: true,
@@ -304,6 +317,34 @@ function isTelemetryValue(value: unknown): value is TelemetryValue {
 
 function readString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function readNumber(value: unknown): number | null {
+  const numericValue = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
+  return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+function readPayloadLocation(payload: Record<string, unknown>): { latitude: number; longitude: number } | null {
+  const nestedLocation = isRecord(payload.location) ? payload.location : {};
+  const latitude = readNumber(payload.latitude)
+    ?? readNumber(payload.lat)
+    ?? readNumber(nestedLocation.latitude)
+    ?? readNumber(nestedLocation.lat);
+  const longitude = readNumber(payload.longitude)
+    ?? readNumber(payload.lng)
+    ?? readNumber(payload.lon)
+    ?? readNumber(nestedLocation.longitude)
+    ?? readNumber(nestedLocation.lng)
+    ?? readNumber(nestedLocation.lon);
+
+  if (latitude === null || longitude === null) {
+    return null;
+  }
+
+  return {
+    latitude,
+    longitude
+  };
 }
 
 function buildDefaultSubscriptionTopic(tenantId: string): string {

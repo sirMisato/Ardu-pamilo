@@ -3,6 +3,8 @@ export const appEnvironment = {
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
   bmkgForecastBaseUrl: import.meta.env.VITE_BMKG_FORECAST_BASE_URL,
   mqttBrokerUrl: import.meta.env.VITE_MQTT_BROKER_URL,
+  mqttPassword: import.meta.env.VITE_MQTT_PASSWORD,
+  mqttUsername: import.meta.env.VITE_MQTT_USERNAME,
   mqttWebSocketUrl: import.meta.env.VITE_MQTT_WEBSOCKET_URL
 } as const;
 

@@ -48,14 +48,7 @@ const telemetryStore = useTelemetryStore();
 const tenantProfileStore = useTenantProfileStore();
 const mapElement = ref<HTMLDivElement | null>(null);
 const activeMapLayer = ref<MapLayerKey>("street");
-const farmCenter: LatLngExpression = [-6.9147, 107.6098];
-const sensorPosition: LatLngExpression = [-6.91455, 107.6102];
-const farmPolygon: LatLngExpression[] = [
-  [-6.91535, 107.60885],
-  [-6.91415, 107.60872],
-  [-6.91392, 107.61035],
-  [-6.91518, 107.61062]
-];
+const defaultCenter: LatLngExpression = [-7.5666, 110.8167];
 
 let map: Map | null = null;
 let baseLayers: Record<MapLayerKey, TileLayer> | null = null;
@@ -64,6 +57,16 @@ let polygon: Polygon | null = null;
 
 const activeDeviceId = computed(() => Object.keys(telemetryStore.devices)[0] ?? "");
 const fieldTooltip = computed(() => tenantProfileStore.activeFieldLabel);
+const activeFieldPolygon = computed(() => extractPolygonPoints(tenantProfileStore.activeField?.polygonGeojson));
+const activePolygonCenter = computed(() => getPolygonCenter(activeFieldPolygon.value));
+const activeSensorPosition = computed<LatLngExpression | null>(() => {
+  const device = activeDeviceId.value ? telemetryStore.deviceById(activeDeviceId.value) : null;
+  if (device?.latitude !== null && device?.longitude !== null && device?.latitude !== undefined && device?.longitude !== undefined) {
+    return [device.latitude, device.longitude];
+  }
+
+  return activePolygonCenter.value;
+});
 
 const mapLayerOptions: Array<{ key: MapLayerKey; label: string; title: string }> = [
   {
@@ -110,6 +113,7 @@ watch(
   () => [
     telemetryStore.connectionState,
     activeDeviceId.value,
+    activeSensorPosition.value?.toString() ?? "",
     activeDeviceId.value ? telemetryStore.deviceById(activeDeviceId.value)?.online : false,
     activeDeviceId.value ? telemetryStore.latestMetricsForDevice(activeDeviceId.value).map((metric) => `${metric.key}:${metric.displayValue}`).join("|") : ""
   ],
@@ -122,6 +126,12 @@ watch(fieldTooltip, (value) => {
   polygon?.setTooltipContent(value);
 });
 
+watch(activeFieldPolygon, () => {
+  renderFieldPolygon();
+}, {
+  deep: true
+});
+
 function initializeMap(): void {
   if (!mapElement.value || map) {
     return;
@@ -131,27 +141,11 @@ function initializeMap(): void {
     attributionControl: true,
     scrollWheelZoom: true,
     zoomControl: true
-  }).setView(farmCenter, 17);
+  }).setView(defaultCenter, 6);
 
   baseLayers = createBaseLayers();
   setActiveMapLayer(activeMapLayer.value);
-
-  polygon = L.polygon(farmPolygon, {
-    color: "#8ef0ca",
-    fillColor: "#a7e8af",
-    fillOpacity: 0.14,
-    opacity: 0.9,
-    weight: 2
-  }).addTo(map);
-
-  polygon.bindTooltip(fieldTooltip.value, {
-    direction: "top",
-    sticky: true
-  });
-
-  map.fitBounds(polygon.getBounds(), {
-    padding: [28, 28]
-  });
+  renderFieldPolygon();
   refreshPopup();
 }
 
@@ -191,7 +185,8 @@ function refreshPopup(): void {
   }
 
   const deviceId = activeDeviceId.value;
-  if (!deviceId) {
+  const sensorPosition = activeSensorPosition.value;
+  if (!deviceId || !sensorPosition) {
     marker?.remove();
     marker = null;
     return;
@@ -208,8 +203,43 @@ function refreshPopup(): void {
     });
   }
 
+  marker.setLatLng(sensorPosition);
   marker.setIcon(createSensorIcon());
   marker.setPopupContent(createPopupHtml(deviceId));
+}
+
+function renderFieldPolygon(): void {
+  if (!map) {
+    return;
+  }
+
+  polygon?.remove();
+  polygon = null;
+
+  const polygonPoints = activeFieldPolygon.value;
+  if (polygonPoints.length < 3) {
+    map.setView(defaultCenter, 6);
+    refreshPopup();
+    return;
+  }
+
+  polygon = L.polygon(polygonPoints, {
+    color: "#8ef0ca",
+    fillColor: "#a7e8af",
+    fillOpacity: 0.14,
+    opacity: 0.9,
+    weight: 2
+  }).addTo(map);
+
+  polygon.bindTooltip(fieldTooltip.value, {
+    direction: "top",
+    sticky: true
+  });
+
+  map.fitBounds(polygon.getBounds(), {
+    padding: [28, 28]
+  });
+  refreshPopup();
 }
 
 function createSensorIcon(deviceId = activeDeviceId.value): L.DivIcon {
@@ -273,6 +303,65 @@ function escapeHtml(value: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function extractPolygonPoints(value: unknown): LatLngExpression[] {
+  const geometry = readGeometry(value);
+  if (!geometry || geometry.type !== "Polygon" || !Array.isArray(geometry.coordinates)) {
+    return [];
+  }
+
+  const ring = geometry.coordinates[0];
+  if (!Array.isArray(ring)) {
+    return [];
+  }
+
+  const withoutClosingPoint = ring.filter((coordinate, index) => {
+    if (index !== ring.length - 1) {
+      return true;
+    }
+
+    const first = ring[0];
+    return !Array.isArray(first)
+      || !Array.isArray(coordinate)
+      || first[0] !== coordinate[0]
+      || first[1] !== coordinate[1];
+  });
+
+  return withoutClosingPoint.flatMap((coordinate) => {
+    if (!Array.isArray(coordinate) || coordinate.length < 2) {
+      return [];
+    }
+
+    const [lng, lat] = coordinate.map(Number);
+    return Number.isFinite(lat) && Number.isFinite(lng) ? [[lat, lng] as LatLngExpression] : [];
+  });
+}
+
+function getPolygonCenter(points: LatLngExpression[]): LatLngExpression | null {
+  if (points.length < 3) {
+    return null;
+  }
+
+  const bounds = L.latLngBounds(points);
+  const center = bounds.getCenter();
+  return [center.lat, center.lng];
+}
+
+function readGeometry(value: unknown): { coordinates?: unknown; type?: unknown } | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  if (value.type === "Feature" && isRecord(value.geometry)) {
+    return value.geometry;
+  }
+
+  return value;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 </script>
 

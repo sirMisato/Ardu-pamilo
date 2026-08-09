@@ -185,9 +185,17 @@
                 {{ formatRange(crop.thresholds[metric.key]) }}
               </td>
               <td class="px-5 py-4">
-                <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="statusClass(crop.status)">
-                  {{ statusLabel(crop.status) }}
-                </span>
+                <select
+                  class="min-h-9 rounded-full border border-white/10 bg-[#0b1626] px-3 text-xs font-semibold outline-none transition focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+                  :class="statusClass(crop.status)"
+                  :disabled="isSaving"
+                  :value="crop.status"
+                  @change="updateCropStatus(crop.id, ($event.target as HTMLSelectElement).value)"
+                >
+                  <option value="active">Aktif</option>
+                  <option value="draft">Draft</option>
+                  <option value="archived">Archived</option>
+                </select>
               </td>
             </tr>
           </tbody>
@@ -299,10 +307,10 @@
             <input v-model.trim="areaForm.bmkgAdm4Code" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" placeholder="31.71.03.1001" type="text" />
           </label>
 
-          <label class="space-y-2 md:col-span-2">
-            <span class="text-sm font-medium text-slate-300">Polygon GeoJSON</span>
-            <textarea v-model.trim="areaForm.polygonText" class="min-h-24 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-3 font-mono text-xs text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"></textarea>
-          </label>
+          <div class="space-y-2 md:col-span-2">
+            <span class="text-sm font-medium text-slate-300">Polygon Lokasi</span>
+            <PolygonMapEditor v-model="areaPolygon" />
+          </div>
         </div>
 
         <div v-if="areaFormError" class="mt-4 rounded-lg border border-amber-300/25 bg-amber-300/10 p-3 text-sm text-amber-100">
@@ -327,6 +335,7 @@
 import { Database, Leaf, Map, Pencil, Plus, Save, Sprout, Trash2, X } from "@lucide/vue";
 import { storeToRefs } from "pinia";
 import { computed, onMounted, reactive, ref, watch } from "vue";
+import PolygonMapEditor from "../../components/maps/PolygonMapEditor.vue";
 import {
   thresholdMetrics,
   useMasterDataStore,
@@ -351,6 +360,7 @@ const isCropModalOpen = ref(false);
 const isAreaModalOpen = ref(false);
 const editingAreaId = ref<string | null>(null);
 const areaFormError = ref<string | null>(null);
+const areaPolygon = ref<unknown>(defaultPolygon());
 
 const cropForm = reactive<{
   description: string;
@@ -373,13 +383,11 @@ const areaForm = reactive<{
   bmkgAdm4Code: string;
   cropId: string;
   name: string;
-  polygonText: string;
 }>({
   areaHectares: null,
   bmkgAdm4Code: "",
   cropId: "",
-  name: "",
-  polygonText: ""
+  name: ""
 });
 
 const draftThresholds = reactive<Record<ThresholdKey, ThresholdRange>>({
@@ -441,6 +449,20 @@ async function saveThresholds(): Promise<void> {
   }
 }
 
+async function updateCropStatus(cropId: string, status: string): Promise<void> {
+  if (!isCropStatus(status)) {
+    return;
+  }
+
+  const updated = await masterDataStore.updateCrop(cropId, {
+    status
+  });
+
+  if (updated) {
+    savedMessage.value = `Status ${updated.name} menjadi ${statusLabel(updated.status)}.`;
+  }
+}
+
 function openCropModal(): void {
   cropForm.description = "";
   cropForm.latinName = "";
@@ -479,7 +501,7 @@ function openAreaModal(plot?: ApiPlot): void {
   areaForm.areaHectares = plot?.areaHectares ?? null;
   areaForm.cropId = plot?.cropId ?? "";
   areaForm.bmkgAdm4Code = plot?.bmkgAdm4Code ?? "";
-  areaForm.polygonText = JSON.stringify(plot?.polygonGeojson ?? defaultPolygon(), null, 2);
+  areaPolygon.value = plot?.polygonGeojson ?? defaultPolygon();
   areaFormError.value = null;
   masterDataStore.clearError();
   isAreaModalOpen.value = true;
@@ -492,9 +514,8 @@ function closeAreaModal(): void {
 }
 
 async function submitArea(): Promise<void> {
-  const polygonGeojson = parsePolygonText(areaForm.polygonText);
-  if (polygonGeojson === undefined) {
-    areaFormError.value = "Polygon GeoJSON tidak valid.";
+  if (polygonPointCount(areaPolygon.value) < 3) {
+    areaFormError.value = "Tentukan minimal 3 titik polygon pada peta.";
     return;
   }
 
@@ -503,7 +524,7 @@ async function submitArea(): Promise<void> {
     bmkgAdm4Code: areaForm.bmkgAdm4Code || null,
     cropId: areaForm.cropId || null,
     name: areaForm.name,
-    polygonGeojson
+    polygonGeojson: areaPolygon.value
   };
   const saved = editingAreaId.value
     ? await masterDataStore.updatePlot(editingAreaId.value, payload)
@@ -597,16 +618,8 @@ function statusClass(status: CropStatus): string {
   return "bg-slate-500/10 text-slate-300";
 }
 
-function parsePolygonText(value: string): unknown | undefined {
-  if (!value.trim()) {
-    return defaultPolygon();
-  }
-
-  try {
-    return JSON.parse(value) as unknown;
-  } catch {
-    return undefined;
-  }
+function isCropStatus(value: string): value is CropStatus {
+  return value === "active" || value === "draft" || value === "archived";
 }
 
 function defaultPolygon(): Record<string, unknown> {
@@ -614,5 +627,41 @@ function defaultPolygon(): Record<string, unknown> {
     coordinates: [],
     type: "Polygon"
   };
+}
+
+function polygonPointCount(value: unknown): number {
+  const geometry = readGeometry(value);
+  if (!geometry || geometry.type !== "Polygon" || !Array.isArray(geometry.coordinates)) {
+    return 0;
+  }
+
+  const ring = geometry.coordinates[0];
+  if (!Array.isArray(ring)) {
+    return 0;
+  }
+
+  const hasClosingPoint = ring.length > 1
+    && Array.isArray(ring[0])
+    && Array.isArray(ring[ring.length - 1])
+    && ring[0][0] === ring[ring.length - 1][0]
+    && ring[0][1] === ring[ring.length - 1][1];
+
+  return hasClosingPoint ? ring.length - 1 : ring.length;
+}
+
+function readGeometry(value: unknown): { coordinates?: unknown; type?: unknown } | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  if (value.type === "Feature" && isRecord(value.geometry)) {
+    return value.geometry;
+  }
+
+  return value;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 </script>
