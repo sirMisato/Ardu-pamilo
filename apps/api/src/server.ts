@@ -8,6 +8,7 @@ import { adminRoutes } from "./routes/adminRoutes.js";
 import { authRoutes } from "./routes/authRoutes.js";
 import { cropRoutes } from "./routes/cropRoutes.js";
 import { deviceRoutes } from "./routes/deviceRoutes.js";
+import { plotRoutes } from "./routes/plotRoutes.js";
 import { settingsRoutes } from "./routes/settingsRoutes.js";
 import { telemetryRoutes } from "./routes/telemetryRoutes.js";
 import { startMqttTelemetryService, type MqttTelemetryService } from "./services/mqttService.js";
@@ -58,17 +59,6 @@ export async function buildServer(): Promise<FastifyInstance> {
       };
     });
 
-    tenantRoutes.get("/plots", async (request) => {
-      const tenant = requireTenantContext(request);
-
-      return db
-        .selectFrom("plots")
-        .selectAll()
-        .where("tenant_id", "=", tenant.tenantId)
-        .orderBy("created_at", "desc")
-        .execute();
-    });
-
   }, {
     prefix: "/api/v1"
   });
@@ -77,6 +67,9 @@ export async function buildServer(): Promise<FastifyInstance> {
     prefix: "/api/v1"
   });
   await app.register(cropRoutes, {
+    prefix: "/api/v1"
+  });
+  await app.register(plotRoutes, {
     prefix: "/api/v1"
   });
   await app.register(telemetryRoutes, {

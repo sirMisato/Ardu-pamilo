@@ -122,7 +122,15 @@ export const useTelemetryStore = defineStore("telemetry", () => {
 
     mqttClient.on("error", (error) => {
       connectionState.value = "error";
-      errorMessage.value = error.message;
+      errorMessage.value = isMqttAuthError(error)
+        ? "MQTT membutuhkan username/password. Gunakan broker credential di device atau backend telemetry stream."
+        : error.message;
+
+      if (isMqttAuthError(error)) {
+        mqttClient.options.reconnectPeriod = 0;
+        mqttClient.end(true);
+        client.value = null;
+      }
     });
 
     mqttClient.on("message", (topicName, payload) => {
@@ -300,4 +308,8 @@ function readString(value: unknown): string | null {
 
 function buildDefaultSubscriptionTopic(tenantId: string): string {
   return `pamilo/v1/tenants/${tenantId}/devices/+/telemetry`;
+}
+
+function isMqttAuthError(error: Error): boolean {
+  return /bad username|not authorized|not authorised|not authorized|authentication/i.test(error.message);
 }

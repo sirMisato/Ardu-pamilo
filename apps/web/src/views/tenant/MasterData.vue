@@ -6,19 +6,14 @@
           <h2 class="text-lg font-semibold tracking-normal text-white">Master Data Agronomi</h2>
           <p class="mt-1 text-sm text-slate-400">Crop type, zona area, dan threshold tenant dari API.</p>
         </div>
-        <div class="flex flex-wrap items-center gap-3">
-          <span class="rounded-full border border-amber-300/25 bg-amber-300/10 px-3 py-1 text-xs font-semibold text-amber-100">
-            Threshold perlu validasi agronomis
-          </span>
-          <button
-            class="inline-flex min-h-10 items-center gap-2 rounded-full bg-field-green px-4 text-sm font-semibold text-[#102016] hover:bg-field-mint"
-            type="button"
-            @click="openCreateModal"
-          >
-            <Plus class="h-4 w-4" />
-            Tambah Crop
-          </button>
-        </div>
+        <button
+          class="inline-flex min-h-10 items-center gap-2 rounded-full bg-field-green px-4 text-sm font-semibold text-[#102016] hover:bg-field-mint"
+          type="button"
+          @click="activeTab === 'areas' ? openAreaModal() : openCropModal()"
+        >
+          <Plus class="h-4 w-4" />
+          {{ activeTab === "areas" ? "Tambah Area" : "Tambah Crop" }}
+        </button>
       </div>
 
       <div class="mt-5 flex flex-wrap gap-2">
@@ -66,11 +61,11 @@
         </button>
 
         <div v-if="isLoading" class="panel-surface p-6 text-center text-sm text-slate-400">
-          Memuat crop dari API.
+          Memuat data.
         </div>
 
         <div v-else-if="crops.length === 0" class="panel-surface p-6 text-center text-sm text-slate-400">
-          Belum ada crop type. Tambahkan crop pertama untuk tenant ini.
+          Belum ada crop type.
         </div>
       </div>
 
@@ -82,10 +77,6 @@
             <p class="mt-3 max-w-2xl text-sm text-slate-300">{{ selectedCrop.description ?? "Deskripsi belum diisi." }}</p>
           </div>
           <Sprout class="h-9 w-9 text-field-green" />
-        </div>
-
-        <div class="mt-5 rounded-lg border border-amber-300/20 bg-amber-300/10 p-4 text-sm text-amber-100">
-          {{ selectedCrop.thresholdSource ?? "Belum ada sumber threshold. Isi provenance sebelum dipakai untuk rekomendasi produksi." }}
         </div>
 
         <div class="mt-5 grid gap-4 md:grid-cols-2">
@@ -128,37 +119,51 @@
       </article>
     </section>
 
-    <section v-else-if="activeTab === 'areas'" class="grid gap-4 lg:grid-cols-2">
-      <article v-for="field in tenantProfileStore.fields" :key="field.id" class="panel-surface p-5">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <p class="text-lg font-semibold text-white">{{ field.name }}</p>
-            <p class="mt-1 text-sm text-slate-400">{{ field.regionLabel }}</p>
-          </div>
-          <Map class="h-7 w-7 text-field-mint" />
-        </div>
+    <section v-else-if="activeTab === 'areas'" class="panel-surface overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-[920px] w-full text-left text-sm">
+          <thead class="border-b border-white/10 bg-white/5 text-xs uppercase tracking-wide text-slate-400">
+            <tr>
+              <th class="px-5 py-4 font-semibold">Zona / Area</th>
+              <th class="px-5 py-4 font-semibold">Luas</th>
+              <th class="px-5 py-4 font-semibold">Crop</th>
+              <th class="px-5 py-4 font-semibold">BMKG ADM4</th>
+              <th class="px-5 py-4 text-right font-semibold">Aksi</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/10">
+            <tr v-for="plot in plots" :key="plot.id" class="hover:bg-white/[0.03]">
+              <td class="px-5 py-4">
+                <p class="font-semibold text-white">{{ plot.name }}</p>
+                <p class="mt-1 text-xs text-slate-400">{{ plot.id }}</p>
+              </td>
+              <td class="px-5 py-4 text-slate-300">{{ plot.areaLabel }}</td>
+              <td class="px-5 py-4 text-slate-300">{{ plot.cropName ?? "Belum dipilih" }}</td>
+              <td class="px-5 py-4 font-semibold text-field-mint">{{ plot.bmkgAdm4Code ?? "-" }}</td>
+              <td class="px-5 py-4">
+                <div class="flex justify-end gap-2">
+                  <button class="icon-button" type="button" :aria-label="`Edit ${plot.name}`" @click="openAreaModal(plot)">
+                    <Pencil class="h-4 w-4" />
+                  </button>
+                  <button class="icon-button" type="button" :aria-label="`Hapus ${plot.name}`" @click="removePlot(plot)">
+                    <Trash2 class="h-4 w-4" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-        <dl class="mt-5 grid gap-3 sm:grid-cols-2">
-          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-            <dt class="text-xs text-slate-400">Area</dt>
-            <dd class="mt-2 text-sm font-semibold text-white">{{ field.areaLabel }}</dd>
-          </div>
-          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-            <dt class="text-xs text-slate-400">Crop</dt>
-            <dd class="mt-2 text-sm font-semibold text-white">{{ field.cropLabel }}</dd>
-          </div>
-          <div class="rounded-lg border border-white/10 bg-white/5 p-4 sm:col-span-2">
-            <dt class="text-xs text-slate-400">BMKG ADM4</dt>
-            <dd class="mt-2 text-sm font-semibold text-field-mint">{{ field.bmkgAdm4Code }}</dd>
-          </div>
-        </dl>
-      </article>
+      <div v-if="plots.length === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
+        Belum ada zona atau area.
+      </div>
     </section>
 
     <section v-else class="panel-surface overflow-hidden">
       <div class="border-b border-white/10 p-5">
         <h3 class="text-base font-semibold tracking-normal text-white">Threshold Matrix</h3>
-        <p class="mt-1 text-sm text-slate-400">Ringkasan batas aman per crop dari API tenant.</p>
+        <p class="mt-1 text-sm text-slate-400">Ringkasan batas per crop dari API tenant.</p>
       </div>
 
       <div class="overflow-x-auto">
@@ -168,7 +173,6 @@
               <th class="px-5 py-4 font-semibold">Crop Type</th>
               <th v-for="metric in thresholdMetrics" :key="metric.key" class="px-5 py-4 font-semibold">{{ metric.label }}</th>
               <th class="px-5 py-4 font-semibold">Status</th>
-              <th class="px-5 py-4 font-semibold">Provenance</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-white/10">
@@ -185,7 +189,6 @@
                   {{ statusLabel(crop.status) }}
                 </span>
               </td>
-              <td class="px-5 py-4 text-xs text-slate-400">{{ crop.thresholdSource ?? "-" }}</td>
             </tr>
           </tbody>
         </table>
@@ -196,14 +199,14 @@
       </div>
     </section>
 
-    <div v-if="isCreateModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/75 p-4 backdrop-blur-sm">
+    <div v-if="isCropModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/75 p-4 backdrop-blur-sm">
       <form class="w-full max-w-xl rounded-lg border border-field-mint/20 bg-[#101f32] p-5 shadow-field" @submit.prevent="submitCrop">
         <div class="flex items-center justify-between gap-4">
           <div>
             <h2 class="text-lg font-semibold tracking-normal text-white">Tambah Crop Type</h2>
-            <p class="mt-1 text-sm text-slate-400">Data masuk ke endpoint tenant `/crops`.</p>
+            <p class="mt-1 text-sm text-slate-400">Data crop tenant.</p>
           </div>
-          <button class="icon-button" type="button" aria-label="Tutup modal" @click="closeCreateModal">
+          <button class="icon-button" type="button" aria-label="Tutup modal" @click="closeCropModal">
             <X class="h-4 w-4" />
           </button>
         </div>
@@ -247,7 +250,7 @@
         </div>
 
         <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <button class="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-slate-300 hover:bg-white/5" type="button" @click="closeCreateModal">
+          <button class="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-slate-300 hover:bg-white/5" type="button" @click="closeCropModal">
             Batal
           </button>
           <button class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-field-green px-5 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60" :disabled="isSaving" type="submit">
@@ -257,18 +260,80 @@
         </div>
       </form>
     </div>
+
+    <div v-if="isAreaModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/75 p-4 backdrop-blur-sm">
+      <form class="w-full max-w-2xl rounded-lg border border-field-mint/20 bg-[#101f32] p-5 shadow-field" @submit.prevent="submitArea">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-semibold tracking-normal text-white">{{ areaModalTitle }}</h2>
+            <p class="mt-1 text-sm text-slate-400">Relasi zona, crop, dan BMKG.</p>
+          </div>
+          <button class="icon-button" type="button" aria-label="Tutup modal" @click="closeAreaModal">
+            <X class="h-4 w-4" />
+          </button>
+        </div>
+
+        <div class="mt-5 grid gap-4 md:grid-cols-2">
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-300">Nama Zona / Area</span>
+            <input v-model.trim="areaForm.name" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" required type="text" />
+          </label>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-300">Luas (ha)</span>
+            <input v-model.number="areaForm.areaHectares" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" min="0" step="0.01" type="number" />
+          </label>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-300">Crop</span>
+            <select v-model="areaForm.cropId" class="min-h-11 w-full rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25">
+              <option value="">Belum dipilih</option>
+              <option v-for="crop in crops" :key="crop.id" :value="crop.id">
+                {{ crop.name }}
+              </option>
+            </select>
+          </label>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-300">BMKG ADM4</span>
+            <input v-model.trim="areaForm.bmkgAdm4Code" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" placeholder="31.71.03.1001" type="text" />
+          </label>
+
+          <label class="space-y-2 md:col-span-2">
+            <span class="text-sm font-medium text-slate-300">Polygon GeoJSON</span>
+            <textarea v-model.trim="areaForm.polygonText" class="min-h-24 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-3 font-mono text-xs text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"></textarea>
+          </label>
+        </div>
+
+        <div v-if="areaFormError" class="mt-4 rounded-lg border border-amber-300/25 bg-amber-300/10 p-3 text-sm text-amber-100">
+          {{ areaFormError }}
+        </div>
+
+        <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button class="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-slate-300 hover:bg-white/5" type="button" @click="closeAreaModal">
+            Batal
+          </button>
+          <button class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-field-green px-5 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60" :disabled="isSaving" type="submit">
+            <Save class="h-4 w-4" />
+            {{ isSaving ? "Menyimpan" : "Simpan Area" }}
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Database, Leaf, Map, Plus, Save, Sprout, X } from "@lucide/vue";
+import { Database, Leaf, Map, Pencil, Plus, Save, Sprout, Trash2, X } from "@lucide/vue";
 import { storeToRefs } from "pinia";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import {
   thresholdMetrics,
   useMasterDataStore,
   type ApiCrop,
+  type ApiPlot,
   type CropStatus,
+  type PlotPayload,
   type ThresholdKey,
   type ThresholdRange
 } from "../../stores/masterDataStore";
@@ -278,11 +343,15 @@ type MasterTab = "crops" | "areas" | "thresholds";
 
 const tenantProfileStore = useTenantProfileStore();
 const masterDataStore = useMasterDataStore();
-const { crops, errorMessage, isLoading, isSaving } = storeToRefs(masterDataStore);
+const { crops, errorMessage, isLoading, isSaving, plots } = storeToRefs(masterDataStore);
 const activeTab = ref<MasterTab>("crops");
 const selectedCropId = ref("");
 const savedMessage = ref("Perubahan threshold akan dikirim ke API tenant.");
-const isCreateModalOpen = ref(false);
+const isCropModalOpen = ref(false);
+const isAreaModalOpen = ref(false);
+const editingAreaId = ref<string | null>(null);
+const areaFormError = ref<string | null>(null);
+
 const cropForm = reactive<{
   description: string;
   latinName: string;
@@ -299,12 +368,26 @@ const cropForm = reactive<{
   varieties: ""
 });
 
+const areaForm = reactive<{
+  areaHectares: number | null;
+  bmkgAdm4Code: string;
+  cropId: string;
+  name: string;
+  polygonText: string;
+}>({
+  areaHectares: null,
+  bmkgAdm4Code: "",
+  cropId: "",
+  name: "",
+  polygonText: ""
+});
+
 const draftThresholds = reactive<Record<ThresholdKey, ThresholdRange>>({
   ph: { max: null, min: null, unit: "range" },
   moisture: { max: null, min: null, unit: "%" },
-  nitrogen: { max: null, min: null, unit: "ppm" },
-  phosphorus: { max: null, min: null, unit: "ppm" },
-  potassium: { max: null, min: null, unit: "ppm" }
+  nitrogen: { max: null, min: null, unit: "mg/Kg" },
+  phosphorus: { max: null, min: null, unit: "mg/Kg" },
+  potassium: { max: null, min: null, unit: "mg/Kg" }
 });
 
 const tabs = [
@@ -314,16 +397,27 @@ const tabs = [
 ];
 
 const selectedCrop = computed(() => crops.value.find((crop) => crop.id === selectedCropId.value) ?? crops.value[0] ?? null);
+const areaModalTitle = computed(() => editingAreaId.value ? "Edit Zona / Area" : "Tambah Zona / Area");
 
 onMounted(async () => {
-  await masterDataStore.fetchCrops();
+  await Promise.all([
+    masterDataStore.fetchCrops(),
+    masterDataStore.fetchPlots()
+  ]);
   selectedCropId.value = crops.value[0]?.id ?? "";
+  tenantProfileStore.syncFieldsFromPlots(plots.value);
 });
 
 watch(selectedCrop, () => {
   syncDraftThresholds();
 }, {
   immediate: true
+});
+
+watch(plots, () => {
+  tenantProfileStore.syncFieldsFromPlots(plots.value);
+}, {
+  deep: true
 });
 
 function selectCrop(cropId: string): void {
@@ -347,7 +441,7 @@ async function saveThresholds(): Promise<void> {
   }
 }
 
-function openCreateModal(): void {
+function openCropModal(): void {
   cropForm.description = "";
   cropForm.latinName = "";
   cropForm.name = "";
@@ -355,11 +449,11 @@ function openCreateModal(): void {
   cropForm.status = "draft";
   cropForm.varieties = "";
   masterDataStore.clearError();
-  isCreateModalOpen.value = true;
+  isCropModalOpen.value = true;
 }
 
-function closeCreateModal(): void {
-  isCreateModalOpen.value = false;
+function closeCropModal(): void {
+  isCropModalOpen.value = false;
 }
 
 async function submitCrop(): Promise<void> {
@@ -369,15 +463,63 @@ async function submitCrop(): Promise<void> {
     name: cropForm.name,
     plantingPeriodDays: cropForm.plantingPeriodDays,
     status: cropForm.status,
-    thresholdSource: "Tenant managed threshold, pending agronomist validation.",
     thresholds: cloneThresholds(draftThresholds),
     varieties: cropForm.varieties.split(",").map((value) => value.trim()).filter(Boolean)
   });
 
   if (created) {
     selectedCropId.value = created.id;
-    closeCreateModal();
+    closeCropModal();
   }
+}
+
+function openAreaModal(plot?: ApiPlot): void {
+  editingAreaId.value = plot?.id ?? null;
+  areaForm.name = plot?.name ?? "";
+  areaForm.areaHectares = plot?.areaHectares ?? null;
+  areaForm.cropId = plot?.cropId ?? "";
+  areaForm.bmkgAdm4Code = plot?.bmkgAdm4Code ?? "";
+  areaForm.polygonText = JSON.stringify(plot?.polygonGeojson ?? defaultPolygon(), null, 2);
+  areaFormError.value = null;
+  masterDataStore.clearError();
+  isAreaModalOpen.value = true;
+}
+
+function closeAreaModal(): void {
+  isAreaModalOpen.value = false;
+  editingAreaId.value = null;
+  areaFormError.value = null;
+}
+
+async function submitArea(): Promise<void> {
+  const polygonGeojson = parsePolygonText(areaForm.polygonText);
+  if (polygonGeojson === undefined) {
+    areaFormError.value = "Polygon GeoJSON tidak valid.";
+    return;
+  }
+
+  const payload: PlotPayload = {
+    areaHectares: areaForm.areaHectares,
+    bmkgAdm4Code: areaForm.bmkgAdm4Code || null,
+    cropId: areaForm.cropId || null,
+    name: areaForm.name,
+    polygonGeojson
+  };
+  const saved = editingAreaId.value
+    ? await masterDataStore.updatePlot(editingAreaId.value, payload)
+    : await masterDataStore.createPlot(payload);
+
+  if (saved) {
+    closeAreaModal();
+  }
+}
+
+async function removePlot(plot: ApiPlot): Promise<void> {
+  if (!window.confirm(`Hapus zona ${plot.name}?`)) {
+    return;
+  }
+
+  await masterDataStore.deletePlot(plot.id);
 }
 
 function syncDraftThresholds(): void {
@@ -388,18 +530,35 @@ function syncDraftThresholds(): void {
   for (const metric of thresholdMetrics) {
     draftThresholds[metric.key].min = selectedCrop.value.thresholds[metric.key].min;
     draftThresholds[metric.key].max = selectedCrop.value.thresholds[metric.key].max;
-    draftThresholds[metric.key].unit = selectedCrop.value.thresholds[metric.key].unit;
+    draftThresholds[metric.key].unit = metric.unit;
   }
 }
 
 function cloneThresholds(source: Record<ThresholdKey, ThresholdRange>): Record<ThresholdKey, ThresholdRange> {
   return {
-    moisture: { ...source.moisture },
-    nitrogen: { ...source.nitrogen },
-    ph: { ...source.ph },
-    phosphorus: { ...source.phosphorus },
-    potassium: { ...source.potassium }
+    moisture: normalizeRange(source.moisture),
+    nitrogen: normalizeRange(source.nitrogen),
+    ph: normalizeRange(source.ph),
+    phosphorus: normalizeRange(source.phosphorus),
+    potassium: normalizeRange(source.potassium)
   };
+}
+
+function normalizeRange(range: ThresholdRange): ThresholdRange {
+  return {
+    max: normalizeNumber(range.max),
+    min: normalizeNumber(range.min),
+    unit: range.unit
+  };
+}
+
+function normalizeNumber(value: number | string | null): number | null {
+  if (value === "" || value === null) {
+    return null;
+  }
+
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : null;
 }
 
 function formatRange(range: ThresholdRange): string {
@@ -436,5 +595,24 @@ function statusClass(status: CropStatus): string {
   }
 
   return "bg-slate-500/10 text-slate-300";
+}
+
+function parsePolygonText(value: string): unknown | undefined {
+  if (!value.trim()) {
+    return defaultPolygon();
+  }
+
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+function defaultPolygon(): Record<string, unknown> {
+  return {
+    coordinates: [],
+    type: "Polygon"
+  };
 }
 </script>

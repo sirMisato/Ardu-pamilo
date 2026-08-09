@@ -447,7 +447,8 @@ const currentWeatherMetrics = computed(() => {
   ];
 });
 
-onMounted(() => {
+onMounted(async () => {
+  await tenantProfileStore.fetchFields();
   weatherConfigStore.ensureDefaults(tenantProfileStore.fields, fallbackBaseUrl.value);
   void refreshForecast();
 });

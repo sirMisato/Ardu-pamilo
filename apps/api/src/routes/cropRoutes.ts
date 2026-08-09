@@ -6,7 +6,10 @@ import type { CropStatus, JsonValue, MasterCrop } from "../db/schema.js";
 import { requireTenantContext, verifyTenant } from "../middleware/verifyTenant.js";
 
 const cropStatusSchema = z.enum(["active", "draft", "archived"]);
-const thresholdValueSchema = z.number().finite().nullable().optional();
+const thresholdValueSchema = z.preprocess(
+  (value) => value === "" || value === undefined ? null : value,
+  z.number().finite().nullable()
+).optional();
 const cropPayloadSchema = z.object({
   description: z.string().max(3000).optional().nullable(),
   latinName: z.string().trim().max(160).optional().nullable(),
@@ -201,10 +204,10 @@ function toCropDto(crop: MasterCrop) {
     thresholdSource: crop.threshold_source,
     thresholds: {
       moisture: { max: crop.moisture_max, min: crop.moisture_min, unit: "%" },
-      nitrogen: { max: crop.nitrogen_max, min: crop.nitrogen_min, unit: "ppm" },
+      nitrogen: { max: crop.nitrogen_max, min: crop.nitrogen_min, unit: "mg/Kg" },
       ph: { max: crop.ph_max, min: crop.ph_min, unit: "range" },
-      phosphorus: { max: crop.phosphorus_max, min: crop.phosphorus_min, unit: "ppm" },
-      potassium: { max: crop.potassium_max, min: crop.potassium_min, unit: "ppm" }
+      phosphorus: { max: crop.phosphorus_max, min: crop.phosphorus_min, unit: "mg/Kg" },
+      potassium: { max: crop.potassium_max, min: crop.potassium_min, unit: "mg/Kg" }
     },
     updatedAt: serializeDate(crop.updated_at),
     varieties: parseJsonArray(crop.varieties_json)

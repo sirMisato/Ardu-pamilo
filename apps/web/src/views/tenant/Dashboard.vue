@@ -20,7 +20,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 p-5">
           <div>
             <h2 class="text-lg font-semibold tracking-normal text-white">Field Map Monitoring</h2>
-            <p class="mt-1 text-sm text-slate-400">Kebun Utara / 14.8 ha</p>
+            <p class="mt-1 text-sm text-slate-400">{{ tenantProfileStore.activeFieldLabel }}</p>
           </div>
           <div class="flex items-center gap-2 rounded-full border border-field-mint/25 bg-field-mint/10 px-3 py-1 text-sm text-field-mint">
             <span class="h-2 w-2 rounded-full" :class="telemetryStore.isConnected ? 'bg-field-mint' : 'bg-amber-200'"></span>
@@ -35,7 +35,7 @@
         <div class="flex items-center justify-between gap-3">
           <div>
             <h2 class="text-lg font-semibold tracking-normal text-white">Crop Information Panel</h2>
-            <p class="mt-1 text-sm text-slate-400">Padi IR64 / Plot A</p>
+            <p class="mt-1 text-sm text-slate-400">{{ tenantProfileStore.activeField?.cropLabel ?? "Crop belum dipilih" }}</p>
           </div>
           <Sprout class="h-6 w-6 text-field-green" />
         </div>
@@ -156,7 +156,8 @@ const bmkgHost = computed(() => {
   }
 });
 
-onMounted(() => {
+onMounted(async () => {
+  await tenantProfileStore.fetchFields();
   telemetryStore.connect();
   void refreshDashboardForecast();
 });
@@ -176,8 +177,8 @@ const topStats = computed(() => [
   },
   {
     label: "Active Fields",
-    value: "12",
-    detail: "148.4 ha monitored",
+    value: tenantProfileStore.fields.length.toLocaleString("id-ID"),
+    detail: activeAreaLabel.value,
     icon: Sprout,
     iconClass: "bg-field-green/10 text-field-green",
     detailClass: "text-field-green"
@@ -200,13 +201,18 @@ const topStats = computed(() => [
   }
 ]);
 
-const cropInfo = [
-  { label: "Crop Type", value: "Padi IR64" },
-  { label: "Crop Age", value: "74 days" },
-  { label: "Planting Date", value: "24 Mei 2026" },
-  { label: "Estimated Harvest", value: "18 Sep 2026" },
-  { label: "Growth Stage", value: "Generatif Awal" }
-];
+const activeAreaLabel = computed(() => {
+  const totalArea = tenantProfileStore.fields.reduce((total, field) => total + (field.areaHectares ?? 0), 0);
+  return totalArea > 0 ? `${totalArea.toLocaleString("id-ID")} ha monitored` : "Zona dari Master Data";
+});
+
+const cropInfo = computed(() => [
+  { label: "Crop Type", value: tenantProfileStore.activeField?.cropLabel ?? "-" },
+  { label: "Area", value: tenantProfileStore.activeField?.areaLabel ?? "-" },
+  { label: "BMKG ADM4", value: tenantProfileStore.activeField?.bmkgAdm4Code || "-" },
+  { label: "Region", value: tenantProfileStore.activeField?.regionLabel ?? "-" },
+  { label: "Field", value: tenantProfileStore.activeField?.name ?? "-" }
+]);
 
 const latestMetricCards = computed(() => telemetryStore.latestMetrics.slice(0, 8));
 const dashboardDailyForecast = computed(() => dashboardForecast.value?.daily.slice(0, 3) ?? []);

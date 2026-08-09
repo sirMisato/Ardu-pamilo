@@ -184,7 +184,6 @@
             <select
               v-model.trim="deviceForm.plotId"
               class="min-h-11 w-full rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
-              required
             >
               <option value="">Field Utama otomatis</option>
               <option v-for="plot in plots" :key="plot.id" :value="plot.id">
@@ -357,6 +356,7 @@ async function submitDevice(): Promise<void> {
   });
 
   if (created) {
+    await fetchPlots();
     closeAddModal();
   }
 }

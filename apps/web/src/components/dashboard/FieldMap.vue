@@ -39,11 +39,13 @@
 import L, { type LatLngExpression, type Map, type Marker, type Polygon, type TileLayer } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useTenantProfileStore } from "../../stores/tenantProfileStore";
 import { useTelemetryStore } from "../../stores/telemetryStore";
 
 type MapLayerKey = "street" | "satellite";
 
 const telemetryStore = useTelemetryStore();
+const tenantProfileStore = useTenantProfileStore();
 const mapElement = ref<HTMLDivElement | null>(null);
 const activeMapLayer = ref<MapLayerKey>("street");
 const farmCenter: LatLngExpression = [-6.9147, 107.6098];
@@ -61,6 +63,7 @@ let marker: Marker | null = null;
 let polygon: Polygon | null = null;
 
 const activeDeviceId = computed(() => Object.keys(telemetryStore.devices)[0] ?? "");
+const fieldTooltip = computed(() => tenantProfileStore.activeFieldLabel);
 
 const mapLayerOptions: Array<{ key: MapLayerKey; label: string; title: string }> = [
   {
@@ -86,7 +89,7 @@ const connectionLabel = computed(() => {
   }
 
   if (state === "error") {
-    return "MQTT offline";
+    return telemetryStore.errorMessage ?? "MQTT offline";
   }
 
   return "MQTT connecting";
@@ -115,6 +118,10 @@ watch(
   }
 );
 
+watch(fieldTooltip, (value) => {
+  polygon?.setTooltipContent(value);
+});
+
 function initializeMap(): void {
   if (!mapElement.value || map) {
     return;
@@ -137,7 +144,7 @@ function initializeMap(): void {
     weight: 2
   }).addTo(map);
 
-  polygon.bindTooltip("Kebun Utara / Plot A", {
+  polygon.bindTooltip(fieldTooltip.value, {
     direction: "top",
     sticky: true
   });
