@@ -2,6 +2,30 @@
   <div class="relative h-[460px] min-h-[420px] overflow-hidden bg-[#0a1728]">
     <div ref="mapElement" class="h-full w-full"></div>
 
+    <div class="absolute right-4 top-4 z-[500] flex rounded-full border border-white/10 bg-[#07111f]/90 p-1 text-xs font-semibold text-slate-300 shadow-xl shadow-slate-950/25 backdrop-blur">
+      <button
+        v-for="layer in mapLayerOptions"
+        :key="layer.key"
+        type="button"
+        class="inline-flex items-center gap-1.5 rounded-full px-3 py-2 transition"
+        :class="activeMapLayer === layer.key ? 'bg-field-mint text-[#07111f]' : 'hover:bg-white/10 hover:text-white'"
+        :aria-pressed="activeMapLayer === layer.key"
+        :title="layer.title"
+        @click="setActiveMapLayer(layer.key)"
+      >
+        <svg v-if="layer.key === 'street'" class="h-3.5 w-3.5" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+          <path d="M9 3v15M15 6v15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <svg v-else class="h-3.5 w-3.5" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 14c4.8-8 11.2-8 16 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <path d="M7.5 12.2 5 9.7M16.5 12.2 19 9.7M9.5 10.8 8.2 7.4M14.5 10.8l1.3-3.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <circle cx="12" cy="15" r="3" fill="none" stroke="currentColor" stroke-width="2" />
+        </svg>
+        {{ layer.label }}
+      </button>
+    </div>
+
     <div class="pointer-events-none absolute left-4 top-4 z-[500] rounded-lg border border-white/10 bg-[#07111f]/90 px-3 py-2 text-xs text-slate-300 backdrop-blur">
       <div class="flex items-center gap-2">
         <span class="h-2 w-2 rounded-full" :class="telemetryStore.isConnected ? 'bg-field-mint' : 'bg-amber-200'"></span>
@@ -12,13 +36,16 @@
 </template>
 
 <script setup lang="ts">
-import L, { type LatLngExpression, type Map, type Marker, type Polygon } from "leaflet";
+import L, { type LatLngExpression, type Map, type Marker, type Polygon, type TileLayer } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useTelemetryStore } from "../../stores/telemetryStore";
 
+type MapLayerKey = "street" | "satellite";
+
 const telemetryStore = useTelemetryStore();
 const mapElement = ref<HTMLDivElement | null>(null);
+const activeMapLayer = ref<MapLayerKey>("street");
 const sensorDeviceId = "SensorNode01";
 const farmCenter: LatLngExpression = [-6.9147, 107.6098];
 const sensorPosition: LatLngExpression = [-6.91455, 107.6102];
@@ -30,8 +57,22 @@ const farmPolygon: LatLngExpression[] = [
 ];
 
 let map: Map | null = null;
+let baseLayers: Record<MapLayerKey, TileLayer> | null = null;
 let marker: Marker | null = null;
 let polygon: Polygon | null = null;
+
+const mapLayerOptions: Array<{ key: MapLayerKey; label: string; title: string }> = [
+  {
+    key: "street",
+    label: "Peta",
+    title: "Tampilkan peta jalan"
+  },
+  {
+    key: "satellite",
+    label: "Satelit",
+    title: "Tampilkan citra satelit"
+  }
+];
 
 const connectionLabel = computed(() => {
   const state = telemetryStore.connectionState;
@@ -83,10 +124,8 @@ function initializeMap(): void {
     zoomControl: true
   }).setView(farmCenter, 17);
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19
-  }).addTo(map);
+  baseLayers = createBaseLayers();
+  setActiveMapLayer(activeMapLayer.value);
 
   polygon = L.polygon(farmPolygon, {
     color: "#8ef0ca",
@@ -113,6 +152,36 @@ function initializeMap(): void {
   map.fitBounds(polygon.getBounds(), {
     padding: [28, 28]
   });
+}
+
+function createBaseLayers(): Record<MapLayerKey, TileLayer> {
+  return {
+    satellite: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+      attribution: "Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+      maxNativeZoom: 19,
+      maxZoom: 20
+    }),
+    street: L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19
+    })
+  };
+}
+
+function setActiveMapLayer(layerKey: MapLayerKey): void {
+  activeMapLayer.value = layerKey;
+
+  if (!map || !baseLayers) {
+    return;
+  }
+
+  for (const layer of Object.values(baseLayers)) {
+    if (map.hasLayer(layer)) {
+      map.removeLayer(layer);
+    }
+  }
+
+  baseLayers[layerKey].addTo(map);
 }
 
 function refreshPopup(): void {
