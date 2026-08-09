@@ -24,13 +24,16 @@ pamilo_web_demo    subscribe pamilo/v1/tenants/demo-tenant/devices/+/telemetry
 
 ## Create Users From EMQX Dashboard
 
-1. Open EMQX Dashboard.
+1. Open EMQX Dashboard at `https://mqtt.keycloud.id`.
 2. Go to `Access Control` -> `Authentication`.
 3. Open the built-in database authenticator.
 4. Open `Users`.
 5. Click `Add`.
 6. Create `pamilo_device_demo` with a strong password.
 7. Create `pamilo_web_demo` with a different strong password if you need browser MQTT testing.
+
+The dashboard is protected by EMQX login. Use `EMQX_DASHBOARD_USERNAME` and
+`EMQX_DASHBOARD_PASSWORD` from GitHub Actions production variables/secrets.
 
 ## Create Users From HTTP API
 

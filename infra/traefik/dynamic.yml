@@ -32,6 +32,14 @@ http:
       tls:
         certResolver: letsencrypt
 
+    emqx-dashboard:
+      rule: "Host(`mqtt.keycloud.id`)"
+      entryPoints:
+        - websecure
+      service: emqx-dashboard
+      tls:
+        certResolver: letsencrypt
+
   services:
     pamilo-api:
       loadBalancer:
@@ -47,6 +55,11 @@ http:
       loadBalancer:
         servers:
           - url: "http://emqx:8083"
+
+    emqx-dashboard:
+      loadBalancer:
+        servers:
+          - url: "http://emqx:18083"
 
 tcp:
   routers:
