@@ -414,55 +414,26 @@ jobs:
               exit 1
             }
 
-            seed_emqx_mqtt_user() {
-              require_env MQTT_USERNAME
-              require_env MQTT_PASSWORD
-
-              mqtt_payload="$(printf '{"user_id":"%s","password":"%s","is_superuser":false}' "$MQTT_USERNAME" "$MQTT_PASSWORD")"
-              emqx_auth_users_url="http://emqx:18083/api/v5/authentication/password_based%3Abuilt_in_database/users"
-
-              for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
-                echo "EMQX MQTT user seed attempt ${attempt}: ${MQTT_USERNAME}"
-
-                sudo_run docker run --rm --network pamilo-public-edge curlimages/curl:8.11.1 \
-                  -fsS --max-time 20 \
-                  -u "${EMQX_DASHBOARD_USERNAME}:${EMQX_DASHBOARD_PASSWORD}" \
-                  -X DELETE "${emqx_auth_users_url}/${MQTT_USERNAME}" >/dev/null 2>&1 || true
-
-                if sudo_run docker run --rm --network pamilo-public-edge curlimages/curl:8.11.1 \
-                  -fsS --max-time 20 \
-                  -u "${EMQX_DASHBOARD_USERNAME}:${EMQX_DASHBOARD_PASSWORD}" \
-                  -H "Content-Type: application/json" \
-                  -X POST "${emqx_auth_users_url}" \
-                  -d "$mqtt_payload" >/dev/null; then
-                  return 0
-                fi
-
-                compose ps || true
-                sleep 10
-              done
-
-              dump_compose_diagnostics
-              echo "Failed to seed EMQX MQTT user: ${MQTT_USERNAME}"
-              exit 1
-            }
-
             test -f apps/web/Dockerfile
             test -f apps/api/Dockerfile
             test -f apps/web/package-lock.json
             test -f apps/api/package-lock.json
             test -f infra/emqx/base.hocon
             test -f infra/emqx/acl.conf
+            printf 'user_id,password,is_superuser\n%s,%s,false\n' "$MQTT_USERNAME" "$MQTT_PASSWORD" > infra/emqx/auth-built-in-db-bootstrap.csv
+            chmod 600 infra/emqx/auth-built-in-db-bootstrap.csv
+            test -f infra/emqx/auth-built-in-db-bootstrap.csv
 
             install_docker_if_missing
             compose config --quiet
+            compose down --remove-orphans || true
+            sudo_run docker volume rm pamilo-saas_emqx-data pamilo-saas_emqx-log >/dev/null 2>&1 || true
             if ! compose up -d --build --remove-orphans --force-recreate; then
               dump_compose_diagnostics
               exit 1
             fi
 
             compose ps
-            seed_emqx_mqtt_user
 
             wait_for_compose_command "frontend health" frontend wget -qO- http://127.0.0.1/health
             wait_for_compose_command "backend health" backend node -e "fetch('http://127.0.0.1:3000/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"

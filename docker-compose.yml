@@ -106,6 +106,7 @@ services:
       - emqx-log:/opt/emqx/log
       - ./infra/emqx/base.hocon:/opt/emqx/etc/base.hocon:ro
       - ./infra/emqx/acl.conf:/opt/emqx/etc/acl.conf:ro
+      - ./infra/emqx/auth-built-in-db-bootstrap.csv:/opt/emqx/etc/auth-built-in-db-bootstrap.csv:ro
     expose:
       - "1883"
       - "8083"

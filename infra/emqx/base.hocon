@@ -19,6 +19,9 @@ authentication = [
       name = sha256
       salt_position = suffix
     }
+
+    bootstrap_file = "${EMQX_ETC_DIR}/auth-built-in-db-bootstrap.csv"
+    bootstrap_type = plain
   }
 ]
 
