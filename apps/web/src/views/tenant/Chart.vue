@@ -1,54 +1,25 @@
 <template>
   <div class="space-y-5">
-    <section class="panel-surface p-5">
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-field-mint">MQTT Topic</p>
-          <h2 class="mt-2 text-lg font-semibold tracking-normal text-white">Grafik Berdasarkan Parameter Topic</h2>
-          <p class="mt-1 max-w-2xl text-sm text-slate-400">
-            Pilih topic MQTT, lalu sistem hanya menampilkan grafik untuk parameter numerik yang benar-benar ditemukan pada payload telemetry topic tersebut.
-          </p>
-        </div>
-
+    <section class="panel-surface p-4">
+      <div class="flex flex-col gap-3 md:flex-row md:items-center">
+        <select
+          v-model="activeTopic"
+          aria-label="Topic MQTT"
+          class="min-h-12 flex-1 rounded-lg border border-white/10 bg-[#07111f] px-4 text-sm text-white outline-none transition focus:border-field-mint/70"
+        >
+          <option v-if="topicSummaries.length === 0" value="">Belum ada topic telemetry</option>
+          <option v-for="topic in topicSummaries" :key="topic.topic" :value="topic.topic">
+            {{ topic.topic }}
+          </option>
+        </select>
         <button
           type="button"
-          class="rounded-full border border-field-mint/25 bg-field-mint/10 px-4 py-2 text-sm font-semibold text-field-mint transition hover:bg-field-mint hover:text-[#07111f] disabled:cursor-not-allowed disabled:opacity-60"
+          class="inline-flex min-h-12 items-center justify-center rounded-lg border border-field-mint/25 bg-field-mint/10 px-5 text-sm font-semibold text-field-mint transition hover:bg-field-mint hover:text-[#07111f] disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="isLoading"
           @click="refreshTelemetryHistory"
         >
           {{ isLoading ? "Memuat..." : "Refresh" }}
         </button>
-      </div>
-
-      <div class="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
-        <label class="block">
-          <span class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Topic Aktif</span>
-          <select
-            v-model="activeTopic"
-            class="mt-2 w-full rounded-lg border border-white/10 bg-[#07111f] px-4 py-3 text-sm text-white outline-none transition focus:border-field-mint/70"
-          >
-            <option v-if="topicSummaries.length === 0" value="">Belum ada topic telemetry</option>
-            <option v-for="topic in topicSummaries" :key="topic.topic" :value="topic.topic">
-              {{ topic.topic }}
-            </option>
-          </select>
-        </label>
-
-        <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-          <p class="text-xs text-slate-400">Parameter Terdeteksi</p>
-          <p class="mt-2 text-2xl font-semibold tracking-normal text-white">{{ selectedMetricKeys.length }}</p>
-          <p class="mt-1 text-xs text-field-mint">{{ selectedTopicSummary?.sampleCount ?? 0 }} sample telemetry</p>
-        </div>
-      </div>
-
-      <div v-if="selectedMetricKeys.length > 0" class="mt-4 flex flex-wrap gap-2">
-        <span
-          v-for="metricKey in selectedMetricKeys"
-          :key="metricKey"
-          class="rounded-full border border-field-mint/20 bg-field-mint/10 px-3 py-1 text-xs font-semibold text-field-mint"
-        >
-          {{ formatMetricLabel(metricKey) }}
-        </span>
       </div>
 
       <p v-if="errorMessage" class="mt-4 rounded-lg border border-amber-200/20 bg-amber-200/10 px-4 py-3 text-sm text-amber-100">
@@ -58,15 +29,8 @@
 
     <section v-if="chartCards.length > 0" class="grid gap-5 xl:grid-cols-2">
       <article v-for="card in chartCards" :key="card.id" class="panel-surface overflow-hidden">
-        <div class="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 p-5">
-          <div>
-            <h3 class="text-base font-semibold tracking-normal text-white">{{ card.label }}</h3>
-            <p class="mt-1 break-all text-xs text-slate-400">{{ card.topic }}</p>
-          </div>
-          <div class="text-right">
-            <p class="text-2xl font-semibold tracking-normal" :style="{ color: card.color }">{{ card.latestDisplay }}</p>
-            <p class="mt-1 text-xs text-slate-400">{{ card.sampleCount }} titik data</p>
-          </div>
+        <div class="border-b border-white/10 px-5 py-4">
+          <h3 class="text-base font-semibold tracking-normal text-white">{{ card.label }}</h3>
         </div>
 
         <div class="h-[310px] p-4">
@@ -129,7 +93,6 @@ interface TelemetryHistoryItem {
 interface TopicSummary {
   lastSeenAt: string;
   metricKeys: string[];
-  sampleCount: number;
   topic: string;
 }
 
@@ -137,9 +100,6 @@ interface MetricChartCard {
   id: string;
   label: string;
   color: string;
-  latestDisplay: string;
-  sampleCount: number;
-  topic: string;
   chartData: ChartData<"line", Array<number | null>, string>;
   chartOptions: ChartOptions<"line">;
 }
@@ -153,7 +113,6 @@ const activeTopic = ref("");
 const errorMessage = ref<string | null>(null);
 const historyItems = ref<TelemetryHistoryItem[]>([]);
 const isLoading = ref(false);
-const lastRefreshAt = ref<string | null>(null);
 let refreshTimer: number | undefined;
 
 const orderedHistoryItems = computed(() => [...historyItems.value].sort((left, right) => {
@@ -177,7 +136,6 @@ const topicSummaries = computed<TopicSummary[]>(() => {
       return {
         lastSeenAt,
         metricKeys,
-        sampleCount: rows.length,
         topic
       };
     })
@@ -185,29 +143,22 @@ const topicSummaries = computed<TopicSummary[]>(() => {
     .sort((left, right) => right.lastSeenAt.localeCompare(left.lastSeenAt));
 });
 
-const selectedTopicSummary = computed(() => {
-  return topicSummaries.value.find((summary) => summary.topic === activeTopic.value) ?? null;
-});
-
 const selectedTopicRows = computed(() => orderedHistoryItems.value.filter((item) => item.topic === activeTopic.value));
-const selectedMetricKeys = computed(() => selectedTopicSummary.value?.metricKeys ?? []);
+const selectedMetricKeys = computed(() => {
+  return topicSummaries.value.find((summary) => summary.topic === activeTopic.value)?.metricKeys ?? [];
+});
 
 const chartCards = computed<MetricChartCard[]>(() => selectedMetricKeys.value.map((metricKey, index) => {
   const points = selectedTopicRows.value.map((row) => ({
     timestamp: row.receivedAt,
     value: coerceNumericValue(readMetricValue(row.payload, metricKey))
   }));
-  const numericPoints = points.filter((point): point is { timestamp: string; value: number } => point.value !== null);
   const color = colorForMetric(metricKey, index);
-  const latestValue = numericPoints[numericPoints.length - 1]?.value ?? null;
 
   return {
     id: `${activeTopic.value}:${metricKey}`,
     label: formatMetricLabel(metricKey),
     color,
-    latestDisplay: latestValue === null ? "-" : formatValue(latestValue),
-    sampleCount: numericPoints.length,
-    topic: activeTopic.value,
     chartData: createChartData(points, color),
     chartOptions: createChartOptions(metricKey, color)
   };
@@ -246,7 +197,6 @@ async function refreshTelemetryHistory(): Promise<void> {
   try {
     const response = await apiGet<TelemetryHistoryResponse>("/api/v1/telemetry/history?limit=240");
     historyItems.value = response.items;
-    lastRefreshAt.value = new Date().toISOString();
   } catch (error) {
     errorMessage.value = normalizeError(error);
   } finally {

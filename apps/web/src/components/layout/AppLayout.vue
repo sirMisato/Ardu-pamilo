@@ -1,6 +1,11 @@
 <template>
   <div class="min-h-screen bg-[#07111f] text-slate-100">
-    <Sidebar class="fixed inset-y-0 left-0 z-40 hidden w-72 lg:flex" />
+    <Sidebar
+      class="fixed inset-y-0 left-0 z-40 hidden lg:flex"
+      :class="sidebarCollapsed ? 'w-20' : 'w-72'"
+      :collapsed="sidebarCollapsed"
+      @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
+    />
 
     <Transition
       enter-active-class="transition duration-200 ease-out"
@@ -15,7 +20,7 @@
       </div>
     </Transition>
 
-    <div class="min-h-screen lg:pl-72">
+    <div class="min-h-screen transition-[padding] duration-200" :class="sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'">
       <Topbar @toggle-sidebar="sidebarOpen = true" />
       <main class="px-4 pb-8 pt-4 sm:px-6 lg:px-8">
         <RouterView />
@@ -30,4 +35,5 @@ import Sidebar from "./Sidebar.vue";
 import Topbar from "./Topbar.vue";
 
 const sidebarOpen = ref(false);
+const sidebarCollapsed = ref(false);
 </script>
