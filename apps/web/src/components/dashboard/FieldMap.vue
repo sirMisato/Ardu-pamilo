@@ -46,7 +46,6 @@ type MapLayerKey = "street" | "satellite";
 const telemetryStore = useTelemetryStore();
 const mapElement = ref<HTMLDivElement | null>(null);
 const activeMapLayer = ref<MapLayerKey>("street");
-const sensorDeviceId = "SensorNode01";
 const farmCenter: LatLngExpression = [-6.9147, 107.6098];
 const sensorPosition: LatLngExpression = [-6.91455, 107.6102];
 const farmPolygon: LatLngExpression[] = [
@@ -60,6 +59,8 @@ let map: Map | null = null;
 let baseLayers: Record<MapLayerKey, TileLayer> | null = null;
 let marker: Marker | null = null;
 let polygon: Polygon | null = null;
+
+const activeDeviceId = computed(() => Object.keys(telemetryStore.devices)[0] ?? "");
 
 const mapLayerOptions: Array<{ key: MapLayerKey; label: string; title: string }> = [
   {
@@ -85,7 +86,7 @@ const connectionLabel = computed(() => {
   }
 
   if (state === "error") {
-    return "MQTT offline, mock data active";
+    return "MQTT offline";
   }
 
   return "MQTT connecting";
@@ -105,8 +106,9 @@ onBeforeUnmount(() => {
 watch(
   () => [
     telemetryStore.connectionState,
-    telemetryStore.deviceById(sensorDeviceId)?.online,
-    telemetryStore.latestMetricsForDevice(sensorDeviceId).map((metric) => `${metric.key}:${metric.displayValue}`).join("|")
+    activeDeviceId.value,
+    activeDeviceId.value ? telemetryStore.deviceById(activeDeviceId.value)?.online : false,
+    activeDeviceId.value ? telemetryStore.latestMetricsForDevice(activeDeviceId.value).map((metric) => `${metric.key}:${metric.displayValue}`).join("|") : ""
   ],
   () => {
     refreshPopup();
@@ -135,15 +137,6 @@ function initializeMap(): void {
     weight: 2
   }).addTo(map);
 
-  marker = L.marker(sensorPosition, {
-    icon: createSensorIcon()
-  }).addTo(map);
-  marker.bindPopup(createPopupHtml(), {
-    className: "pamilo-sensor-popup",
-    maxWidth: 320,
-    minWidth: 260
-  });
-
   polygon.bindTooltip("Kebun Utara / Plot A", {
     direction: "top",
     sticky: true
@@ -152,6 +145,7 @@ function initializeMap(): void {
   map.fitBounds(polygon.getBounds(), {
     padding: [28, 28]
   });
+  refreshPopup();
 }
 
 function createBaseLayers(): Record<MapLayerKey, TileLayer> {
@@ -185,16 +179,34 @@ function setActiveMapLayer(layerKey: MapLayerKey): void {
 }
 
 function refreshPopup(): void {
-  if (!marker) {
+  if (!map) {
     return;
   }
 
+  const deviceId = activeDeviceId.value;
+  if (!deviceId) {
+    marker?.remove();
+    marker = null;
+    return;
+  }
+
+  if (!marker) {
+    marker = L.marker(sensorPosition, {
+      icon: createSensorIcon(deviceId)
+    }).addTo(map);
+    marker.bindPopup(createPopupHtml(deviceId), {
+      className: "pamilo-sensor-popup",
+      maxWidth: 320,
+      minWidth: 260
+    });
+  }
+
   marker.setIcon(createSensorIcon());
-  marker.setPopupContent(createPopupHtml());
+  marker.setPopupContent(createPopupHtml(deviceId));
 }
 
-function createSensorIcon(): L.DivIcon {
-  const device = telemetryStore.deviceById(sensorDeviceId);
+function createSensorIcon(deviceId = activeDeviceId.value): L.DivIcon {
+  const device = telemetryStore.deviceById(deviceId);
   const online = device?.online ?? false;
   const toneClass = online ? "sensor-online" : "sensor-offline";
 
@@ -207,9 +219,9 @@ function createSensorIcon(): L.DivIcon {
   });
 }
 
-function createPopupHtml(): string {
-  const device = telemetryStore.deviceById(sensorDeviceId);
-  const metrics = telemetryStore.latestMetricsForDevice(sensorDeviceId);
+function createPopupHtml(deviceId: string): string {
+  const device = telemetryStore.deviceById(deviceId);
+  const metrics = telemetryStore.latestMetricsForDevice(deviceId);
   const statusText = device?.online ? "Online" : "Offline";
   const statusClass = device?.online ? "online" : "offline";
   const lastSeen = device?.lastSeenAt ? formatTime(device.lastSeenAt) : "No telemetry yet";
@@ -226,7 +238,7 @@ function createPopupHtml(): string {
     <section class="sensor-popup">
       <div class="sensor-popup-header">
         <div>
-          <p class="sensor-title">SensorNode01</p>
+          <p class="sensor-title">${escapeHtml(deviceId)}</p>
           <p class="sensor-subtitle">${escapeHtml(lastSeen)}</p>
         </div>
         <span class="status-pill ${statusClass}">${statusText}</span>

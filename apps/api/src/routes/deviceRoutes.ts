@@ -12,7 +12,7 @@ const createDeviceSchema = z.object({
   displayName: z.string().trim().min(1).max(160),
   metadata: z.record(z.string(), z.unknown()).optional(),
   mqttUsername: z.string().trim().max(160).optional().nullable(),
-  plotId: z.string().trim().min(1).max(36),
+  plotId: z.string().trim().min(1).max(36).optional().nullable(),
   status: deviceStatusSchema.optional().default("offline"),
   telemetryTopic: z.string().trim().min(1).max(255)
 });
@@ -20,6 +20,8 @@ const createDeviceSchema = z.object({
 const routeParamsSchema = z.object({
   deviceId: z.string().trim().min(1)
 });
+
+const telemetryTopicPattern = /^pamilo\/v1\/tenants\/([^/]+)\/devices\/([^/]+)\/telemetry$/;
 
 type CreateDeviceBody = z.infer<typeof createDeviceSchema>;
 
@@ -79,17 +81,46 @@ export const deviceRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const body = parsed.data;
-    const plot = await db
-      .selectFrom("plots")
-      .select(["id", "name"])
-      .where("id", "=", body.plotId)
-      .where("tenant_id", "=", tenant.tenantId)
-      .executeTakeFirst();
+    const plot = await resolveDevicePlot(tenant.tenantId, body.plotId);
 
     if (!plot) {
-      return reply.code(404).send({
+      return reply.code(body.plotId ? 404 : 500).send({
         error: "Plot not found",
-        message: "The target plot does not exist for this tenant."
+        message: body.plotId
+          ? "The target plot does not exist for this tenant."
+          : "Unable to prepare a default field for this tenant."
+      });
+    }
+
+    const topicParts = parseTelemetryTopic(body.telemetryTopic);
+    if (!topicParts) {
+      return reply.code(400).send({
+        error: "Invalid telemetry topic",
+        message: "Topic harus memakai format pamilo/v1/tenants/{tenant_id}/devices/{device_uid}/telemetry."
+      });
+    }
+
+    if (topicParts.tenantId !== tenant.tenantId || topicParts.deviceUid !== body.deviceUid) {
+      return reply.code(400).send({
+        error: "Telemetry topic mismatch",
+        message: "Tenant ID dan Device UID pada telemetry topic harus sama dengan tenant aktif dan Device UID perangkat."
+      });
+    }
+
+    const existingDevice = await db
+      .selectFrom("devices")
+      .select(["id"])
+      .where("tenant_id", "=", tenant.tenantId)
+      .where((expressionBuilder) => expressionBuilder.or([
+        expressionBuilder("device_uid", "=", body.deviceUid),
+        expressionBuilder("telemetry_topic", "=", body.telemetryTopic)
+      ]))
+      .executeTakeFirst();
+
+    if (existingDevice) {
+      return reply.code(409).send({
+        error: "Device already exists",
+        message: "Device UID atau telemetry topic sudah terdaftar untuk tenant ini."
       });
     }
 
@@ -103,7 +134,7 @@ export const deviceRoutes: FastifyPluginAsync = async (app) => {
         id: deviceId,
         metadata_json: JSON.stringify(body.metadata ?? {}),
         mqtt_username: body.mqttUsername ?? null,
-        plot_id: body.plotId,
+        plot_id: plot.id,
         status: body.status,
         telemetry_topic: body.telemetryTopic,
         tenant_id: tenant.tenantId
@@ -168,6 +199,50 @@ async function selectDeviceForTenant(deviceId: string, tenantId: string): Promis
     .executeTakeFirst();
 }
 
+async function resolveDevicePlot(tenantId: string, plotId: string | null | undefined): Promise<{ id: string; name: string } | undefined> {
+  if (plotId) {
+    return db
+      .selectFrom("plots")
+      .select(["id", "name"])
+      .where("id", "=", plotId)
+      .where("tenant_id", "=", tenantId)
+      .executeTakeFirst();
+  }
+
+  const existingPlot = await db
+    .selectFrom("plots")
+    .select(["id", "name"])
+    .where("tenant_id", "=", tenantId)
+    .orderBy("created_at", "asc")
+    .executeTakeFirst();
+
+  if (existingPlot) {
+    return existingPlot;
+  }
+
+  const defaultPlotId = randomUUID();
+  await db
+    .insertInto("plots")
+    .values({
+      area_hectares: null,
+      bmkg_adm4_code: null,
+      crop_id: null,
+      id: defaultPlotId,
+      name: "Field Utama",
+      polygon_geojson: JSON.stringify({
+        coordinates: [],
+        type: "Polygon"
+      }),
+      tenant_id: tenantId
+    })
+    .execute();
+
+  return {
+    id: defaultPlotId,
+    name: "Field Utama"
+  };
+}
+
 function toDeviceDto(row: DeviceRow) {
   return {
     createdAt: serializeDate(row.created_at),
@@ -182,6 +257,20 @@ function toDeviceDto(row: DeviceRow) {
     status: row.status,
     telemetryTopic: row.telemetry_topic,
     updatedAt: serializeDate(row.updated_at)
+  };
+}
+
+function parseTelemetryTopic(topic: string): { deviceUid: string; tenantId: string } | null {
+  const match = telemetryTopicPattern.exec(topic);
+  if (!match) {
+    return null;
+  }
+
+  const [, tenantId, deviceUid] = match;
+
+  return {
+    deviceUid,
+    tenantId
   };
 }
 

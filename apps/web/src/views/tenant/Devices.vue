@@ -181,13 +181,16 @@
 
           <label class="space-y-2">
             <span class="text-sm font-medium text-slate-300">Plot ID</span>
-            <input
+            <select
               v-model.trim="deviceForm.plotId"
-              class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
-              placeholder="UUID plot dari API /plots"
+              class="min-h-11 w-full rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
               required
-              type="text"
-            />
+            >
+              <option value="">Field Utama otomatis</option>
+              <option v-for="plot in plots" :key="plot.id" :value="plot.id">
+                {{ plot.name }} / {{ plot.id }}
+              </option>
+            </select>
           </label>
 
           <div class="grid gap-4 sm:grid-cols-2">
@@ -222,10 +225,11 @@
             <input
               v-model.trim="deviceForm.telemetryTopic"
               class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
-              placeholder="pamilo/v1/tenants/mock-tenant/devices/SensorNode04/telemetry"
+              placeholder="pamilo/v1/tenants/demo-tenant/devices/SensorNode04/telemetry"
               required
               type="text"
             />
+            <p class="text-xs text-slate-500">Topic otomatis mengikuti Tenant ID dan Device UID.</p>
           </label>
         </div>
 
@@ -263,16 +267,25 @@ import {
   X
 } from "@lucide/vue";
 import { storeToRefs } from "pinia";
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
+import { apiGet } from "../../services/apiClient";
+import { useAuthStore } from "../../stores/authStore";
 import { useDeviceStore, type DeviceStatus } from "../../stores/deviceStore";
 
 type StatusFilter = "all" | DeviceStatus;
 
+interface PlotOption {
+  id: string;
+  name: string;
+}
+
+const authStore = useAuthStore();
 const deviceStore = useDeviceStore();
 const { activePlotCount, devices, errorMessage, isLoading, isSaving, onlineDeviceCount } = storeToRefs(deviceStore);
 const searchQuery = ref("");
 const statusFilter = ref<StatusFilter>("all");
 const isAddModalOpen = ref(false);
+const plots = ref<PlotOption[]>([]);
 const deviceForm = reactive<{
   deviceUid: string;
   displayName: string;
@@ -288,6 +301,8 @@ const deviceForm = reactive<{
   status: "offline",
   telemetryTopic: ""
 });
+
+const tenantId = computed(() => authStore.tenant?.id ?? "demo-tenant");
 
 const filteredDevices = computed(() => {
   const query = searchQuery.value.toLowerCase();
@@ -306,15 +321,20 @@ const filteredDevices = computed(() => {
 
 onMounted(() => {
   void deviceStore.fetchDevices();
+  void fetchPlots();
+});
+
+watch(() => deviceForm.deviceUid, () => {
+  deviceForm.telemetryTopic = buildTelemetryTopic(deviceForm.deviceUid);
 });
 
 function openAddModal(): void {
   deviceForm.deviceUid = "";
   deviceForm.displayName = "";
-  deviceForm.plotId = "";
+  deviceForm.plotId = plots.value[0]?.id ?? "";
   deviceForm.sensorProfile = "Soil NPK + pH";
   deviceForm.status = "offline";
-  deviceForm.telemetryTopic = "pamilo/v1/tenants/mock-tenant/devices/SensorNode04/telemetry";
+  deviceForm.telemetryTopic = buildTelemetryTopic("");
   deviceStore.clearError();
   isAddModalOpen.value = true;
 }
@@ -331,7 +351,7 @@ async function submitDevice(): Promise<void> {
       batteryPercent: 100,
       sensorProfile: deviceForm.sensorProfile
     },
-    plotId: deviceForm.plotId,
+    plotId: deviceForm.plotId || null,
     status: deviceForm.status,
     telemetryTopic: deviceForm.telemetryTopic
   });
@@ -343,6 +363,19 @@ async function submitDevice(): Promise<void> {
 
 async function removeDevice(deviceId: string): Promise<void> {
   await deviceStore.deleteDevice(deviceId);
+}
+
+async function fetchPlots(): Promise<void> {
+  try {
+    plots.value = await apiGet<PlotOption[]>("/api/v1/plots");
+  } catch {
+    plots.value = [];
+  }
+}
+
+function buildTelemetryTopic(deviceUid: string): string {
+  const normalizedDeviceUid = deviceUid.trim() || "SensorNode04";
+  return `pamilo/v1/tenants/${tenantId.value}/devices/${normalizedDeviceUid}/telemetry`;
 }
 
 function sensorProfile(metadata: Record<string, unknown>): string {

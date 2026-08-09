@@ -157,7 +157,6 @@ const bmkgHost = computed(() => {
 });
 
 onMounted(() => {
-  telemetryStore.seedMockTelemetry();
   telemetryStore.connect();
   void refreshDashboardForecast();
 });
@@ -222,7 +221,7 @@ async function refreshDashboardForecast(): Promise<void> {
 
   dashboardForecast.value = result;
   weatherError.value = result.isMock
-    ? `BMKG fallback: ${result.errorMessage ?? "using mock data."}`
+    ? `BMKG fallback: ${result.errorMessage ?? "menggunakan data cadangan."}`
     : null;
 }
 

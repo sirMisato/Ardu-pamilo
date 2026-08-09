@@ -12,7 +12,7 @@ export interface TenantFieldProfile {
 
 export const useTenantProfileStore = defineStore("tenantProfile", () => {
   const activeTenant = ref({
-    id: "mock-tenant",
+    id: "demo-tenant",
     name: "Sedayafarm Demo Tenant",
     licenseTier: "Smart Farming Pro"
   });

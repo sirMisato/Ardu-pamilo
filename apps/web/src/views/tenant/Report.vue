@@ -165,20 +165,9 @@ const filters = reactive<{
 });
 
 const exportMessage = ref("");
-const devices: ReportDevice[] = [
-  { id: "SensorNode01", label: "SensorNode01 / Kebun Utara" },
-  { id: "SensorNode02", label: "SensorNode02 / Blok B" },
-  { id: "WeatherHub01", label: "WeatherHub01 / Pembibitan" }
-];
+const devices: ReportDevice[] = [];
 
-const logs = ref<ReportLog[]>([
-  createLog("SensorNode01", "Kebun Utara / Blok A", "pH", "6.4", "telemetry", 1, "normal"),
-  createLog("SensorNode01", "Kebun Utara / Blok A", "Moisture", "64%", "telemetry", 2, "normal"),
-  createLog("SensorNode02", "Kebun Utara / Blok B", "Nitrogen", "74 ppm", "telemetry", 4, "normal"),
-  createLog("WeatherHub01", "Plot Pembibitan", "Rainfall", "2.2 mm", "weather", 8, "attention"),
-  createLog("SensorNode02", "Kebun Utara / Blok B", "Battery", "28%", "alerts", 12, "attention"),
-  createLog("SensorNode01", "Kebun Utara / Blok A", "Temperature", "29 C", "telemetry", 18, "normal")
-]);
+const logs = ref<ReportLog[]>([]);
 
 const filteredLogs = computed(() => {
   const start = Date.parse(`${filters.startDate}T00:00:00`);
@@ -196,27 +185,6 @@ const filteredLogs = computed(() => {
 
 function mockExport(format: ExportFormat): void {
   exportMessage.value = `${format} export queued for ${filteredLogs.value.length} ${filters.dataset} records.`;
-}
-
-function createLog(
-  deviceId: string,
-  plot: string,
-  metric: string,
-  value: string,
-  dataset: Dataset,
-  hoursAgo: number,
-  status: ReportLog["status"]
-): ReportLog {
-  return {
-    id: `${deviceId}-${metric}-${hoursAgo}`,
-    timestamp: new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString(),
-    deviceId,
-    plot,
-    metric,
-    value,
-    dataset,
-    status
-  };
 }
 
 function toInputDate(value: Date): string {

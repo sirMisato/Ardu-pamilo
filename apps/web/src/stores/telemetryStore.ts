@@ -2,6 +2,7 @@ import mqtt, { type IClientOptions, type MqttClient } from "mqtt";
 import { computed, ref, shallowRef } from "vue";
 import { defineStore } from "pinia";
 import { appEnvironment } from "../config/environment";
+import { useAuthStore } from "./authStore";
 
 export type TelemetryValue = boolean | number | string | null;
 export type MqttConnectionState = "idle" | "connecting" | "connected" | "reconnecting" | "offline" | "error";
@@ -27,7 +28,7 @@ export interface DeviceTelemetry {
   rawPayload: unknown;
 }
 
-const defaultSubscriptionTopic = "pamilo/v1/tenants/mock-tenant/devices/+/telemetry";
+const defaultTenantId = "demo-tenant";
 const reservedPayloadKeys = new Set([
   "device_id",
   "deviceId",
@@ -50,10 +51,11 @@ const reservedPayloadKeys = new Set([
 ]);
 
 export const useTelemetryStore = defineStore("telemetry", () => {
+  const authStore = useAuthStore();
   const client = shallowRef<MqttClient | null>(null);
   const connectionState = ref<MqttConnectionState>("idle");
   const errorMessage = ref<string | null>(null);
-  const subscriptionTopic = ref(defaultSubscriptionTopic);
+  const subscriptionTopic = ref(buildDefaultSubscriptionTopic(defaultTenantId));
   const devices = ref<Record<string, DeviceTelemetry>>({});
 
   const isConnected = computed(() => connectionState.value === "connected");
@@ -64,9 +66,8 @@ export const useTelemetryStore = defineStore("telemetry", () => {
   const onlineDeviceCount = computed(() => Object.values(devices.value).filter((device) => device.online).length);
   const deviceCount = computed(() => Object.keys(devices.value).length);
 
-  function connect(topic = defaultSubscriptionTopic): void {
+  function connect(topic = buildDefaultSubscriptionTopic(authStore.tenant?.id ?? defaultTenantId)): void {
     subscriptionTopic.value = topic;
-    seedMockTelemetry();
 
     if (client.value) {
       return;
@@ -204,44 +205,6 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     return devices.value[deviceId] ?? null;
   }
 
-  function seedMockTelemetry(): void {
-    if (devices.value.SensorNode01) {
-      return;
-    }
-
-    ingestTelemetryPayload("pamilo/v1/tenants/mock-tenant/devices/SensorNode01/telemetry", {
-      device_id: "SensorNode01",
-      node_id: "SensorNode01",
-      timestamp: new Date().toISOString(),
-      metrics: {
-        ph: {
-          value: 6.7,
-          unit: "pH"
-        },
-        nitrogen: {
-          value: 18,
-          unit: "ppm"
-        },
-        moisture: {
-          value: 42.1,
-          unit: "%"
-        },
-        temperature: {
-          value: 29.4,
-          unit: "C"
-        },
-        conductivity: {
-          value: 1.2,
-          unit: "mS/cm"
-        },
-        battery: {
-          value: 87,
-          unit: "%"
-        }
-      }
-    });
-  }
-
   function markDevicesOffline(): void {
     devices.value = Object.fromEntries(Object.entries(devices.value).map(([deviceId, device]) => [
       deviceId,
@@ -266,7 +229,6 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     latestMetrics,
     latestMetricsForDevice,
     onlineDeviceCount,
-    seedMockTelemetry,
     subscriptionTopic,
     connect
   };
@@ -334,4 +296,8 @@ function isTelemetryValue(value: unknown): value is TelemetryValue {
 
 function readString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function buildDefaultSubscriptionTopic(tenantId: string): string {
+  return `pamilo/v1/tenants/${tenantId}/devices/+/telemetry`;
 }

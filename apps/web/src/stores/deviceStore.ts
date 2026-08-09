@@ -24,7 +24,7 @@ export interface CreateDeviceInput {
   displayName: string;
   metadata?: Record<string, unknown>;
   mqttUsername?: string | null;
-  plotId: string;
+  plotId?: string | null;
   status?: DeviceStatus;
   telemetryTopic: string;
 }

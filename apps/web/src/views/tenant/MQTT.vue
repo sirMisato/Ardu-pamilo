@@ -134,7 +134,7 @@
             <input
               v-model.trim="topicForm.topic"
               class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
-              placeholder="pamilo/v1/tenants/mock-tenant/devices/+/telemetry"
+              placeholder="pamilo/v1/tenants/demo-tenant/devices/+/telemetry"
               required
               type="text"
             />
@@ -179,8 +179,9 @@ import {
   Trash2,
   X
 } from "@lucide/vue";
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { appEnvironment } from "../../config/environment";
+import { useAuthStore } from "../../stores/authStore";
 import { useTelemetryStore } from "../../stores/telemetryStore";
 
 type QosLevel = 0 | 1 | 2;
@@ -198,6 +199,8 @@ interface TopicSubscription {
 }
 
 const telemetryStore = useTelemetryStore();
+const authStore = useAuthStore();
+const tenantId = computed(() => authStore.tenant?.id ?? "demo-tenant");
 const brokerHost = computed(() => hostFromUrl(appEnvironment.mqttBrokerUrl, "mqtt.keycloud.id:8883"));
 const websocketHost = computed(() => hostFromUrl(appEnvironment.mqttWebSocketUrl, "mqtt.keycloud.id:8084"));
 const searchQuery = ref("");
@@ -209,43 +212,16 @@ const topicForm = reactive<{
   metricKeys: string;
 }>({
   deviceId: "SensorNode04",
-  topic: "pamilo/v1/tenants/mock-tenant/devices/SensorNode04/telemetry",
+  topic: buildMqttTopic("SensorNode04"),
   qos: 1,
   metricKeys: "ph, moisture, nitrogen"
 });
 
-const subscriptions = ref<TopicSubscription[]>([
-  {
-    id: "topic-sensornode01",
-    deviceId: "SensorNode01",
-    topic: "pamilo/v1/tenants/mock-tenant/devices/SensorNode01/telemetry",
-    brokerHost: brokerHost.value,
-    qos: 1,
-    status: "active",
-    metricKeys: ["ph", "nitrogen", "moisture", "temperature"],
-    lastMessageAt: new Date(Date.now() - 2 * 60 * 1000).toISOString()
-  },
-  {
-    id: "topic-sensornode02",
-    deviceId: "SensorNode02",
-    topic: "pamilo/v1/tenants/mock-tenant/devices/SensorNode02/telemetry",
-    brokerHost: brokerHost.value,
-    qos: 0,
-    status: "active",
-    metricKeys: ["moisture", "temperature"],
-    lastMessageAt: new Date(Date.now() - 9 * 60 * 1000).toISOString()
-  },
-  {
-    id: "topic-weatherhub01",
-    deviceId: "WeatherHub01",
-    topic: "pamilo/v1/tenants/mock-tenant/devices/WeatherHub01/telemetry",
-    brokerHost: brokerHost.value,
-    qos: 1,
-    status: "paused",
-    metricKeys: ["rainfall", "wind_speed", "humidity"],
-    lastMessageAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
-  }
-]);
+const subscriptions = ref<TopicSubscription[]>([]);
+
+watch(() => topicForm.deviceId, () => {
+  topicForm.topic = buildMqttTopic(topicForm.deviceId);
+});
 
 const filteredSubscriptions = computed(() => {
   const query = searchQuery.value.toLowerCase();
@@ -295,7 +271,7 @@ const brokerCards = computed(() => [
 
 function openModal(): void {
   topicForm.deviceId = "SensorNode04";
-  topicForm.topic = "pamilo/v1/tenants/mock-tenant/devices/SensorNode04/telemetry";
+  topicForm.topic = buildMqttTopic("SensorNode04");
   topicForm.qos = 1;
   topicForm.metricKeys = "ph, moisture, nitrogen";
   isModalOpen.value = true;
@@ -357,5 +333,10 @@ function hostFromUrl(value: string, fallback: string): string {
   } catch {
     return fallback;
   }
+}
+
+function buildMqttTopic(deviceId: string): string {
+  const normalizedDeviceId = deviceId.trim() || "SensorNode04";
+  return `pamilo/v1/tenants/${tenantId.value}/devices/${normalizedDeviceId}/telemetry`;
 }
 </script>
