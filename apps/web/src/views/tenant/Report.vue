@@ -1,25 +1,5 @@
 <template>
   <div class="space-y-5">
-    <section class="grid gap-4 md:grid-cols-3">
-      <article class="panel-surface p-5">
-        <p class="text-sm font-medium text-slate-400">Log Terfilter</p>
-        <p class="mt-2 text-3xl font-semibold tracking-normal text-white">{{ filteredLogs.length }}</p>
-        <p class="mt-3 text-sm text-field-mint">Telemetry records</p>
-      </article>
-
-      <article class="panel-surface p-5">
-        <p class="text-sm font-medium text-slate-400">Device Dipilih</p>
-        <p class="mt-2 text-3xl font-semibold tracking-normal text-white">{{ selectedDeviceLabel }}</p>
-        <p class="mt-3 text-sm text-field-green">Report scope</p>
-      </article>
-
-      <article class="panel-surface p-5">
-        <p class="text-sm font-medium text-slate-400">Rentang Tanggal</p>
-        <p class="mt-2 text-xl font-semibold tracking-normal text-white">{{ filters.startDate }} - {{ filters.endDate }}</p>
-        <p class="mt-3 text-sm text-sky-200">Local timezone</p>
-      </article>
-    </section>
-
     <section class="panel-surface p-5">
       <div class="grid gap-4 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-end">
         <label class="space-y-2">
@@ -199,14 +179,6 @@ const logs = ref<ReportLog[]>([
   createLog("SensorNode02", "Kebun Utara / Blok B", "Battery", "28%", "alerts", 12, "attention"),
   createLog("SensorNode01", "Kebun Utara / Blok A", "Temperature", "29 C", "telemetry", 18, "normal")
 ]);
-
-const selectedDeviceLabel = computed(() => {
-  if (filters.deviceId === "all") {
-    return "All";
-  }
-
-  return devices.find((device) => device.id === filters.deviceId)?.id ?? filters.deviceId;
-});
 
 const filteredLogs = computed(() => {
   const start = Date.parse(`${filters.startDate}T00:00:00`);
