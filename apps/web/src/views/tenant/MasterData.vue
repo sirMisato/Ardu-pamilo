@@ -269,9 +269,9 @@
       </form>
     </div>
 
-    <div v-if="isAreaModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/75 p-4 backdrop-blur-sm">
-      <form class="w-full max-w-2xl rounded-lg border border-field-mint/20 bg-[#101f32] p-5 shadow-field" @submit.prevent="submitArea">
-        <div class="flex items-center justify-between gap-4">
+    <div v-if="isAreaModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-[#020617]/75 p-4 backdrop-blur-sm">
+      <form ref="areaFormElement" class="mx-auto flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-field-mint/20 bg-[#101f32] shadow-field" @submit.prevent="submitArea">
+        <div class="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 p-5">
           <div>
             <h2 class="text-lg font-semibold tracking-normal text-white">{{ areaModalTitle }}</h2>
             <p class="mt-1 text-sm text-slate-400">Relasi zona, crop, dan BMKG.</p>
@@ -281,7 +281,7 @@
           </button>
         </div>
 
-        <div class="mt-5 grid gap-4 md:grid-cols-2">
+        <div class="grid gap-4 overflow-y-auto p-5 md:grid-cols-2">
           <label class="space-y-2">
             <span class="text-sm font-medium text-slate-300">Nama Zona / Area</span>
             <input v-model.trim="areaForm.name" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" required type="text" />
@@ -309,17 +309,17 @@
 
           <div class="space-y-2 md:col-span-2">
             <span class="text-sm font-medium text-slate-300">Polygon Lokasi</span>
-            <PolygonMapEditor v-model="areaPolygon" />
+            <PolygonMapEditor v-model="areaPolygon" @cancel="closeAreaModal" @save="submitAreaFromPolygon" />
           </div>
         </div>
 
-        <div v-if="areaFormError" class="mt-4 rounded-lg border border-amber-300/25 bg-amber-300/10 p-3 text-sm text-amber-100">
+        <div v-if="areaFormError" class="mx-5 mb-4 shrink-0 rounded-lg border border-amber-300/25 bg-amber-300/10 p-3 text-sm text-amber-100">
           {{ areaFormError }}
         </div>
 
-        <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <div class="flex shrink-0 flex-col-reverse gap-3 border-t border-white/10 bg-[#101f32] p-5 sm:flex-row sm:justify-end">
           <button class="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-slate-300 hover:bg-white/5" type="button" @click="closeAreaModal">
-            Batal
+            Kembali
           </button>
           <button class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-field-green px-5 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60" :disabled="isSaving" type="submit">
             <Save class="h-4 w-4" />
@@ -360,6 +360,7 @@ const isCropModalOpen = ref(false);
 const isAreaModalOpen = ref(false);
 const editingAreaId = ref<string | null>(null);
 const areaFormError = ref<string | null>(null);
+const areaFormElement = ref<HTMLFormElement | null>(null);
 const areaPolygon = ref<unknown>(defaultPolygon());
 
 const cropForm = reactive<{
@@ -533,6 +534,16 @@ async function submitArea(): Promise<void> {
   if (saved) {
     closeAreaModal();
   }
+}
+
+async function submitAreaFromPolygon(polygonGeojson: Record<string, unknown>): Promise<void> {
+  areaPolygon.value = polygonGeojson;
+
+  if (!areaFormElement.value?.reportValidity()) {
+    return;
+  }
+
+  await submitArea();
 }
 
 async function removePlot(plot: ApiPlot): Promise<void> {

@@ -15,28 +15,47 @@
           {{ layer.label }}
         </button>
       </div>
+    </div>
 
-      <div class="absolute bottom-3 left-3 z-[500] flex flex-wrap gap-2">
+    <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+      <div class="flex flex-wrap gap-2">
         <button
-          class="rounded-lg border border-field-mint/30 bg-[#07111f]/90 px-3 py-2 text-xs font-semibold text-field-mint backdrop-blur transition hover:bg-field-mint/10 disabled:opacity-50"
+          class="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
+          type="button"
+          @click="emit('cancel')"
+        >
+          Kembali
+        </button>
+        <button
+          class="rounded-lg border border-field-mint/30 px-3 py-2 text-xs font-semibold text-field-mint transition hover:bg-field-mint/10 disabled:opacity-50"
           :disabled="points.length === 0"
           type="button"
-          @click.stop="undoPoint"
+          @click="undoPoint"
         >
           Undo
         </button>
         <button
-          class="rounded-lg border border-rose-300/30 bg-[#07111f]/90 px-3 py-2 text-xs font-semibold text-rose-200 backdrop-blur transition hover:bg-rose-300/10 disabled:opacity-50"
+          class="rounded-lg border border-rose-300/30 px-3 py-2 text-xs font-semibold text-rose-200 transition hover:bg-rose-300/10 disabled:opacity-50"
           :disabled="points.length === 0"
           type="button"
-          @click.stop="clearPoints"
+          @click="clearPoints"
         >
           Clear
         </button>
       </div>
 
-      <div class="pointer-events-none absolute bottom-3 right-3 z-[500] rounded-lg border border-white/10 bg-[#07111f]/90 px-3 py-2 text-xs text-slate-300 backdrop-blur">
-        {{ points.length }} titik
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="rounded-lg border border-white/10 bg-[#07111f] px-3 py-2 text-xs text-slate-300">
+          {{ points.length }} titik
+        </span>
+        <button
+          class="rounded-lg bg-field-green px-4 py-2 text-xs font-semibold text-[#102016] transition hover:bg-field-mint disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="!canSave"
+          type="button"
+          @click="savePolygon"
+        >
+          Simpan Polygon
+        </button>
       </div>
     </div>
   </div>
@@ -45,7 +64,7 @@
 <script setup lang="ts">
 import L, { type LatLngExpression, type Map, type Polygon, type TileLayer } from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 type MapLayerKey = "street" | "satellite";
 type LatLngTuple = [number, number];
@@ -55,6 +74,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
+  cancel: [];
+  save: [value: Record<string, unknown>];
   "update:modelValue": [value: Record<string, unknown>];
 }>();
 
@@ -72,6 +93,7 @@ const mapLayerOptions: Array<{ key: MapLayerKey; label: string }> = [
   { key: "satellite", label: "Satelit" },
   { key: "street", label: "Peta" }
 ];
+const canSave = computed(() => points.value.length >= 3);
 
 onMounted(async () => {
   await nextTick();
@@ -88,7 +110,7 @@ onBeforeUnmount(() => {
 watch(() => props.modelValue, (value) => {
   const nextPoints = extractPolygonPoints(value);
   points.value = nextPoints;
-  renderPolygon(false);
+  renderPolygon();
 }, {
   deep: true,
   immediate: true
@@ -111,10 +133,11 @@ function initializeMap(): void {
 
   map.on("click", (event) => {
     points.value = [...points.value, [event.latlng.lat, event.latlng.lng]];
-    renderPolygon(true);
+    syncDraftPolygon();
+    renderPolygon();
   });
 
-  renderPolygon(false);
+  renderPolygon();
   window.setTimeout(() => map?.invalidateSize(), 80);
 }
 
@@ -150,15 +173,31 @@ function setActiveMapLayer(layerKey: MapLayerKey): void {
 
 function undoPoint(): void {
   points.value = points.value.slice(0, -1);
-  renderPolygon(true);
+  syncDraftPolygon();
+  renderPolygon();
 }
 
 function clearPoints(): void {
   points.value = [];
-  renderPolygon(true);
+  syncDraftPolygon();
+  renderPolygon();
 }
 
-function renderPolygon(shouldEmit: boolean): void {
+function savePolygon(): void {
+  if (!canSave.value) {
+    return;
+  }
+
+  const polygonGeojson = toGeoJson(points.value);
+  emit("update:modelValue", polygonGeojson);
+  emit("save", polygonGeojson);
+}
+
+function syncDraftPolygon(): void {
+  emit("update:modelValue", toGeoJson(points.value));
+}
+
+function renderPolygon(): void {
   if (!map) {
     return;
   }
@@ -198,10 +237,6 @@ function renderPolygon(shouldEmit: boolean): void {
       map.panTo(lastPoint);
     }
   }
-
-  if (shouldEmit) {
-    emit("update:modelValue", toGeoJson(points.value));
-  }
 }
 
 function extractPolygonPoints(value: unknown): LatLngTuple[] {
@@ -216,7 +251,7 @@ function extractPolygonPoints(value: unknown): LatLngTuple[] {
   }
 
   const withoutClosingPoint = ring.filter((coordinate, index) => {
-    if (index !== ring.length - 1) {
+    if (ring.length < 2 || index !== ring.length - 1) {
       return true;
     }
 
@@ -250,7 +285,7 @@ function readGeometry(value: unknown): { coordinates?: unknown; type?: unknown }
 }
 
 function toGeoJson(nextPoints: LatLngTuple[]): Record<string, unknown> {
-  if (nextPoints.length < 3) {
+  if (nextPoints.length === 0) {
     return {
       coordinates: [],
       type: "Polygon"
@@ -259,7 +294,7 @@ function toGeoJson(nextPoints: LatLngTuple[]): Record<string, unknown> {
 
   const coordinates = nextPoints.map(([lat, lng]) => [lng, lat]);
   const firstCoordinate = coordinates[0];
-  if (firstCoordinate) {
+  if (nextPoints.length >= 3 && firstCoordinate) {
     coordinates.push(firstCoordinate);
   }
 

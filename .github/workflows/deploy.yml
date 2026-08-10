@@ -163,7 +163,7 @@ jobs:
             DEMO_TENANT_ENABLED="${DEMO_TENANT_ENABLED:-true}"
             DEMO_TENANT_ID="${DEMO_TENANT_ID:-demo-tenant}"
             DEMO_TENANT_NAME="${DEMO_TENANT_NAME:-PAMILO Demo Farm}"
-            EMQX_DASHBOARD_USERNAME="${EMQX_DASHBOARD_USERNAME:-admin}"
+            EMQX_DASHBOARD_USERNAME="${EMQX_DASHBOARD_USERNAME:-miski}"
             FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-https://sedayafarm.keycloud.id}"
             JWT_EXPIRES_IN="${JWT_EXPIRES_IN:-8h}"
             LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-admin@sedayafarm.keycloud.id}"
@@ -435,6 +435,8 @@ jobs:
 
             compose ps
 
+            wait_for_compose_command "emqx status" emqx sh -lc '/opt/emqx/bin/emqx_ctl status >/dev/null 2>&1 || /opt/emqx/bin/emqx ctl status >/dev/null 2>&1'
+            wait_for_compose_command "emqx dashboard admin sync" emqx sh -lc 'emqx ctl admins add "$EMQX_DASHBOARD__DEFAULT_USERNAME" "$EMQX_DASHBOARD__DEFAULT_PASSWORD" "PAMILO dashboard admin" >/dev/null 2>&1 || emqx ctl admins passwd "$EMQX_DASHBOARD__DEFAULT_USERNAME" "$EMQX_DASHBOARD__DEFAULT_PASSWORD" >/dev/null'
             wait_for_compose_command "frontend health" frontend wget -qO- http://127.0.0.1/health
             wait_for_compose_command "backend health" backend node -e "fetch('http://127.0.0.1:3000/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"
             wait_for_compose_command "demo tenant login" backend node -e "fetch('http://127.0.0.1:3000/api/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({emailOrUsername:process.env.DEMO_TENANT_EMAIL,password:process.env.DEMO_TENANT_PASSWORD})}).then(async(response)=>{if(!response.ok){console.error(await response.text());process.exit(1)} const body=await response.json(); process.exit(body.accessToken?0:1)}).catch((error)=>{console.error(error);process.exit(1)})"
