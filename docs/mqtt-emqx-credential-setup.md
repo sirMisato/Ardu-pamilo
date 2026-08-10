@@ -32,8 +32,18 @@ pamilo_web_demo    subscribe pamilo/v1/tenants/demo-tenant/devices/+/telemetry
 6. Create `pamilo_device_demo` with a strong password.
 7. Create `pamilo_web_demo` with a different strong password if you need browser MQTT testing.
 
-The dashboard is protected by EMQX login. Use `EMQX_DASHBOARD_USERNAME` and
-`EMQX_DASHBOARD_PASSWORD` from GitHub Actions production variables/secrets.
+The dashboard is protected by EMQX login. Use the actual values configured in
+GitHub Actions production variables/secrets:
+
+```txt
+Username variable: EMQX_DASHBOARD_USERNAME
+Password secret: EMQX_DASHBOARD_PASSWORD
+```
+
+For the current VPS deployment, the deployment workflow also resets/syncs the
+Dashboard user password from `EMQX_DASHBOARD_PASSWORD` on every deploy. If login
+still shows "Incorrect username or password", confirm that the secret exists in
+the `production` environment, then redeploy.
 
 ## Create Users From HTTP API
 

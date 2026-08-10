@@ -318,16 +318,6 @@ jobs:
               echo "SUPER_ADMIN_PASSWORD_HASH is not configured. Using temporary demo super admin credentials."
             fi
 
-            if [ -z "${EMQX_DASHBOARD_PASSWORD:-}" ]; then
-              if [ ! -f "$SECRETS_DIR/emqx-dashboard-password" ] || ! grep -Eq '^[A-Za-z0-9]{32,}$' "$SECRETS_DIR/emqx-dashboard-password"; then
-                openssl rand -hex 32 > "$SECRETS_DIR/emqx-dashboard-password"
-                chmod 600 "$SECRETS_DIR/emqx-dashboard-password"
-              fi
-
-              EMQX_DASHBOARD_PASSWORD="$(cat "$SECRETS_DIR/emqx-dashboard-password")"
-              export EMQX_DASHBOARD_PASSWORD
-            fi
-
             if [ "$DEMO_TENANT_ENABLED" = "true" ] && [ -z "${DEMO_TENANT_PASSWORD:-}" ]; then
               DEMO_TENANT_PASSWORD="PamiloTenant#2026!"
               export DEMO_TENANT_PASSWORD
@@ -453,6 +443,7 @@ jobs:
             compose ps
 
             wait_for_compose_command "emqx dashboard http" backend node -e "fetch('http://emqx:18083').then((response)=>process.exit(response.status < 500 ? 0 : 1)).catch((error)=>{console.error(error);process.exit(1)})"
+            wait_for_compose_command "emqx dashboard admin password sync" emqx env EMQX_DASHBOARD_USERNAME="$EMQX_DASHBOARD_USERNAME" EMQX_DASHBOARD_PASSWORD="$EMQX_DASHBOARD_PASSWORD" sh -lc '/opt/emqx/bin/emqx ctl admins passwd "$EMQX_DASHBOARD_USERNAME" "$EMQX_DASHBOARD_PASSWORD" || /opt/emqx/bin/emqx ctl admins add "$EMQX_DASHBOARD_USERNAME" "$EMQX_DASHBOARD_PASSWORD" "Managed by deploy"'
             wait_for_compose_command "emqx dashboard login" backend env EMQX_DASHBOARD_USERNAME="$EMQX_DASHBOARD_USERNAME" EMQX_DASHBOARD_PASSWORD="$EMQX_DASHBOARD_PASSWORD" node -e "fetch('http://emqx:18083/api/v5/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:process.env.EMQX_DASHBOARD_USERNAME,password:process.env.EMQX_DASHBOARD_PASSWORD})}).then(async(response)=>{if(!response.ok){console.error(await response.text());process.exit(1)} const body=await response.json(); process.exit(body.token||body.code===0?0:1)}).catch((error)=>{console.error(error);process.exit(1)})"
             wait_for_compose_command "frontend health" frontend wget -qO- http://127.0.0.1/health
             wait_for_compose_command "backend health" backend node -e "fetch('http://127.0.0.1:3000/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"
