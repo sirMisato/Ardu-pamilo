@@ -435,7 +435,7 @@ jobs:
 
             compose ps
 
-            wait_for_compose_command "emqx status" emqx sh -lc '/opt/emqx/bin/emqx_ctl status >/dev/null 2>&1 || /opt/emqx/bin/emqx ctl status >/dev/null 2>&1'
+            wait_for_compose_command "emqx dashboard http" backend node -e "fetch('http://emqx:18083').then((response)=>process.exit(response.status < 500 ? 0 : 1)).catch((error)=>{console.error(error);process.exit(1)})"
             wait_for_compose_command "emqx dashboard admin sync" emqx sh -lc 'emqx ctl admins add "$EMQX_DASHBOARD__DEFAULT_USERNAME" "$EMQX_DASHBOARD__DEFAULT_PASSWORD" "PAMILO dashboard admin" >/dev/null 2>&1 || emqx ctl admins passwd "$EMQX_DASHBOARD__DEFAULT_USERNAME" "$EMQX_DASHBOARD__DEFAULT_PASSWORD" >/dev/null'
             wait_for_compose_command "frontend health" frontend wget -qO- http://127.0.0.1/health
             wait_for_compose_command "backend health" backend node -e "fetch('http://127.0.0.1:3000/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"
