@@ -23,8 +23,8 @@
             <p class="mt-1 text-sm text-slate-400">{{ tenantProfileStore.activeFieldLabel }}</p>
           </div>
           <div class="flex items-center gap-2 rounded-full border border-field-mint/25 bg-field-mint/10 px-3 py-1 text-sm text-field-mint">
-            <span class="h-2 w-2 rounded-full" :class="telemetryStore.isConnected ? 'bg-field-mint' : 'bg-amber-200'"></span>
-            {{ telemetryStore.onlineDeviceCount }} live nodes
+            <span class="h-2 w-2 rounded-full" :class="telemetryStore.isConnected || telemetryStore.connectionState === 'history' ? 'bg-field-mint' : 'bg-amber-200'"></span>
+            {{ telemetryNodeLabel }}
           </div>
         </div>
 
@@ -136,7 +136,7 @@
 
 <script setup lang="ts">
 import { CloudRain, CloudSun, Cpu, Sprout, Waves } from "@lucide/vue";
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import FieldMap from "../../components/dashboard/FieldMap.vue";
 import { appEnvironment } from "../../config/environment";
 import { fetchBmkgForecast, type BmkgForecastResult } from "../../services/bmkgService";
@@ -147,6 +147,7 @@ const telemetryStore = useTelemetryStore();
 const tenantProfileStore = useTenantProfileStore();
 const dashboardForecast = ref<BmkgForecastResult | null>(null);
 const weatherError = ref<string | null>(null);
+let telemetryRefreshTimer: number | undefined;
 
 const bmkgHost = computed(() => {
   try {
@@ -159,7 +160,17 @@ const bmkgHost = computed(() => {
 onMounted(async () => {
   await tenantProfileStore.fetchFields();
   telemetryStore.connect();
+  await telemetryStore.refreshHistory();
+  telemetryRefreshTimer = window.setInterval(() => {
+    void telemetryStore.refreshHistory();
+  }, 30_000);
   void refreshDashboardForecast();
+});
+
+onBeforeUnmount(() => {
+  if (telemetryRefreshTimer) {
+    window.clearInterval(telemetryRefreshTimer);
+  }
 });
 
 watch(() => tenantProfileStore.activeBmkgAdm4Code, () => {
@@ -193,13 +204,43 @@ const topStats = computed(() => [
   },
   {
     label: "Realtime",
-    value: "MQTT",
-    detail: telemetryStore.connectionState,
+    value: telemetryTransportLabel.value,
+    detail: telemetryStatusLabel.value,
     icon: Waves,
     iconClass: "bg-sky-300/10 text-sky-200",
     detailClass: "text-sky-200"
   }
 ]);
+
+const telemetryNodeLabel = computed(() => {
+  if (telemetryStore.connectionState === "history") {
+    return `${telemetryStore.deviceCount.toLocaleString("id-ID")} telemetry nodes`;
+  }
+
+  return `${telemetryStore.onlineDeviceCount.toLocaleString("id-ID")} live nodes`;
+});
+
+const telemetryTransportLabel = computed(() => telemetryStore.connectionState === "history" ? "Backend" : "MQTT");
+
+const telemetryStatusLabel = computed(() => {
+  switch (telemetryStore.connectionState) {
+    case "connected":
+      return "connected";
+    case "connecting":
+      return "connecting";
+    case "reconnecting":
+      return "reconnecting";
+    case "history":
+      return "history sync";
+    case "offline":
+      return "offline";
+    case "error":
+      return telemetryStore.errorMessage ?? "error";
+    case "idle":
+    default:
+      return "loading";
+  }
+});
 
 const activeAreaLabel = computed(() => {
   const totalArea = tenantProfileStore.fields.reduce((total, field) => total + (field.areaHectares ?? 0), 0);

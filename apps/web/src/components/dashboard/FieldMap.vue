@@ -28,7 +28,7 @@
 
     <div class="pointer-events-none absolute left-4 top-4 z-[500] rounded-lg border border-white/10 bg-[#07111f]/90 px-3 py-2 text-xs text-slate-300 backdrop-blur">
       <div class="flex items-center gap-2">
-        <span class="h-2 w-2 rounded-full" :class="telemetryStore.isConnected ? 'bg-field-mint' : 'bg-amber-200'"></span>
+        <span class="h-2 w-2 rounded-full" :class="telemetryStore.isConnected || telemetryStore.connectionState === 'history' ? 'bg-field-mint' : 'bg-amber-200'"></span>
         <span>{{ connectionLabel }}</span>
       </div>
     </div>
@@ -89,6 +89,10 @@ const connectionLabel = computed(() => {
 
   if (state === "reconnecting") {
     return "MQTT reconnecting";
+  }
+
+  if (state === "history") {
+    return "Backend telemetry history";
   }
 
   if (state === "error") {

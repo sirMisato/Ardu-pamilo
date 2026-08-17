@@ -2,10 +2,11 @@ import mqtt, { type IClientOptions, type MqttClient } from "mqtt";
 import { computed, ref, shallowRef } from "vue";
 import { defineStore } from "pinia";
 import { appEnvironment } from "../config/environment";
+import { apiGet } from "../services/apiClient";
 import { useAuthStore } from "./authStore";
 
 export type TelemetryValue = boolean | number | string | null;
-export type MqttConnectionState = "idle" | "connecting" | "connected" | "reconnecting" | "offline" | "error";
+export type MqttConnectionState = "idle" | "connecting" | "connected" | "reconnecting" | "offline" | "history" | "error";
 
 export interface DynamicMetric {
   key: string;
@@ -28,6 +29,19 @@ export interface DeviceTelemetry {
   lastSeenAt: string;
   metrics: Record<string, DynamicMetric>;
   rawPayload: unknown;
+}
+
+interface TelemetryHistoryItem {
+  deviceUid: string;
+  payload: unknown;
+  receivedAt: string;
+  topic: string;
+}
+
+interface TelemetryIngestOptions {
+  deviceId?: string;
+  observedAt?: string;
+  online?: boolean;
 }
 
 const defaultTenantId = "demo-tenant";
@@ -57,6 +71,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
   const client = shallowRef<MqttClient | null>(null);
   const connectionState = ref<MqttConnectionState>("idle");
   const errorMessage = ref<string | null>(null);
+  const isHistoryLoading = ref(false);
   const subscriptionTopic = ref(buildDefaultSubscriptionTopic(defaultTenantId));
   const devices = ref<Record<string, DeviceTelemetry>>({});
 
@@ -70,20 +85,21 @@ export const useTelemetryStore = defineStore("telemetry", () => {
 
   function connect(topic = buildDefaultSubscriptionTopic(authStore.tenant?.id ?? defaultTenantId)): void {
     subscriptionTopic.value = topic;
+    void refreshHistory();
 
     if (client.value) {
       return;
     }
 
     if (!appEnvironment.mqttWebSocketUrl) {
-      connectionState.value = "error";
-      errorMessage.value = "VITE_MQTT_WEBSOCKET_URL is not configured.";
+      connectionState.value = "history";
+      errorMessage.value = null;
       return;
     }
 
     if (!appEnvironment.mqttUsername || !appEnvironment.mqttPassword) {
-      connectionState.value = "error";
-      errorMessage.value = "MQTT WebSocket credentials belum diatur.";
+      connectionState.value = "history";
+      errorMessage.value = null;
       return;
     }
 
@@ -154,6 +170,39 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     connectionState.value = "idle";
   }
 
+  async function refreshHistory(): Promise<void> {
+    if (isHistoryLoading.value) {
+      return;
+    }
+
+    isHistoryLoading.value = true;
+
+    try {
+      const items = await apiGet<TelemetryHistoryItem[]>("/api/v1/telemetry/latest");
+
+      for (const item of [...items].reverse()) {
+        ingestTelemetryPayload(item.topic, item.payload, {
+          deviceId: item.deviceUid,
+          observedAt: item.receivedAt,
+          online: connectionState.value === "connected"
+        });
+      }
+
+      if (!client.value && connectionState.value !== "connected") {
+        connectionState.value = "history";
+      }
+
+      errorMessage.value = null;
+    } catch (error) {
+      if (!client.value && connectionState.value !== "connected") {
+        connectionState.value = "error";
+        errorMessage.value = error instanceof Error ? error.message : "Gagal mengambil telemetry history.";
+      }
+    } finally {
+      isHistoryLoading.value = false;
+    }
+  }
+
   function ingestMqttMessage(topicName: string, rawMessage: string): void {
     try {
       const payload = JSON.parse(rawMessage) as unknown;
@@ -163,7 +212,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     }
   }
 
-  function ingestTelemetryPayload(topicName: string, payload: unknown): void {
+  function ingestTelemetryPayload(topicName: string, payload: unknown, options: TelemetryIngestOptions = {}): void {
     if (!isRecord(payload)) {
       errorMessage.value = "Received MQTT payload must be a JSON object.";
       return;
@@ -173,12 +222,14 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     const topicDeviceId = extractDeviceIdFromTopic(topicName);
     const deviceId = readString(payload.device_id)
       ?? readString(payload.deviceId)
+      ?? options.deviceId
       ?? topicDeviceId
       ?? "unknown-device";
     const nodeId = readString(payload.node_id)
       ?? readString(payload.nodeId)
       ?? deviceId;
-    const observedAt = readString(payload.timestamp)
+    const observedAt = options.observedAt
+      ?? readString(payload.timestamp)
       ?? readString(payload.ts)
       ?? readString(payload.time)
       ?? now;
@@ -209,7 +260,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
         longitude: location?.longitude ?? previous?.longitude ?? null,
         nodeId,
         topic: topicName,
-        online: true,
+        online: options.online ?? true,
         lastSeenAt: observedAt,
         metrics: nextMetrics,
         rawPayload: payload
@@ -246,10 +297,12 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     errorMessage,
     ingestMqttMessage,
     ingestTelemetryPayload,
+    isHistoryLoading,
     isConnected,
     latestMetrics,
     latestMetricsForDevice,
     onlineDeviceCount,
+    refreshHistory,
     subscriptionTopic,
     connect
   };
