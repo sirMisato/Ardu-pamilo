@@ -198,6 +198,7 @@ interface TopicSubscription {
   lastMessageAt: string;
 }
 
+const mqttSubscriptionsStoragePrefix = "pamilo.mqttSubscriptions";
 const telemetryStore = useTelemetryStore();
 const authStore = useAuthStore();
 const tenantId = computed(() => authStore.tenant?.id ?? "demo-tenant");
@@ -223,6 +224,13 @@ watch(() => topicForm.deviceId, () => {
   topicForm.topic = buildMqttTopic(topicForm.deviceId);
 });
 
+watch(tenantId, () => {
+  subscriptions.value = readStoredSubscriptions(tenantId.value, brokerHost.value);
+  topicForm.topic = buildMqttTopic(topicForm.deviceId);
+}, {
+  immediate: true
+});
+
 const filteredSubscriptions = computed(() => {
   const query = searchQuery.value.toLowerCase();
 
@@ -242,6 +250,9 @@ const filteredSubscriptions = computed(() => {
   });
 });
 
+const activeSubscriptions = computed(() => subscriptions.value.filter((item) => item.status === "active"));
+const activeSubscriptionTopic = computed(() => activeSubscriptions.value[0]?.topic ?? telemetryStore.subscriptionTopic);
+
 const brokerCards = computed(() => [
   {
     label: "EMQX MQTT Broker",
@@ -257,8 +268,8 @@ const brokerCards = computed(() => [
   },
   {
     label: "Active Subscription",
-    value: telemetryStore.subscriptionTopic,
-    detail: `${subscriptions.value.filter((item) => item.status === "active").length} topic aktif`,
+    value: activeSubscriptionTopic.value,
+    detail: `${activeSubscriptions.value.length} topic aktif`,
     icon: Activity
   },
   {
@@ -282,19 +293,29 @@ function closeModal(): void {
 }
 
 function registerTopic(): void {
-  subscriptions.value = [
-    {
-      id: `topic-${topicForm.deviceId.toLowerCase()}-${Date.now()}`,
-      deviceId: topicForm.deviceId,
-      topic: topicForm.topic,
-      brokerHost: brokerHost.value,
-      qos: topicForm.qos,
-      status: "active",
-      metricKeys: topicForm.metricKeys.split(",").map((key) => key.trim()).filter(Boolean),
-      lastMessageAt: new Date().toISOString()
-    },
-    ...subscriptions.value
-  ];
+  const nextSubscription: TopicSubscription = {
+    id: createSubscriptionId(topicForm.deviceId),
+    deviceId: topicForm.deviceId,
+    topic: topicForm.topic,
+    brokerHost: brokerHost.value,
+    qos: topicForm.qos,
+    status: "active",
+    metricKeys: topicForm.metricKeys.split(",").map((key) => key.trim()).filter(Boolean),
+    lastMessageAt: new Date().toISOString()
+  };
+  const existingIndex = subscriptions.value.findIndex((subscription) => subscription.topic === nextSubscription.topic);
+
+  subscriptions.value = existingIndex >= 0
+    ? subscriptions.value.map((subscription, index) => index === existingIndex ? {
+        ...nextSubscription,
+        id: subscription.id,
+        lastMessageAt: subscription.lastMessageAt
+      } : subscription)
+    : [
+        nextSubscription,
+        ...subscriptions.value
+      ];
+  persistSubscriptions();
   closeModal();
 }
 
@@ -309,10 +330,89 @@ function toggleSubscription(subscriptionId: string): void {
       status: subscription.status === "active" ? "paused" : "active"
     };
   });
+  persistSubscriptions();
 }
 
 function removeSubscription(subscriptionId: string): void {
   subscriptions.value = subscriptions.value.filter((subscription) => subscription.id !== subscriptionId);
+  persistSubscriptions();
+}
+
+function readStoredSubscriptions(currentTenantId: string, currentBrokerHost: string): TopicSubscription[] {
+  if (!canUseStorage()) {
+    return [];
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(storageKeyForTenant(currentTenantId));
+    const parsedValue = rawValue ? JSON.parse(rawValue) as unknown : [];
+
+    if (!Array.isArray(parsedValue)) {
+      return [];
+    }
+
+    return parsedValue
+      .filter(isTopicSubscription)
+      .map((subscription) => ({
+        ...subscription,
+        brokerHost: currentBrokerHost
+      }));
+  } catch {
+    return [];
+  }
+}
+
+function persistSubscriptions(): void {
+  if (!canUseStorage()) {
+    return;
+  }
+
+  window.localStorage.setItem(storageKeyForTenant(tenantId.value), JSON.stringify(subscriptions.value));
+}
+
+function storageKeyForTenant(currentTenantId: string): string {
+  return `${mqttSubscriptionsStoragePrefix}.${currentTenantId}`;
+}
+
+function createSubscriptionId(deviceId: string): string {
+  const normalizedDeviceId = deviceId.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-") || "device";
+
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `topic-${normalizedDeviceId}-${crypto.randomUUID()}`;
+  }
+
+  return `topic-${normalizedDeviceId}-${Date.now()}`;
+}
+
+function isTopicSubscription(value: unknown): value is TopicSubscription {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+  const metricKeys = record.metricKeys;
+
+  return typeof record.id === "string"
+    && typeof record.deviceId === "string"
+    && typeof record.topic === "string"
+    && typeof record.brokerHost === "string"
+    && isQosLevel(record.qos)
+    && isSubscriptionStatus(record.status)
+    && Array.isArray(metricKeys)
+    && metricKeys.every((key) => typeof key === "string")
+    && typeof record.lastMessageAt === "string";
+}
+
+function isQosLevel(value: unknown): value is QosLevel {
+  return value === 0 || value === 1 || value === 2;
+}
+
+function isSubscriptionStatus(value: unknown): value is SubscriptionStatus {
+  return value === "active" || value === "paused";
+}
+
+function canUseStorage(): boolean {
+  return typeof window !== "undefined" && Boolean(window.localStorage);
 }
 
 function formatDateTime(value: string): string {
