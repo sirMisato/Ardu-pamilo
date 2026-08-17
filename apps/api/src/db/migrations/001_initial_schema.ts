@@ -92,10 +92,10 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn("created_at", "timestamp", (column) => column.notNull().defaultTo(sql`CURRENT_TIMESTAMP`))
     .execute();
 
-  await db.schema.createIndex("plots_tenant_id_idx").ifNotExists().on("plots").column("tenant_id").execute();
-  await db.schema.createIndex("devices_tenant_plot_idx").ifNotExists().on("devices").columns(["tenant_id", "plot_id"]).execute();
-  await db.schema.createIndex("telemetry_tenant_received_idx").ifNotExists().on("telemetry_data").columns(["tenant_id", "received_at"]).execute();
-  await db.schema.createIndex("telemetry_device_received_idx").ifNotExists().on("telemetry_data").columns(["device_id", "received_at"]).execute();
+  await createIndexIfMissing(db, "plots_tenant_id_idx", "plots", ["tenant_id"]);
+  await createIndexIfMissing(db, "devices_tenant_plot_idx", "devices", ["tenant_id", "plot_id"]);
+  await createIndexIfMissing(db, "telemetry_tenant_received_idx", "telemetry_data", ["tenant_id", "received_at"]);
+  await createIndexIfMissing(db, "telemetry_device_received_idx", "telemetry_data", ["device_id", "received_at"]);
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
@@ -104,4 +104,24 @@ export async function down(db: Kysely<unknown>): Promise<void> {
   await db.schema.dropTable("plots").ifExists().execute();
   await db.schema.dropTable("master_crops").ifExists().execute();
   await db.schema.dropTable("tenants").ifExists().execute();
+}
+
+async function createIndexIfMissing(
+  db: Kysely<unknown>,
+  indexName: string,
+  tableName: string,
+  columns: string[]
+): Promise<void> {
+  const existingIndex = await sql<{ index_exists: number }>`
+    select 1 as index_exists
+    from information_schema.statistics
+    where table_schema = database()
+      and table_name = ${tableName}
+      and index_name = ${indexName}
+    limit 1
+  `.execute(db);
+
+  if (existingIndex.rows.length > 0) return;
+
+  await db.schema.createIndex(indexName).on(tableName).columns(columns).execute();
 }

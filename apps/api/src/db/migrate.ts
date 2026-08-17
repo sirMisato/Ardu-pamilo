@@ -10,6 +10,7 @@ const migrator = new Migrator({
   db,
   provider: new FileMigrationProvider({
     fs,
+    import: (filePath) => import(pathToFileURL(filePath).href),
     migrationFolder: migrationsDirectory,
     path
   })

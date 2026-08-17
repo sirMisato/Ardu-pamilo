@@ -1,6 +1,8 @@
 import cors from "@fastify/cors";
 import jwt from "@fastify/jwt";
 import Fastify, { type FastifyInstance } from "fastify";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { env } from "./config/env.js";
 import { closeDatabase, db } from "./db/client.js";
 import { requireTenantContext, verifyTenant } from "./middleware/verifyTenant.js";
@@ -103,7 +105,9 @@ export async function buildServer(): Promise<FastifyInstance> {
   return app;
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replace(/\\/g, "/")}`) {
+const isMainModule = process.argv[1] ? path.resolve(process.argv[1]) === fileURLToPath(import.meta.url) : false;
+
+if (isMainModule) {
   const app = await buildServer();
 
   await app.listen({

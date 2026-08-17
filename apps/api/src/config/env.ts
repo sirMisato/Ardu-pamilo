@@ -9,6 +9,7 @@ const envSchema = z.object({
   DEMO_TENANT_ID: z.string().trim().min(1).max(36).default("demo-tenant"),
   DEMO_TENANT_NAME: z.string().trim().min(1).max(160).default("PAMILO Demo Farm"),
   DEMO_TENANT_PASSWORD: z.string().min(8).optional(),
+  DEMO_TENANT_RESET_DATA: z.enum(["true", "false"]).default("false"),
   FRONTEND_ORIGIN: z.string().default("http://localhost:5173"),
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   JWT_EXPIRES_IN: z.string().default("8h"),
@@ -45,7 +46,8 @@ export const env = {
     enabled: parsedEnv.data.DEMO_TENANT_ENABLED === "true",
     id: parsedEnv.data.DEMO_TENANT_ID,
     name: parsedEnv.data.DEMO_TENANT_NAME,
-    password: parsedEnv.data.DEMO_TENANT_PASSWORD
+    password: parsedEnv.data.DEMO_TENANT_PASSWORD,
+    resetData: parsedEnv.data.DEMO_TENANT_RESET_DATA === "true"
   },
   frontendOrigin: parsedEnv.data.FRONTEND_ORIGIN,
   jwtSecret: parsedEnv.data.JWT_SECRET,

@@ -130,6 +130,7 @@ jobs:
           DEMO_TENANT_ID: ${{ vars.DEMO_TENANT_ID }}
           DEMO_TENANT_NAME: ${{ vars.DEMO_TENANT_NAME }}
           DEMO_TENANT_PASSWORD: ${{ secrets.DEMO_TENANT_PASSWORD }}
+          DEMO_TENANT_RESET_DATA: ${{ vars.DEMO_TENANT_RESET_DATA }}
           EMQX_DASHBOARD_PASSWORD_B64: ${{ steps.encoded-secrets.outputs.EMQX_DASHBOARD_PASSWORD_B64 }}
           EMQX_DASHBOARD_USERNAME: ${{ vars.EMQX_DASHBOARD_USERNAME }}
           FRONTEND_ORIGIN: ${{ vars.FRONTEND_ORIGIN }}
@@ -163,7 +164,7 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT || 22 }}
           command_timeout: 30m
-          envs: APP_DIR,DATABASE_SSL,DATABASE_URL,DEMO_TENANT_EMAIL,DEMO_TENANT_ENABLED,DEMO_TENANT_ID,DEMO_TENANT_NAME,DEMO_TENANT_PASSWORD,EMQX_DASHBOARD_PASSWORD_B64,EMQX_DASHBOARD_USERNAME,FRONTEND_ORIGIN,JWT_EXPIRES_IN,JWT_SECRET,LETSENCRYPT_EMAIL,LOG_LEVEL,MQTT_BROKER_URL,MQTT_CLIENT_ID,MQTT_DEMO_PASSWORD,MQTT_HOST,MQTT_INGEST_ENABLED,MQTT_PASSWORD,MQTT_TELEMETRY_TOPIC,MQTT_USERNAME,REF_NAME,REPOSITORY,REPO_TOKEN,SUPER_ADMIN_EMAIL,SUPER_ADMIN_PASSWORD_HASH,SUDO_PASSWORD,VITE_API_BASE_URL,VITE_BMKG_FORECAST_BASE_URL,VITE_MQTT_BROKER_URL,VITE_MQTT_WEBSOCKET_URL,VITE_WEB_BASE_URL,WEB_HOST
+          envs: APP_DIR,DATABASE_SSL,DATABASE_URL,DEMO_TENANT_EMAIL,DEMO_TENANT_ENABLED,DEMO_TENANT_ID,DEMO_TENANT_NAME,DEMO_TENANT_PASSWORD,DEMO_TENANT_RESET_DATA,EMQX_DASHBOARD_PASSWORD_B64,EMQX_DASHBOARD_USERNAME,FRONTEND_ORIGIN,JWT_EXPIRES_IN,JWT_SECRET,LETSENCRYPT_EMAIL,LOG_LEVEL,MQTT_BROKER_URL,MQTT_CLIENT_ID,MQTT_DEMO_PASSWORD,MQTT_HOST,MQTT_INGEST_ENABLED,MQTT_PASSWORD,MQTT_TELEMETRY_TOPIC,MQTT_USERNAME,REF_NAME,REPOSITORY,REPO_TOKEN,SUPER_ADMIN_EMAIL,SUPER_ADMIN_PASSWORD_HASH,SUDO_PASSWORD,VITE_API_BASE_URL,VITE_BMKG_FORECAST_BASE_URL,VITE_MQTT_BROKER_URL,VITE_MQTT_WEBSOCKET_URL,VITE_WEB_BASE_URL,WEB_HOST
           script: |
             set -euo pipefail
 
@@ -181,6 +182,8 @@ jobs:
             DEMO_TENANT_ENABLED="${DEMO_TENANT_ENABLED:-true}"
             DEMO_TENANT_ID="${DEMO_TENANT_ID:-demo-tenant}"
             DEMO_TENANT_NAME="${DEMO_TENANT_NAME:-PAMILO Demo Farm}"
+            DEMO_TENANT_RESET_REQUESTED="${DEMO_TENANT_RESET_DATA:-false}"
+            DEMO_TENANT_RESET_DATA=false
             EMQX_DASHBOARD_USERNAME="${EMQX_DASHBOARD_USERNAME:-miski}"
             FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-https://sedayafarm.keycloud.id}"
             JWT_EXPIRES_IN="${JWT_EXPIRES_IN:-8h}"
@@ -343,6 +346,10 @@ jobs:
             git_with_token fetch origin "$REF_NAME"
             git checkout "$REF_NAME"
             git reset --hard "origin/$REF_NAME"
+            RESET_LOGIN_SEED="$DEMO_TENANT_RESET_REQUESTED"
+            if git log -1 --pretty=%B | grep -qi '\[reset-login-seed\]'; then
+              RESET_LOGIN_SEED=true
+            fi
 
             compose() {
               sudo_run env \
@@ -353,6 +360,7 @@ jobs:
                 DEMO_TENANT_ID="$DEMO_TENANT_ID" \
                 DEMO_TENANT_NAME="$DEMO_TENANT_NAME" \
                 DEMO_TENANT_PASSWORD="$DEMO_TENANT_PASSWORD" \
+                DEMO_TENANT_RESET_DATA="$DEMO_TENANT_RESET_DATA" \
                 EMQX_DASHBOARD_PASSWORD="$EMQX_DASHBOARD_PASSWORD" \
                 EMQX_DASHBOARD_USERNAME="$EMQX_DASHBOARD_USERNAME" \
                 FRONTEND_ORIGIN="$FRONTEND_ORIGIN" \
@@ -450,6 +458,10 @@ jobs:
             wait_for_compose_command "emqx mqtt users sync" backend env EMQX_DASHBOARD_USERNAME="$EMQX_DASHBOARD_USERNAME" EMQX_DASHBOARD_PASSWORD="$EMQX_DASHBOARD_PASSWORD" MQTT_DEMO_PASSWORD="$MQTT_DEMO_PASSWORD" MQTT_PASSWORD="$MQTT_PASSWORD" MQTT_USERNAME="$MQTT_USERNAME" node -e "const users=[[process.env.MQTT_USERNAME,process.env.MQTT_PASSWORD],['pamilo_device_demo',process.env.MQTT_DEMO_PASSWORD],['pamilo_web_demo',process.env.MQTT_DEMO_PASSWORD]].filter(([user,password])=>user&&password); const authId='password_based%3Abuilt_in_database'; const headers={'content-type':'application/json'}; async function api(path,options={}){const response=await fetch('http://emqx:18083'+path,options); if(!response.ok){throw new Error(await response.text())} return response.json().catch(()=>({}))} async function upsert(token,userId,password){const userPath='/api/v5/authentication/'+authId+'/users/'+encodeURIComponent(userId); const body=JSON.stringify({password,is_superuser:false}); const opts={method:'PUT',headers:{...headers,authorization:'Bearer '+token},body}; const put=await fetch('http://emqx:18083'+userPath,opts); if(put.ok)return; if(put.status!==404){throw new Error(await put.text())} const post=await fetch('http://emqx:18083/api/v5/authentication/'+authId+'/users',{method:'POST',headers:{...headers,authorization:'Bearer '+token},body:JSON.stringify({user_id:userId,password,is_superuser:false})}); if(!post.ok){throw new Error(await post.text())}} (async()=>{const login=await api('/api/v5/login',{method:'POST',headers,body:JSON.stringify({username:process.env.EMQX_DASHBOARD_USERNAME,password:process.env.EMQX_DASHBOARD_PASSWORD})}); for(const [user,password] of users){await upsert(login.token,user,password)} })().catch((error)=>{console.error(error);process.exit(1)})"
             wait_for_compose_command "frontend health" frontend wget -qO- http://127.0.0.1/health
             wait_for_compose_command "backend health" backend node -e "fetch('http://127.0.0.1:3000/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"
+            if [ "$RESET_LOGIN_SEED" = "true" ]; then
+              wait_for_compose_command "login-only tenant data reset" backend env DEMO_TENANT_RESET_DATA=true node dist/db/seedDemo.js
+              wait_for_compose_command "login-only database shape" backend node -e "import('./dist/db/client.js').then(async({db,closeDatabase})=>{const count=async(table)=>{const row=await db.selectFrom(table).select(({fn})=>fn.countAll().as('count')).executeTakeFirst(); return Number(row?.count ?? 0)}; const counts={tenants:await count('tenants'),settings:await count('tenant_settings'),crops:await count('master_crops'),plots:await count('plots'),devices:await count('devices'),telemetry:await count('telemetry_data')}; console.log(JSON.stringify(counts)); await closeDatabase(); process.exit(counts.tenants===1&&counts.settings===1&&counts.crops===0&&counts.plots===0&&counts.devices===0&&counts.telemetry===0?0:1)}).catch((error)=>{console.error(error);process.exit(1)})"
+            fi
             wait_for_compose_command "demo tenant login" backend node -e "fetch('http://127.0.0.1:3000/api/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({emailOrUsername:process.env.DEMO_TENANT_EMAIL,password:process.env.DEMO_TENANT_PASSWORD})}).then(async(response)=>{if(!response.ok){console.error(await response.text());process.exit(1)} const body=await response.json(); process.exit(body.accessToken?0:1)}).catch((error)=>{console.error(error);process.exit(1)})"
             wait_for_compose_command "super admin login" backend node -e "fetch('http://127.0.0.1:3000/api/auth/admin',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:process.env.SUPER_ADMIN_EMAIL,password:'PamiloSuperAdmin#2026!'})}).then(async(response)=>{if(!response.ok){console.error(await response.text());process.exit(1)} const body=await response.json(); process.exit(body.accessToken?0:1)}).catch((error)=>{console.error(error);process.exit(1)})"
             wait_for_compose_command "mqtt publish telemetry" backend node -e "import('mqtt').then(({default:mqtt})=>{const topic='pamilo/v1/tenants/'+process.env.DEMO_TENANT_ID+'/devices/SensorNode01/telemetry'; const client=mqtt.connect('mqtt://emqx:1883',{clientId:'pamilo-smoke-'+Date.now(),connectTimeout:10000,password:process.env.MQTT_PASSWORD,username:process.env.MQTT_USERNAME}); const timer=setTimeout(()=>{client.end(true);process.exit(1)},15000); client.on('connect',()=>{client.publish(topic,JSON.stringify({metrics:{moisture:64,nitrogen:81,ph:6.5,temperature:30.1},timestamp:new Date().toISOString()}),{qos:1},(error)=>{clearTimeout(timer);client.end(true);process.exit(error?1:0)})}); client.on('error',(error)=>{console.error(error);clearTimeout(timer);client.end(true);process.exit(1)})}).catch((error)=>{console.error(error);process.exit(1)})"
