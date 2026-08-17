@@ -40,10 +40,10 @@ Username variable: EMQX_DASHBOARD_USERNAME
 Password secret: EMQX_DASHBOARD_PASSWORD
 ```
 
-For the current VPS deployment, the deployment workflow also resets/syncs the
-Dashboard user password from `EMQX_DASHBOARD_PASSWORD` on every deploy. If login
-still shows "Incorrect username or password", confirm that the secret exists in
-the `production` environment, then redeploy.
+For the current VPS deployment, the deployment workflow recreates the EMQX data
+volume and verifies Dashboard login with `EMQX_DASHBOARD_PASSWORD` on every
+deploy. If login still shows "Incorrect username or password", confirm that the
+secret exists in the `production` environment, then redeploy.
 
 ## Create Users From HTTP API
 
