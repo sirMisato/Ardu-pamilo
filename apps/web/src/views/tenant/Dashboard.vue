@@ -23,7 +23,7 @@
             <p class="mt-1 text-sm text-slate-400">{{ tenantProfileStore.activeFieldLabel }}</p>
           </div>
           <div class="flex items-center gap-2 rounded-full border border-field-mint/25 bg-field-mint/10 px-3 py-1 text-sm text-field-mint">
-            <span class="h-2 w-2 rounded-full" :class="telemetryStore.isConnected || telemetryStore.connectionState === 'history' ? 'bg-field-mint' : 'bg-amber-200'"></span>
+            <span class="h-2 w-2 rounded-full" :class="telemetryNodeToneClass"></span>
             {{ telemetryNodeLabel }}
           </div>
         </div>
@@ -203,42 +203,95 @@ const topStats = computed(() => [
     detailClass: "text-amber-200"
   },
   {
-    label: "Realtime",
-    value: telemetryTransportLabel.value,
-    detail: telemetryStatusLabel.value,
+    label: "MQTT Status",
+    value: mqttStatusCard.value.value,
+    detail: mqttStatusCard.value.detail,
     icon: Waves,
-    iconClass: "bg-sky-300/10 text-sky-200",
-    detailClass: "text-sky-200"
+    iconClass: mqttStatusCard.value.iconClass,
+    detailClass: mqttStatusCard.value.detailClass
   }
 ]);
 
 const telemetryNodeLabel = computed(() => {
-  if (telemetryStore.connectionState === "history") {
+  if (telemetryStore.connectionState === "connected") {
+    return `${telemetryStore.onlineDeviceCount.toLocaleString("id-ID")} live nodes`;
+  }
+
+  if (telemetryStore.connectionState === "error" || telemetryStore.connectionState === "offline") {
+    return "MQTT perlu dicek";
+  }
+
+  if (telemetryStore.deviceCount > 0) {
     return `${telemetryStore.deviceCount.toLocaleString("id-ID")} telemetry nodes`;
   }
 
-  return `${telemetryStore.onlineDeviceCount.toLocaleString("id-ID")} live nodes`;
+  return "Menunggu telemetry";
 });
 
-const telemetryTransportLabel = computed(() => telemetryStore.connectionState === "history" ? "Backend" : "MQTT");
+const telemetryNodeToneClass = computed(() => {
+  if (telemetryStore.connectionState === "connected" || telemetryStore.onlineDeviceCount > 0) {
+    return "bg-field-mint";
+  }
 
-const telemetryStatusLabel = computed(() => {
+  if (telemetryStore.connectionState === "error" || telemetryStore.connectionState === "offline") {
+    return "bg-rose-300";
+  }
+
+  return "bg-amber-200";
+});
+
+const mqttStatusCard = computed(() => {
   switch (telemetryStore.connectionState) {
     case "connected":
-      return "connected";
+      return {
+        detail: `${telemetryStore.onlineDeviceCount.toLocaleString("id-ID")} live nodes`,
+        detailClass: "text-field-mint",
+        iconClass: "bg-field-mint/10 text-field-mint",
+        value: "Normal"
+      };
     case "connecting":
-      return "connecting";
+      return {
+        detail: "Membuka koneksi MQTT",
+        detailClass: "text-amber-200",
+        iconClass: "bg-amber-300/10 text-amber-200",
+        value: "Connecting"
+      };
     case "reconnecting":
-      return "reconnecting";
+      return {
+        detail: "Mencoba reconnect broker",
+        detailClass: "text-amber-200",
+        iconClass: "bg-amber-300/10 text-amber-200",
+        value: "Reconnect"
+      };
     case "history":
-      return "history sync";
+      return {
+        detail: telemetryStore.deviceCount > 0 ? "Telemetry tersinkron" : "Belum ada data live",
+        detailClass: telemetryStore.onlineDeviceCount > 0 ? "text-field-mint" : "text-amber-200",
+        iconClass: telemetryStore.onlineDeviceCount > 0 ? "bg-field-mint/10 text-field-mint" : "bg-amber-300/10 text-amber-200",
+        value: telemetryStore.onlineDeviceCount > 0 ? "Normal" : "Standby"
+      };
     case "offline":
-      return "offline";
+      return {
+        detail: "Koneksi broker terputus",
+        detailClass: "text-rose-200",
+        iconClass: "bg-rose-300/10 text-rose-200",
+        value: "Error MQTT"
+      };
     case "error":
-      return telemetryStore.errorMessage ?? "error";
+      return {
+        detail: telemetryStore.errorMessage ?? "Periksa credential atau ACL",
+        detailClass: "text-rose-200",
+        iconClass: "bg-rose-300/10 text-rose-200",
+        value: "Error MQTT"
+      };
     case "idle":
     default:
-      return "loading";
+      return {
+        detail: "Menunggu telemetry",
+        detailClass: "text-slate-400",
+        iconClass: "bg-slate-300/10 text-slate-300",
+        value: "Standby"
+      };
   }
 });
 

@@ -28,7 +28,7 @@
 
     <div class="pointer-events-none absolute left-4 top-4 z-[500] rounded-lg border border-white/10 bg-[#07111f]/90 px-3 py-2 text-xs text-slate-300 backdrop-blur">
       <div class="flex items-center gap-2">
-        <span class="h-2 w-2 rounded-full" :class="telemetryStore.isConnected || telemetryStore.connectionState === 'history' ? 'bg-field-mint' : 'bg-amber-200'"></span>
+        <span class="h-2 w-2 rounded-full" :class="connectionToneClass"></span>
         <span>{{ connectionLabel }}</span>
       </div>
     </div>
@@ -84,22 +84,43 @@ const mapLayerOptions: Array<{ key: MapLayerKey; label: string; title: string }>
 const connectionLabel = computed(() => {
   const state = telemetryStore.connectionState;
   if (state === "connected") {
-    return "MQTT connected";
+    return "MQTT normal";
   }
 
   if (state === "reconnecting") {
     return "MQTT reconnecting";
   }
 
+  if (state === "connecting") {
+    return "MQTT connecting";
+  }
+
   if (state === "history") {
-    return "Backend telemetry history";
+    return telemetryStore.deviceCount > 0 ? "Telemetry tersinkron" : "Menunggu telemetry";
   }
 
   if (state === "error") {
-    return telemetryStore.errorMessage ?? "MQTT offline";
+    return telemetryStore.errorMessage ?? "MQTT error";
   }
 
-  return "MQTT connecting";
+  if (state === "offline") {
+    return "MQTT offline";
+  }
+
+  return "MQTT standby";
+});
+
+const connectionToneClass = computed(() => {
+  const state = telemetryStore.connectionState;
+  if (state === "connected" || (state === "history" && telemetryStore.onlineDeviceCount > 0)) {
+    return "bg-field-mint";
+  }
+
+  if (state === "error" || state === "offline") {
+    return "bg-rose-300";
+  }
+
+  return "bg-amber-200";
 });
 
 onMounted(() => {

@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-5">
     <section class="panel-surface p-5">
-      <div class="grid gap-4 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-end">
+      <div class="grid gap-4 lg:grid-cols-2 xl:grid-cols-[repeat(5,minmax(0,1fr))_auto] xl:items-end">
         <label class="space-y-2">
           <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
             <CalendarDays class="h-4 w-4 text-field-mint" />
@@ -55,6 +55,19 @@
           </select>
         </label>
 
+        <label class="space-y-2">
+          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
+            <Clock class="h-4 w-4 text-amber-200" />
+            Interval
+          </span>
+          <select
+            v-model="filters.intervalMinutes"
+            class="min-h-11 w-full rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+          >
+            <option v-for="option in samplingOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+          </select>
+        </label>
+
         <div class="flex gap-3">
           <button
             class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-field-green px-4 text-sm font-semibold text-[#102016] hover:bg-field-mint"
@@ -87,7 +100,7 @@
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 p-5">
         <div>
           <h2 class="text-base font-semibold tracking-normal text-white">Data Logs</h2>
-          <p class="mt-1 text-sm text-slate-400">Preview data export tenant.</p>
+          <p class="mt-1 text-sm text-slate-400">{{ reportPreviewLabel }}</p>
         </div>
         <FileText class="h-6 w-6 text-field-mint" />
       </div>
@@ -105,7 +118,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-white/10">
-            <tr v-for="log in filteredLogs" :key="log.id" class="hover:bg-white/[0.03]">
+            <tr v-for="log in paginatedLogs" :key="log.id" class="hover:bg-white/[0.03]">
               <td class="px-5 py-4 text-slate-300">{{ formatDateTime(log.timestamp) }}</td>
               <td class="px-5 py-4 font-semibold text-white">{{ log.deviceId }}</td>
               <td class="px-5 py-4 text-slate-300">{{ log.plot }}</td>
@@ -125,20 +138,57 @@
         Memuat data report...
       </div>
 
-      <div v-else-if="filteredLogs.length === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
+      <div v-else-if="sampledLogs.length === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
         Tidak ada data pada filter ini.
+      </div>
+
+      <div v-else class="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 p-4 text-sm text-slate-300">
+        <p>
+          Menampilkan {{ paginationStart }}-{{ paginationEnd }} dari {{ sampledLogs.length.toLocaleString("id-ID") }} records
+        </p>
+        <div class="flex flex-wrap items-center gap-2">
+          <label class="flex items-center gap-2 text-xs text-slate-400">
+            Rows
+            <select
+              v-model.number="pageSize"
+              class="h-9 rounded-lg border border-white/10 bg-[#0b1626] px-2 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+            >
+              <option v-for="option in pageSizeOptions" :key="option" :value="option">{{ option }}</option>
+            </select>
+          </label>
+          <button
+            class="icon-button h-9 w-9"
+            type="button"
+            aria-label="Halaman sebelumnya"
+            :disabled="activePage <= 1"
+            @click="setPage(activePage - 1)"
+          >
+            <ChevronLeft class="h-4 w-4" />
+          </button>
+          <span class="min-w-24 text-center text-xs text-slate-400">Hal {{ activePage }} / {{ totalPages }}</span>
+          <button
+            class="icon-button h-9 w-9"
+            type="button"
+            aria-label="Halaman berikutnya"
+            :disabled="activePage >= totalPages"
+            @click="setPage(activePage + 1)"
+          >
+            <ChevronRight class="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { CalendarDays, Download, FileDown, FileText, Filter, TableProperties } from "@lucide/vue";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, Download, FileDown, FileText, Filter, TableProperties } from "@lucide/vue";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { ApiClientError, apiGet } from "../../services/apiClient";
 
 type ExportFormat = "CSV" | "PDF";
 type Dataset = "telemetry" | "alerts" | "weather";
+type SamplingInterval = "5" | "15" | "60";
 type TelemetryPayload = Record<string, unknown>;
 
 interface ReportDevice {
@@ -188,11 +238,13 @@ const filters = reactive<{
   endDate: string;
   deviceId: string;
   dataset: Dataset;
+  intervalMinutes: SamplingInterval;
 }>({
   startDate: toInputDate(threeDaysAgo),
   endDate: toInputDate(today),
   deviceId: "all",
-  dataset: "telemetry"
+  dataset: "telemetry",
+  intervalMinutes: "15"
 });
 
 const exportMessage = ref("");
@@ -201,6 +253,14 @@ const isLoading = ref(false);
 const apiDevices = ref<ApiDevice[]>([]);
 const historyItems = ref<TelemetryHistoryItem[]>([]);
 const logs = ref<ReportLog[]>([]);
+const currentPage = ref(1);
+const pageSize = ref(25);
+const pageSizeOptions = [10, 25, 50];
+const samplingOptions: Array<{ label: string; value: SamplingInterval }> = [
+  { label: "Per 5 menit", value: "5" },
+  { label: "Per 15 menit", value: "15" },
+  { label: "Per jam", value: "60" }
+];
 
 const deviceLookup = computed(() => new Map(apiDevices.value.flatMap((device) => [
   [device.deviceUid, device],
@@ -239,12 +299,56 @@ const filteredLogs = computed(() => {
   });
 });
 
+const sampledLogs = computed(() => {
+  const intervalMs = Number(filters.intervalMinutes) * 60_000;
+  const sampledByBucket = new Map<string, ReportLog>();
+
+  for (const log of filteredLogs.value) {
+    const timestamp = Date.parse(log.timestamp);
+
+    if (!Number.isFinite(timestamp)) {
+      sampledByBucket.set(log.id, log);
+      continue;
+    }
+
+    const bucket = Math.floor(timestamp / intervalMs);
+    const bucketKey = `${log.dataset}:${log.deviceId}:${log.metric}:${bucket}`;
+    const existing = sampledByBucket.get(bucketKey);
+
+    if (!existing || timestamp >= Date.parse(existing.timestamp)) {
+      sampledByBucket.set(bucketKey, log);
+    }
+  }
+
+  return Array.from(sampledByBucket.values()).sort((left, right) => Date.parse(right.timestamp) - Date.parse(left.timestamp));
+});
+
+const totalPages = computed(() => Math.max(1, Math.ceil(sampledLogs.value.length / pageSize.value)));
+const activePage = computed(() => Math.min(currentPage.value, totalPages.value));
+const paginatedLogs = computed(() => {
+  const startIndex = (activePage.value - 1) * pageSize.value;
+  return sampledLogs.value.slice(startIndex, startIndex + pageSize.value);
+});
+const paginationStart = computed(() => sampledLogs.value.length === 0 ? 0 : (activePage.value - 1) * pageSize.value + 1);
+const paginationEnd = computed(() => Math.min(activePage.value * pageSize.value, sampledLogs.value.length));
+const selectedSamplingLabel = computed(() => samplingOptions.find((option) => option.value === filters.intervalMinutes)?.label ?? "Per 15 menit");
+const reportPreviewLabel = computed(() => `Preview data export tenant, ${selectedSamplingLabel.value.toLowerCase()}.`);
+
 onMounted(() => {
   void loadReportData();
 });
 
-watch(filters, () => {
+watch(() => [filters.startDate, filters.endDate, filters.deviceId, filters.dataset], () => {
+  currentPage.value = 1;
   void loadReportData();
+});
+
+watch(() => filters.intervalMinutes, () => {
+  currentPage.value = 1;
+});
+
+watch(pageSize, () => {
+  currentPage.value = 1;
 });
 
 async function loadReportData(): Promise<void> {
@@ -322,7 +426,7 @@ function exportReport(format: ExportFormat): void {
 function exportCsv(): void {
   const rows = [
     ["Timestamp", "Device", "Plot/Area", "Metric", "Value", "Status"],
-    ...filteredLogs.value.map((log) => [
+    ...sampledLogs.value.map((log) => [
       formatDateTime(log.timestamp),
       log.deviceId,
       log.plot,
@@ -342,7 +446,7 @@ function exportCsv(): void {
   link.download = `pamilo-${filters.dataset}-${filters.startDate}-${filters.endDate}.csv`;
   link.click();
   URL.revokeObjectURL(url);
-  exportMessage.value = `CSV export dibuat untuk ${filteredLogs.value.length} ${filters.dataset} records.`;
+  exportMessage.value = `CSV export dibuat untuk ${sampledLogs.value.length} ${filters.dataset} records (${selectedSamplingLabel.value.toLowerCase()}).`;
 }
 
 function exportPdf(): void {
@@ -356,7 +460,11 @@ function exportPdf(): void {
   reportWindow.document.close();
   reportWindow.focus();
   reportWindow.print();
-  exportMessage.value = `PDF export disiapkan untuk ${filteredLogs.value.length} ${filters.dataset} records.`;
+  exportMessage.value = `PDF export disiapkan untuk ${sampledLogs.value.length} ${filters.dataset} records (${selectedSamplingLabel.value.toLowerCase()}).`;
+}
+
+function setPage(page: number): void {
+  currentPage.value = Math.min(Math.max(page, 1), totalPages.value);
 }
 
 function toInputDate(value: Date): string {
@@ -474,7 +582,7 @@ function escapeCsvCell(value: string): string {
 }
 
 function createPrintableReportHtml(): string {
-  const rows = filteredLogs.value.map((log) => `
+  const rows = sampledLogs.value.map((log) => `
     <tr>
       <td>${escapeHtml(formatDateTime(log.timestamp))}</td>
       <td>${escapeHtml(log.deviceId)}</td>
@@ -501,7 +609,7 @@ function createPrintableReportHtml(): string {
       </head>
       <body>
         <h1>PAMILO ${escapeHtml(filters.dataset)} report</h1>
-        <p>${escapeHtml(filters.startDate)} sampai ${escapeHtml(filters.endDate)} - ${filteredLogs.value.length} records</p>
+        <p>${escapeHtml(filters.startDate)} sampai ${escapeHtml(filters.endDate)} - ${sampledLogs.value.length} records - ${escapeHtml(selectedSamplingLabel.value)}</p>
         <table>
           <thead>
             <tr>

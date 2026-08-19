@@ -42,15 +42,6 @@
       </RouterLink>
     </nav>
 
-    <div class="border-t border-white/10" :class="collapsed ? 'p-3' : 'p-4'">
-      <div class="rounded-lg border border-field-mint/20 bg-field-mint/10" :class="collapsed ? 'flex justify-center p-3' : 'p-3'">
-        <p v-if="!collapsed" class="text-xs font-medium text-field-mint">Realtime Telemetry</p>
-        <div class="flex items-center gap-2" :class="collapsed ? '' : 'mt-3'">
-          <span class="h-2.5 w-2.5 rounded-full bg-field-green shadow-[0_0_0_6px_rgba(167,232,175,0.12)]"></span>
-          <span v-if="!collapsed" class="min-w-0 truncate text-xs text-slate-300">{{ mqttTransportLabel }}</span>
-        </div>
-      </div>
-    </div>
   </aside>
 </template>
 
@@ -69,9 +60,7 @@ import {
   Sprout,
   TabletSmartphone
 } from "@lucide/vue";
-import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { appEnvironment } from "../../config/environment";
 
 withDefaults(defineProps<{
   collapsed?: boolean;
@@ -87,13 +76,6 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
-const mqttTransportLabel = computed(() => {
-  try {
-    return new URL(appEnvironment.mqttWebSocketUrl).host;
-  } catch {
-    return "MQTT WebSocket ready";
-  }
-});
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: Gauge },
   { to: "/chart", label: "Grafik", icon: BarChart3 },

@@ -45,6 +45,7 @@ interface TelemetryIngestOptions {
 }
 
 const defaultTenantId = "demo-tenant";
+const telemetryOnlineWindowMs = 15 * 60 * 1000;
 const reservedPayloadKeys = new Set([
   "device_id",
   "deviceId",
@@ -184,7 +185,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
         ingestTelemetryPayload(item.topic, item.payload, {
           deviceId: item.deviceUid,
           observedAt: item.receivedAt,
-          online: connectionState.value === "connected"
+          online: connectionState.value === "connected" || isTelemetryRecent(item.receivedAt)
         });
       }
 
@@ -398,6 +399,11 @@ function readPayloadLocation(payload: Record<string, unknown>): { latitude: numb
     latitude,
     longitude
   };
+}
+
+function isTelemetryRecent(value: string): boolean {
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) && Date.now() - timestamp <= telemetryOnlineWindowMs;
 }
 
 function buildDefaultSubscriptionTopic(tenantId: string): string {
