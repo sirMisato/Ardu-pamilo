@@ -48,6 +48,7 @@
 <script setup lang="ts">
 import {
   BarChart3,
+  Bot,
   CloudSun,
   Database,
   FileText,
@@ -83,6 +84,7 @@ const route = useRoute();
 const authStore = useAuthStore();
 const allNavItems = [
   { to: "/dashboard", label: "Dashboard", icon: Gauge },
+  { to: "/ai-recommendation", label: "AI Rekomendasi", icon: Bot },
   { to: "/weather", label: "Weather Station", icon: CloudSun },
   { to: "/chart", label: "Grafik", icon: BarChart3 },
   { to: "/report", label: "Report", icon: FileText },

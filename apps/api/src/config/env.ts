@@ -14,6 +14,11 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   JWT_EXPIRES_IN: z.string().default("8h"),
   LOG_LEVEL: z.string().default("info"),
+  AI_RECOMMENDATION_API_KEY: z.string().optional(),
+  AI_RECOMMENDATION_BASE_URL: z.string().url().default("https://ai.sumopod.com"),
+  AI_RECOMMENDATION_MAX_TOKENS: z.coerce.number().int().positive().max(4000).default(1600),
+  AI_RECOMMENDATION_MODEL: z.string().trim().min(1).default("MiniMax-M2.7-highspeed"),
+  AI_RECOMMENDATION_TEMPERATURE: z.coerce.number().min(0).max(2).default(0.35),
   MQTT_BROKER_URL: z.string().default("mqtt://127.0.0.1:1883"),
   MQTT_CLIENT_ID: z.string().default("pamilo-api-local"),
   MQTT_INGEST_ENABLED: z.enum(["true", "false"]).default("false"),
@@ -53,6 +58,13 @@ export const env = {
   jwtSecret: parsedEnv.data.JWT_SECRET,
   jwtExpiresIn: parsedEnv.data.JWT_EXPIRES_IN,
   logLevel: parsedEnv.data.LOG_LEVEL,
+  aiRecommendation: {
+    apiKey: parsedEnv.data.AI_RECOMMENDATION_API_KEY || undefined,
+    baseUrl: parsedEnv.data.AI_RECOMMENDATION_BASE_URL.replace(/\/+$/, ""),
+    maxTokens: parsedEnv.data.AI_RECOMMENDATION_MAX_TOKENS,
+    model: parsedEnv.data.AI_RECOMMENDATION_MODEL,
+    temperature: parsedEnv.data.AI_RECOMMENDATION_TEMPERATURE
+  },
   mqtt: {
     brokerUrl: parsedEnv.data.MQTT_BROKER_URL,
     clientId: parsedEnv.data.MQTT_CLIENT_ID,

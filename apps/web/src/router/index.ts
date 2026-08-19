@@ -5,6 +5,7 @@ import SuperAdminLogin from "../views/auth/SuperAdminLogin.vue";
 import TenantLogin from "../views/auth/TenantLogin.vue";
 import SuperAdminDashboard from "../views/superadmin/Dashboard.vue";
 import SuperAdminLicenses from "../views/superadmin/Licenses.vue";
+import AiRecommendation from "../views/tenant/AiRecommendation.vue";
 import Chart from "../views/tenant/Chart.vue";
 import Dashboard from "../views/tenant/Dashboard.vue";
 import Devices from "../views/tenant/Devices.vue";
@@ -63,6 +64,15 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "Report",
           subtitle: "Exportable telemetry and field logs"
+        }
+      },
+      {
+        path: "ai-recommendation",
+        name: "tenant-ai-recommendation",
+        component: AiRecommendation,
+        meta: {
+          title: "AI Rekomendasi",
+          subtitle: "Analisis lahan, cuaca, telemetry, dan histori panen"
         }
       },
       {

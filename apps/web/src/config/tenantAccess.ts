@@ -1,5 +1,6 @@
 const readOnlyTenantRouteNames = new Set([
   "tenant-dashboard",
+  "tenant-ai-recommendation",
   "tenant-weather",
   "tenant-chart",
   "tenant-report"
@@ -7,6 +8,7 @@ const readOnlyTenantRouteNames = new Set([
 
 const readOnlyTenantPaths = new Set([
   "/dashboard",
+  "/ai-recommendation",
   "/weather",
   "/chart",
   "/report"

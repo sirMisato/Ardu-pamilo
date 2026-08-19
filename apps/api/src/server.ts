@@ -7,6 +7,7 @@ import { env } from "./config/env.js";
 import { closeDatabase, db } from "./db/client.js";
 import { requireTenantContext, verifyTenant } from "./middleware/verifyTenant.js";
 import { adminRoutes } from "./routes/adminRoutes.js";
+import { aiRecommendationRoutes } from "./routes/aiRecommendationRoutes.js";
 import { authRoutes } from "./routes/authRoutes.js";
 import { cropRoutes } from "./routes/cropRoutes.js";
 import { deviceRoutes } from "./routes/deviceRoutes.js";
@@ -82,6 +83,9 @@ export async function buildServer(): Promise<FastifyInstance> {
     prefix: "/api/v1"
   });
   await app.register(tenantUserRoutes, {
+    prefix: "/api/v1"
+  });
+  await app.register(aiRecommendationRoutes, {
     prefix: "/api/v1"
   });
 
