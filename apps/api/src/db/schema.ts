@@ -7,6 +7,8 @@ export type JsonColumn = ColumnType<JsonValue, JsonValue | string, JsonValue | s
 export type TenantLicenseStatus = "trial" | "active" | "suspended" | "revoked";
 export type DeviceStatus = "online" | "offline" | "maintenance";
 export type CropStatus = "active" | "draft" | "archived";
+export type TenantUserRole = "tenant_user";
+export type TenantUserStatus = "active" | "inactive";
 
 export interface TenantsTable {
   id: string;
@@ -91,12 +93,25 @@ export interface TenantSettingsTable {
   updated_at: Timestamp;
 }
 
+export interface TenantUsersTable {
+  id: string;
+  tenant_id: string;
+  name: string;
+  email: string;
+  password_hash: string;
+  role: TenantUserRole;
+  status: TenantUserStatus;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
 export interface Database {
   devices: DevicesTable;
   master_crops: MasterCropsTable;
   plots: PlotsTable;
   telemetry_data: TelemetryDataTable;
   tenant_settings: TenantSettingsTable;
+  tenant_users: TenantUsersTable;
   tenants: TenantsTable;
 }
 
@@ -122,3 +137,7 @@ export type NewTelemetryRecord = Insertable<TelemetryDataTable>;
 export type TenantSettings = Selectable<TenantSettingsTable>;
 export type NewTenantSettings = Insertable<TenantSettingsTable>;
 export type TenantSettingsUpdate = Updateable<TenantSettingsTable>;
+
+export type TenantUser = Selectable<TenantUsersTable>;
+export type NewTenantUser = Insertable<TenantUsersTable>;
+export type TenantUserUpdate = Updateable<TenantUsersTable>;

@@ -3,7 +3,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { db } from "../db/client.js";
 import type { JsonValue, Tenant, TenantSettings, TenantSettingsUpdate } from "../db/schema.js";
-import { requireTenantContext, verifyTenant } from "../middleware/verifyTenant.js";
+import { requireTenantContext, verifyTenant, verifyTenantAdmin } from "../middleware/verifyTenant.js";
 
 const displayPreferencesSchema = z.object({
   compactMode: z.boolean().optional(),
@@ -82,7 +82,7 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
     return toSettingsDto(tenantRow, settings);
   });
 
-  app.put<{ Body: z.input<typeof profileSchema> }>("/settings/profile", async (request, reply) => {
+  app.put<{ Body: z.input<typeof profileSchema> }>("/settings/profile", { preHandler: verifyTenantAdmin }, async (request, reply) => {
     const tenant = requireTenantContext(request);
     const parsed = profileSchema.safeParse(request.body);
 
@@ -128,7 +128,7 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
-  app.put<{ Body: z.input<typeof passwordSchema> }>("/settings/password", async (request, reply) => {
+  app.put<{ Body: z.input<typeof passwordSchema> }>("/settings/password", { preHandler: verifyTenantAdmin }, async (request, reply) => {
     const tenant = requireTenantContext(request);
     const parsed = passwordSchema.safeParse(request.body);
 
@@ -162,7 +162,7 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
     };
   });
 
-  app.put<{ Body: z.input<typeof displayPreferencesSchema> }>("/settings/display", async (request, reply) => {
+  app.put<{ Body: z.input<typeof displayPreferencesSchema> }>("/settings/display", { preHandler: verifyTenantAdmin }, async (request, reply) => {
     const tenant = requireTenantContext(request);
     const parsed = displayPreferencesSchema.safeParse(request.body);
 
@@ -189,7 +189,7 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
     };
   });
 
-  app.put<{ Body: z.input<typeof notificationPreferencesSchema> }>("/settings/notifications", async (request, reply) => {
+  app.put<{ Body: z.input<typeof notificationPreferencesSchema> }>("/settings/notifications", { preHandler: verifyTenantAdmin }, async (request, reply) => {
     const tenant = requireTenantContext(request);
     const parsed = notificationPreferencesSchema.safeParse(request.body);
 
@@ -216,7 +216,7 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
     };
   });
 
-  app.post<{ Body: z.input<typeof resetSchema> }>("/settings/reset-system", async (request, reply) => {
+  app.post<{ Body: z.input<typeof resetSchema> }>("/settings/reset-system", { preHandler: verifyTenantAdmin }, async (request, reply) => {
     const tenant = requireTenantContext(request);
     const parsed = resetSchema.safeParse(request.body);
 

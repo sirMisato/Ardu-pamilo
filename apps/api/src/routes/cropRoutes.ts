@@ -3,7 +3,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { db } from "../db/client.js";
 import type { CropStatus, JsonValue, MasterCrop } from "../db/schema.js";
-import { requireTenantContext, verifyTenant } from "../middleware/verifyTenant.js";
+import { requireTenantContext, verifyTenant, verifyTenantAdmin } from "../middleware/verifyTenant.js";
 
 const cropStatusSchema = z.enum(["active", "draft", "archived"]);
 const thresholdValueSchema = z.preprocess(
@@ -50,7 +50,30 @@ export const cropRoutes: FastifyPluginAsync = async (app) => {
     return rows.map(toCropDto);
   });
 
-  app.post<{ Body: CropPayload }>("/crops", async (request, reply) => {
+  app.get<{ Params: { cropId: string } }>("/crops/:cropId", async (request, reply) => {
+    const tenant = requireTenantContext(request);
+    const params = cropParamsSchema.safeParse(request.params);
+
+    if (!params.success) {
+      return reply.code(400).send({
+        error: "Invalid route params",
+        issues: params.error.flatten().fieldErrors
+      });
+    }
+
+    const crop = await selectCropForTenant(params.data.cropId, tenant.tenantId);
+
+    if (!crop) {
+      return reply.code(404).send({
+        error: "Crop not found",
+        message: "The crop type does not exist for this tenant."
+      });
+    }
+
+    return toCropDto(crop);
+  });
+
+  app.post<{ Body: CropPayload }>("/crops", { preHandler: verifyTenantAdmin }, async (request, reply) => {
     const tenant = requireTenantContext(request);
     const parsed = cropPayloadSchema.safeParse(request.body);
 
@@ -76,7 +99,7 @@ export const cropRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
-  app.put<{ Body: UpdateCropPayload; Params: { cropId: string } }>("/crops/:cropId", async (request, reply) => {
+  app.put<{ Body: UpdateCropPayload; Params: { cropId: string } }>("/crops/:cropId", { preHandler: verifyTenantAdmin }, async (request, reply) => {
     const tenant = requireTenantContext(request);
     const params = cropParamsSchema.safeParse(request.params);
     const body = updateCropPayloadSchema.safeParse(request.body);
@@ -118,6 +141,33 @@ export const cropRoutes: FastifyPluginAsync = async (app) => {
     return crop ? toCropDto(crop) : reply.code(404).send({
       error: "Crop not found"
     });
+  });
+
+  app.delete<{ Params: { cropId: string } }>("/crops/:cropId", { preHandler: verifyTenantAdmin }, async (request, reply) => {
+    const tenant = requireTenantContext(request);
+    const params = cropParamsSchema.safeParse(request.params);
+
+    if (!params.success) {
+      return reply.code(400).send({
+        error: "Invalid route params",
+        issues: params.error.flatten().fieldErrors
+      });
+    }
+
+    const result = await db
+      .deleteFrom("master_crops")
+      .where("id", "=", params.data.cropId)
+      .where("tenant_id", "=", tenant.tenantId)
+      .executeTakeFirst();
+
+    if (result.numDeletedRows === 0n) {
+      return reply.code(404).send({
+        error: "Crop not found",
+        message: "The crop type does not exist for this tenant."
+      });
+    }
+
+    return reply.code(204).send();
   });
 };
 

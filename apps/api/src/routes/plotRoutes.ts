@@ -3,7 +3,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { db } from "../db/client.js";
 import type { JsonValue } from "../db/schema.js";
-import { requireTenantContext, verifyTenant } from "../middleware/verifyTenant.js";
+import { requireTenantContext, verifyTenant, verifyTenantAdmin } from "../middleware/verifyTenant.js";
 
 const plotPayloadSchema = z.object({
   areaHectares: z.preprocess(
@@ -46,7 +46,7 @@ export const plotRoutes: FastifyPluginAsync = async (app) => {
     return rows.map(toPlotDto);
   });
 
-  app.post<{ Body: PlotPayload }>("/plots", async (request, reply) => {
+  app.post<{ Body: PlotPayload }>("/plots", { preHandler: verifyTenantAdmin }, async (request, reply) => {
     const tenant = requireTenantContext(request);
     const parsed = plotPayloadSchema.safeParse(request.body);
 
@@ -88,7 +88,7 @@ export const plotRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
-  app.put<{ Body: UpdatePlotPayload; Params: { plotId: string } }>("/plots/:plotId", async (request, reply) => {
+  app.put<{ Body: UpdatePlotPayload; Params: { plotId: string } }>("/plots/:plotId", { preHandler: verifyTenantAdmin }, async (request, reply) => {
     const tenant = requireTenantContext(request);
     const params = plotParamsSchema.safeParse(request.params);
     const body = updatePlotPayloadSchema.safeParse(request.body);
@@ -142,7 +142,7 @@ export const plotRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
-  app.delete<{ Params: { plotId: string } }>("/plots/:plotId", async (request, reply) => {
+  app.delete<{ Params: { plotId: string } }>("/plots/:plotId", { preHandler: verifyTenantAdmin }, async (request, reply) => {
     const tenant = requireTenantContext(request);
     const params = plotParamsSchema.safeParse(request.params);
 

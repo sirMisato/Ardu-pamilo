@@ -19,7 +19,7 @@
 
       <div class="mt-5 flex flex-wrap gap-2">
         <button
-          v-for="tab in tabs"
+          v-for="tab in visibleTabs"
           :key="tab.id"
           class="min-h-10 rounded-lg px-4 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-field-mint/40"
           :class="activeTab === tab.id ? 'bg-field-green text-[#102016]' : 'border border-white/10 bg-white/5 text-slate-300 hover:border-field-mint/30 hover:text-field-mint'"
@@ -345,6 +345,7 @@ import {
   type BmkgForecastResult
 } from "../../services/bmkgService";
 import { useTenantProfileStore } from "../../stores/tenantProfileStore";
+import { useAuthStore } from "../../stores/authStore";
 import { useWeatherConfigStore, type WeatherConfigInput } from "../../stores/weatherConfigStore";
 
 type WeatherTab = "forecast" | "monthly" | "config";
@@ -353,6 +354,7 @@ const activeTab = ref<WeatherTab>("forecast");
 const forecast = ref<BmkgForecastResult | null>(null);
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
+const authStore = useAuthStore();
 const tenantProfileStore = useTenantProfileStore();
 const weatherConfigStore = useWeatherConfigStore();
 
@@ -364,12 +366,16 @@ const activeField = computed(() => {
 });
 const activeAdm4 = computed(() => weatherConfigStore.activeAdm4Code || tenantProfileStore.activeBmkgAdm4Code);
 const weatherConfigs = computed(() => weatherConfigStore.configs);
+const isReadOnlyTenant = computed(() => authStore.isReadOnlyTenant);
 
 const tabs: Array<{ id: WeatherTab; label: string }> = [
   { id: "forecast", label: "Prakiraan Cuaca" },
   { id: "monthly", label: "Report Bulanan" },
   { id: "config", label: "Konfigurasi" }
 ];
+const visibleTabs = computed(() => isReadOnlyTenant.value
+  ? tabs.filter((tab) => tab.id !== "config")
+  : tabs);
 
 const locationLabel = computed(() => {
   if (!forecast.value) {
@@ -457,6 +463,15 @@ watch([activeAdm4, configuredBaseUrl], () => {
   void refreshForecast();
 });
 
+watch(isReadOnlyTenant, (readOnly) => {
+  if (readOnly && activeTab.value === "config") {
+    activeTab.value = "forecast";
+    closeConfigForm();
+  }
+}, {
+  immediate: true
+});
+
 async function refreshForecast(): Promise<void> {
   isLoading.value = true;
   errorMessage.value = null;
@@ -474,6 +489,10 @@ async function refreshForecast(): Promise<void> {
 }
 
 function openCreateConfigForm(): void {
+  if (isReadOnlyTenant.value) {
+    return;
+  }
+
   const field = activeField.value ?? tenantProfileStore.fields[0] ?? null;
   editingConfigId.value = null;
   Object.assign(configForm, {
@@ -489,6 +508,10 @@ function openCreateConfigForm(): void {
 }
 
 function openEditConfigForm(configId: string): void {
+  if (isReadOnlyTenant.value) {
+    return;
+  }
+
   const config = weatherConfigStore.configs.find((item) => item.id === configId);
   if (!config) {
     return;
@@ -524,6 +547,10 @@ function syncConfigField(): void {
 }
 
 function submitWeatherConfig(): void {
+  if (isReadOnlyTenant.value) {
+    return;
+  }
+
   if (!canSubmitConfig.value) {
     return;
   }
@@ -538,6 +565,10 @@ function submitWeatherConfig(): void {
 }
 
 function activateWeatherConfig(configId: string): void {
+  if (isReadOnlyTenant.value) {
+    return;
+  }
+
   const config = weatherConfigStore.configs.find((item) => item.id === configId);
   if (!config) {
     return;
@@ -548,6 +579,10 @@ function activateWeatherConfig(configId: string): void {
 }
 
 function deleteWeatherConfig(configId: string): void {
+  if (isReadOnlyTenant.value) {
+    return;
+  }
+
   const config = weatherConfigStore.configs.find((item) => item.id === configId);
   if (!config || !window.confirm(`Hapus konfigurasi ${config.name}?`)) {
     return;

@@ -59,6 +59,7 @@
               </div>
               <div class="p-2">
                 <button
+                  v-if="canOpenProfileSettings"
                   class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white"
                   type="button"
                   role="menuitem"
@@ -113,6 +114,7 @@ const apiHost = computed(() => {
 const profileName = computed(() => authStore.tenant?.accountName ?? "Pamilo Farm");
 const profileDetail = computed(() => authStore.user?.email ?? apiHost.value);
 const initials = computed(() => profileName.value.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "PF");
+const canOpenProfileSettings = computed(() => !authStore.isReadOnlyTenant);
 const profileRoleLabel = computed(() => {
   const role = authStore.user?.role ?? authStore.tenant?.role ?? "tenant_user";
   return role.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());

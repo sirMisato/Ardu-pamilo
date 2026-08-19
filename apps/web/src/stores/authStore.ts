@@ -13,6 +13,7 @@ export type AuthRole = "tenant_admin" | "tenant_user" | "super_admin";
 
 export interface AuthUser {
   email: string;
+  name?: string;
   role: AuthRole;
 }
 
@@ -44,7 +45,9 @@ export const useAuthStore = defineStore("auth", () => {
 
   const isAuthenticated = computed(() => Boolean(accessToken.value && user.value));
   const isSuperAdmin = computed(() => user.value?.role === "super_admin");
-  const isTenant = computed(() => user.value?.role === "tenant_admin" || user.value?.role === "tenant_user");
+  const isReadOnlyTenant = computed(() => user.value?.role === "tenant_user");
+  const isTenantAdmin = computed(() => user.value?.role === "tenant_admin");
+  const isTenant = computed(() => isTenantAdmin.value || isReadOnlyTenant.value);
 
   function restoreFromStorage(): void {
     const token = getAccessToken();
@@ -139,9 +142,11 @@ export const useAuthStore = defineStore("auth", () => {
     accessToken,
     applyTenantProfile,
     isAuthenticated,
+    isReadOnlyTenant,
     isReady,
     isSuperAdmin,
     isTenant,
+    isTenantAdmin,
     loginSuperAdmin,
     loginTenant,
     logout,
@@ -165,7 +170,11 @@ function readStoredProfile(): { tenant: AuthTenant | null; user: AuthUser | null
     }
 
     const user = isRecord(parsed.user) && isAuthRole(parsed.user.role) && typeof parsed.user.email === "string"
-      ? { email: parsed.user.email, role: parsed.user.role }
+      ? {
+          email: parsed.user.email,
+          name: typeof parsed.user.name === "string" ? parsed.user.name : undefined,
+          role: parsed.user.role
+        }
       : null;
     const tenant = isRecord(parsed.tenant) && typeof parsed.tenant.id === "string"
       ? {

@@ -3,7 +3,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { db } from "../db/client.js";
 import type { DeviceStatus, JsonValue } from "../db/schema.js";
-import { requireTenantContext, verifyTenant } from "../middleware/verifyTenant.js";
+import { requireTenantContext, verifyTenant, verifyTenantAdmin } from "../middleware/verifyTenant.js";
 
 const deviceStatusSchema = z.enum(["online", "offline", "maintenance"]);
 
@@ -69,7 +69,7 @@ export const deviceRoutes: FastifyPluginAsync = async (app) => {
     return rows.map(toDeviceDto);
   });
 
-  app.post<{ Body: CreateDeviceBody }>("/devices", async (request, reply) => {
+  app.post<{ Body: CreateDeviceBody }>("/devices", { preHandler: verifyTenantAdmin }, async (request, reply) => {
     const tenant = requireTenantContext(request);
     const parsed = createDeviceSchema.safeParse(request.body);
 
@@ -148,7 +148,7 @@ export const deviceRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
-  app.delete<{ Params: { deviceId: string } }>("/devices/:deviceId", async (request, reply) => {
+  app.delete<{ Params: { deviceId: string } }>("/devices/:deviceId", { preHandler: verifyTenantAdmin }, async (request, reply) => {
     const tenant = requireTenantContext(request);
     const parsed = routeParamsSchema.safeParse(request.params);
 

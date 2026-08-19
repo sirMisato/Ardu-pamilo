@@ -57,3 +57,14 @@ export function requireTenantContext(request: FastifyRequest): TenantContext {
 
   return request.tenant;
 }
+
+export async function verifyTenantAdmin(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+  const tenant = requireTenantContext(request);
+
+  if (tenant.role !== "tenant_admin") {
+    await reply.code(403).send({
+      error: "Read-only tenant",
+      message: "User read-only hanya dapat melihat Dashboard, Weather Station, Grafik, dan Report."
+    });
+  }
+}

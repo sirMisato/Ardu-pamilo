@@ -12,7 +12,9 @@ import MasterData from "../views/tenant/MasterData.vue";
 import MQTT from "../views/tenant/MQTT.vue";
 import Report from "../views/tenant/Report.vue";
 import Settings from "../views/tenant/Settings.vue";
+import TenantUsers from "../views/tenant/TenantUsers.vue";
 import Weather from "../views/tenant/Weather.vue";
+import { canReadOnlyTenantAccessRoute } from "../config/tenantAccess";
 import { useAuthStore } from "../stores/authStore";
 
 const routes: RouteRecordRaw[] = [
@@ -100,6 +102,15 @@ const routes: RouteRecordRaw[] = [
         }
       },
       {
+        path: "tenant-users",
+        name: "tenant-users",
+        component: TenantUsers,
+        meta: {
+          title: "User Tenant",
+          subtitle: "Create user read-only untuk akses dashboard dan report"
+        }
+      },
+      {
         path: "settings",
         name: "tenant-settings",
         component: Settings,
@@ -181,6 +192,10 @@ router.beforeEach((to) => {
 
   if (requiredRole === "tenant" && !authStore.isTenant) {
     return "/superadmin/dashboard";
+  }
+
+  if (requiredRole === "tenant" && authStore.isReadOnlyTenant && !canReadOnlyTenantAccessRoute(to.name)) {
+    return "/dashboard";
   }
 
   return true;

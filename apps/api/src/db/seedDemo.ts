@@ -122,5 +122,6 @@ async function resetTenantApplicationData(trx: Transaction<Database>): Promise<v
   await trx.deleteFrom("plots").execute();
   await trx.deleteFrom("master_crops").execute();
   await trx.deleteFrom("tenant_settings").execute();
+  await trx.deleteFrom("tenant_users").execute();
   await trx.deleteFrom("tenants").execute();
 }

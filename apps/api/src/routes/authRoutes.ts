@@ -3,7 +3,7 @@ import type { FastifyInstance, FastifyPluginAsync, FastifyReply } from "fastify"
 import { z } from "zod";
 import { env } from "../config/env.js";
 import { db } from "../db/client.js";
-import type { Tenant } from "../db/schema.js";
+import type { Tenant, TenantUser } from "../db/schema.js";
 
 const tenantLoginSchema = z.object({
   emailOrUsername: z.string().trim().min(1).max(255),
@@ -87,24 +87,58 @@ async function handleTenantLogin(app: FastifyInstance, body: TenantLoginBody, re
   }
 
   const tenant = await findTenantForLogin(parsed.data);
+  if (tenant && await bcrypt.compare(parsed.data.password, tenant.password_hash)) {
+    const licenseError = validateTenantLicense(tenant);
+    if (licenseError) {
+      return reply.code(403).send(licenseError);
+    }
 
-  if (!tenant || !(await bcrypt.compare(parsed.data.password, tenant.password_hash))) {
+    const accessToken = app.jwt.sign(
+      {
+        role: "tenant_admin",
+        sub: tenant.owner_email,
+        tenant_id: tenant.id
+      },
+      {
+        expiresIn: env.jwtExpiresIn
+      }
+    );
+
+    return {
+      accessToken,
+      tenant: toTenantSessionDto(tenant, "tenant_admin"),
+      user: {
+        email: tenant.owner_email,
+        role: "tenant_admin"
+      }
+    };
+  }
+
+  const tenantUserLogin = await findTenantUserForLogin(parsed.data);
+  if (!tenantUserLogin || !(await bcrypt.compare(parsed.data.password, tenantUserLogin.user.password_hash))) {
     return reply.code(401).send({
       error: "Invalid credentials",
       message: "Email/username atau kata sandi tidak sesuai."
     });
   }
 
-  const licenseError = validateTenantLicense(tenant);
+  if (tenantUserLogin.user.status !== "active") {
+    return reply.code(403).send({
+      error: "User inactive",
+      message: "User tenant sedang tidak aktif."
+    });
+  }
+
+  const licenseError = validateTenantLicense(tenantUserLogin.tenant);
   if (licenseError) {
     return reply.code(403).send(licenseError);
   }
 
   const accessToken = app.jwt.sign(
     {
-      role: "tenant_admin",
-      sub: tenant.owner_email,
-      tenant_id: tenant.id
+      role: "tenant_user",
+      sub: tenantUserLogin.user.email,
+      tenant_id: tenantUserLogin.tenant.id
     },
     {
       expiresIn: env.jwtExpiresIn
@@ -113,10 +147,11 @@ async function handleTenantLogin(app: FastifyInstance, body: TenantLoginBody, re
 
   return {
     accessToken,
-    tenant: toTenantSessionDto(tenant),
+    tenant: toTenantSessionDto(tenantUserLogin.tenant, "tenant_user"),
     user: {
-      email: tenant.owner_email,
-      role: "tenant_admin"
+      email: tenantUserLogin.user.email,
+      name: tenantUserLogin.user.name,
+      role: "tenant_user"
     }
   };
 }
@@ -135,6 +170,30 @@ async function findTenantForLogin(credentials: TenantLoginBody): Promise<Tenant 
   }
 
   return query.executeTakeFirst();
+}
+
+async function findTenantUserForLogin(credentials: TenantLoginBody): Promise<{ tenant: Tenant; user: TenantUser } | undefined> {
+  let query = db
+    .selectFrom("tenant_users")
+    .selectAll()
+    .where("email", "=", credentials.emailOrUsername);
+
+  if (credentials.tenantId) {
+    query = query.where("tenant_id", "=", credentials.tenantId);
+  }
+
+  const user = await query.executeTakeFirst();
+  if (!user) {
+    return undefined;
+  }
+
+  const tenant = await db
+    .selectFrom("tenants")
+    .selectAll()
+    .where("id", "=", user.tenant_id)
+    .executeTakeFirst();
+
+  return tenant ? { tenant, user } : undefined;
 }
 
 function validateTenantLicense(tenant: Tenant): { error: string; message: string } | null {
@@ -162,7 +221,7 @@ function validateTenantLicense(tenant: Tenant): { error: string; message: string
   return null;
 }
 
-function toTenantSessionDto(tenant: Tenant) {
+function toTenantSessionDto(tenant: Tenant, role: "tenant_admin" | "tenant_user") {
   return {
     accountName: tenant.account_name,
     id: tenant.id,
@@ -171,7 +230,7 @@ function toTenantSessionDto(tenant: Tenant) {
     maxDevices: tenant.max_devices,
     maxPlots: tenant.max_plots,
     ownerEmail: tenant.owner_email,
-    role: "tenant_admin"
+    role
   };
 }
 

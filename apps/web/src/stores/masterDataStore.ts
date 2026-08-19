@@ -141,7 +141,7 @@ export const useMasterDataStore = defineStore("masterData", () => {
 
     try {
       const updated = await apiPut<ApiCrop>(`/api/v1/crops/${encodeURIComponent(cropId)}`, input);
-      crops.value = crops.value.map((crop) => crop.id === updated.id ? updated : crop);
+      crops.value = sortCrops(crops.value.map((crop) => crop.id === updated.id ? updated : crop));
       return updated;
     } catch (error) {
       errorMessage.value = normalizeApiError(error, "Gagal memperbarui crop.");
@@ -164,6 +164,26 @@ export const useMasterDataStore = defineStore("masterData", () => {
       return null;
     } finally {
       isSaving.value = false;
+    }
+  }
+
+  async function deleteCrop(cropId: string): Promise<boolean> {
+    errorMessage.value = null;
+
+    try {
+      await apiDelete<void>(`/api/v1/crops/${encodeURIComponent(cropId)}`);
+      crops.value = crops.value.filter((crop) => crop.id !== cropId);
+      plots.value = plots.value.map((plot) => plot.cropId === cropId
+        ? {
+            ...plot,
+            cropId: null,
+            cropName: null
+          }
+        : plot);
+      return true;
+    } catch (error) {
+      errorMessage.value = normalizeApiError(error, "Gagal menghapus crop.");
+      return false;
     }
   }
 
@@ -190,6 +210,7 @@ export const useMasterDataStore = defineStore("masterData", () => {
     createCrop,
     createPlot,
     crops,
+    deleteCrop,
     deletePlot,
     errorMessage,
     fetchCrops,
@@ -201,6 +222,10 @@ export const useMasterDataStore = defineStore("masterData", () => {
     updateCrop
   };
 });
+
+function sortCrops(items: ApiCrop[]): ApiCrop[] {
+  return [...items].sort((left, right) => left.name.localeCompare(right.name));
+}
 
 function normalizeApiError(error: unknown, fallback: string): string {
   if (error instanceof ApiClientError) {

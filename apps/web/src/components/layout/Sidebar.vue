@@ -58,9 +58,13 @@ import {
   Router,
   Settings,
   Sprout,
-  TabletSmartphone
+  TabletSmartphone,
+  UsersRound
 } from "@lucide/vue";
+import { computed } from "vue";
 import { useRoute } from "vue-router";
+import { canReadOnlyTenantAccessPath } from "../../config/tenantAccess";
+import { useAuthStore } from "../../stores/authStore";
 
 withDefaults(defineProps<{
   collapsed?: boolean;
@@ -76,17 +80,22 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
-const navItems = [
+const authStore = useAuthStore();
+const allNavItems = [
   { to: "/dashboard", label: "Dashboard", icon: Gauge },
+  { to: "/weather", label: "Weather Station", icon: CloudSun },
   { to: "/chart", label: "Grafik", icon: BarChart3 },
   { to: "/report", label: "Report", icon: FileText },
-  { to: "/weather", label: "Weather Station", icon: CloudSun },
   { to: "/mqtt", label: "MQTT", icon: Router },
   { to: "/devices", label: "Perangkat", icon: TabletSmartphone },
   { to: "/master-data", label: "Master Data", icon: Database },
+  { to: "/tenant-users", label: "User Tenant", icon: UsersRound },
   { to: "/settings", label: "Pengaturan", icon: Settings },
   { to: "/superadmin/dashboard", label: "Super Admin", icon: MapPinned }
 ];
+const navItems = computed(() => authStore.isReadOnlyTenant
+  ? allNavItems.filter((item) => canReadOnlyTenantAccessPath(item.to))
+  : allNavItems);
 
 function isActive(path: string): boolean {
   return route.path === path || route.path.startsWith(`${path}/`);

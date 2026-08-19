@@ -34,6 +34,7 @@ export interface TenantLoginResponse {
   };
   user: {
     email: string;
+    name?: string;
     role: "tenant_admin" | "tenant_user";
   };
 }

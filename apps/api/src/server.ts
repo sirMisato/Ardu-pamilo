@@ -13,6 +13,7 @@ import { deviceRoutes } from "./routes/deviceRoutes.js";
 import { plotRoutes } from "./routes/plotRoutes.js";
 import { settingsRoutes } from "./routes/settingsRoutes.js";
 import { telemetryRoutes } from "./routes/telemetryRoutes.js";
+import { tenantUserRoutes } from "./routes/tenantUserRoutes.js";
 import { startMqttTelemetryService, type MqttTelemetryService } from "./services/mqttService.js";
 
 export async function buildServer(): Promise<FastifyInstance> {
@@ -78,6 +79,9 @@ export async function buildServer(): Promise<FastifyInstance> {
     prefix: "/api/v1"
   });
   await app.register(settingsRoutes, {
+    prefix: "/api/v1"
+  });
+  await app.register(tenantUserRoutes, {
     prefix: "/api/v1"
   });
 

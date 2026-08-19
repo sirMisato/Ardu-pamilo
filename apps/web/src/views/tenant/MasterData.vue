@@ -37,28 +37,36 @@
 
     <section v-if="activeTab === 'crops'" class="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)]">
       <div class="grid gap-3">
-        <button
+        <article
           v-for="crop in crops"
           :key="crop.id"
           class="panel-surface p-4 text-left transition hover:border-field-mint/35"
           :class="selectedCropId === crop.id ? 'border-field-mint/50 bg-field-mint/10' : ''"
-          type="button"
-          @click="selectCrop(crop.id)"
         >
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="font-semibold text-white">{{ crop.name }}</p>
-              <p class="mt-1 text-xs italic text-slate-400">{{ crop.latinName ?? "-" }}</p>
+          <button class="w-full text-left" type="button" @click="selectCrop(crop.id)">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <p class="font-semibold text-white">{{ crop.name }}</p>
+                <p class="mt-1 text-xs italic text-slate-400">{{ crop.latinName ?? "-" }}</p>
+              </div>
+              <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="statusClass(crop.status)">
+                {{ statusLabel(crop.status) }}
+              </span>
             </div>
-            <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="statusClass(crop.status)">
-              {{ statusLabel(crop.status) }}
-            </span>
+            <div class="mt-4 grid grid-cols-2 gap-3 text-xs text-slate-300">
+              <span class="rounded-lg bg-white/5 p-2">{{ plantingPeriodLabel(crop.plantingPeriodDays) }}</span>
+              <span class="rounded-lg bg-white/5 p-2">{{ crop.varieties.join(", ") || "Varietas belum diisi" }}</span>
+            </div>
+          </button>
+          <div class="mt-4 flex justify-end gap-2 border-t border-white/10 pt-3">
+            <button class="icon-button" type="button" :aria-label="`Edit ${crop.name}`" @click="openCropModal(crop)">
+              <Pencil class="h-4 w-4" />
+            </button>
+            <button class="icon-button" type="button" :aria-label="`Hapus ${crop.name}`" @click="removeCrop(crop)">
+              <Trash2 class="h-4 w-4" />
+            </button>
           </div>
-          <div class="mt-4 grid grid-cols-2 gap-3 text-xs text-slate-300">
-            <span class="rounded-lg bg-white/5 p-2">{{ plantingPeriodLabel(crop.plantingPeriodDays) }}</span>
-            <span class="rounded-lg bg-white/5 p-2">{{ crop.varieties.join(", ") || "Varietas belum diisi" }}</span>
-          </div>
-        </button>
+        </article>
 
         <div v-if="isLoading" class="panel-surface p-6 text-center text-sm text-slate-400">
           Memuat data.
@@ -76,7 +84,15 @@
             <p class="mt-1 text-sm italic text-slate-400">{{ selectedCrop.latinName ?? "-" }}</p>
             <p class="mt-3 max-w-2xl text-sm text-slate-300">{{ selectedCrop.description ?? "Deskripsi belum diisi." }}</p>
           </div>
-          <Sprout class="h-9 w-9 text-field-green" />
+          <div class="flex items-center gap-2">
+            <button class="icon-button" type="button" :aria-label="`Edit ${selectedCrop.name}`" @click="openCropModal(selectedCrop)">
+              <Pencil class="h-4 w-4" />
+            </button>
+            <button class="icon-button" type="button" :aria-label="`Hapus ${selectedCrop.name}`" @click="removeCrop(selectedCrop)">
+              <Trash2 class="h-4 w-4" />
+            </button>
+            <Sprout class="h-9 w-9 text-field-green" />
+          </div>
         </div>
 
         <div class="mt-5 grid gap-4 md:grid-cols-2">
@@ -208,10 +224,10 @@
     </section>
 
     <div v-if="isCropModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/75 p-4 backdrop-blur-sm">
-      <form class="w-full max-w-xl rounded-lg border border-field-mint/20 bg-[#101f32] p-5 shadow-field" @submit.prevent="submitCrop">
+      <form class="w-full max-w-2xl rounded-lg border border-field-mint/20 bg-[#101f32] p-5 shadow-field" @submit.prevent="submitCrop">
         <div class="flex items-center justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold tracking-normal text-white">Tambah Crop Type</h2>
+            <h2 class="text-lg font-semibold tracking-normal text-white">{{ cropModalTitle }}</h2>
             <p class="mt-1 text-sm text-slate-400">Data crop tenant.</p>
           </div>
           <button class="icon-button" type="button" aria-label="Tutup modal" @click="closeCropModal">
@@ -252,6 +268,11 @@
           </label>
 
           <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-300">Sumber Threshold</span>
+            <input v-model.trim="cropForm.thresholdSource" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" placeholder="Manual, rekomendasi agronom, jurnal" type="text" />
+          </label>
+
+          <label class="space-y-2">
             <span class="text-sm font-medium text-slate-300">Deskripsi</span>
             <textarea v-model.trim="cropForm.description" class="min-h-24 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"></textarea>
           </label>
@@ -263,7 +284,7 @@
           </button>
           <button class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-field-green px-5 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60" :disabled="isSaving" type="submit">
             <Save class="h-4 w-4" />
-            {{ isSaving ? "Menyimpan" : "Simpan Crop" }}
+            {{ isSaving ? "Menyimpan" : cropSubmitLabel }}
           </button>
         </div>
       </form>
@@ -341,6 +362,7 @@ import {
   useMasterDataStore,
   type ApiCrop,
   type ApiPlot,
+  type CropPayload,
   type CropStatus,
   type PlotPayload,
   type ThresholdKey,
@@ -358,6 +380,7 @@ const selectedCropId = ref("");
 const savedMessage = ref("Perubahan threshold akan dikirim ke API tenant.");
 const isCropModalOpen = ref(false);
 const isAreaModalOpen = ref(false);
+const editingCropId = ref<string | null>(null);
 const editingAreaId = ref<string | null>(null);
 const areaFormError = ref<string | null>(null);
 const areaFormElement = ref<HTMLFormElement | null>(null);
@@ -369,6 +392,7 @@ const cropForm = reactive<{
   name: string;
   plantingPeriodDays: number | null;
   status: CropStatus;
+  thresholdSource: string;
   varieties: string;
 }>({
   description: "",
@@ -376,6 +400,7 @@ const cropForm = reactive<{
   name: "",
   plantingPeriodDays: null,
   status: "draft",
+  thresholdSource: "",
   varieties: ""
 });
 
@@ -406,6 +431,8 @@ const tabs = [
 ];
 
 const selectedCrop = computed(() => crops.value.find((crop) => crop.id === selectedCropId.value) ?? crops.value[0] ?? null);
+const cropModalTitle = computed(() => editingCropId.value ? "Edit Crop Type" : "Tambah Crop Type");
+const cropSubmitLabel = computed(() => editingCropId.value ? "Update Crop" : "Simpan Crop");
 const areaModalTitle = computed(() => editingAreaId.value ? "Edit Zona / Area" : "Tambah Zona / Area");
 
 onMounted(async () => {
@@ -464,35 +491,60 @@ async function updateCropStatus(cropId: string, status: string): Promise<void> {
   }
 }
 
-function openCropModal(): void {
-  cropForm.description = "";
-  cropForm.latinName = "";
-  cropForm.name = "";
-  cropForm.plantingPeriodDays = null;
-  cropForm.status = "draft";
-  cropForm.varieties = "";
+function openCropModal(crop?: ApiCrop): void {
+  editingCropId.value = crop?.id ?? null;
+  cropForm.description = crop?.description ?? "";
+  cropForm.latinName = crop?.latinName ?? "";
+  cropForm.name = crop?.name ?? "";
+  cropForm.plantingPeriodDays = crop?.plantingPeriodDays ?? null;
+  cropForm.status = crop?.status ?? "draft";
+  cropForm.thresholdSource = crop?.thresholdSource ?? "";
+  cropForm.varieties = crop?.varieties.join(", ") ?? "";
   masterDataStore.clearError();
   isCropModalOpen.value = true;
 }
 
 function closeCropModal(): void {
   isCropModalOpen.value = false;
+  editingCropId.value = null;
 }
 
 async function submitCrop(): Promise<void> {
-  const created = await masterDataStore.createCrop({
+  const payload: CropPayload = {
     description: cropForm.description || null,
     latinName: cropForm.latinName || null,
     name: cropForm.name,
     plantingPeriodDays: cropForm.plantingPeriodDays,
     status: cropForm.status,
-    thresholds: cloneThresholds(draftThresholds),
+    thresholdSource: cropForm.thresholdSource || null,
     varieties: cropForm.varieties.split(",").map((value) => value.trim()).filter(Boolean)
-  });
+  };
 
-  if (created) {
-    selectedCropId.value = created.id;
+  const saved = editingCropId.value
+    ? await masterDataStore.updateCrop(editingCropId.value, payload)
+    : await masterDataStore.createCrop(payload);
+
+  if (saved) {
+    selectedCropId.value = saved.id;
     closeCropModal();
+  }
+}
+
+async function removeCrop(crop: ApiCrop): Promise<void> {
+  const usageCount = plots.value.filter((plot) => plot.cropId === crop.id).length;
+  const usageMessage = usageCount > 0
+    ? ` Crop ini sedang dipakai oleh ${usageCount} zona/area dan relasinya akan dikosongkan.`
+    : "";
+
+  if (!window.confirm(`Hapus crop ${crop.name}?${usageMessage}`)) {
+    return;
+  }
+
+  const deleted = await masterDataStore.deleteCrop(crop.id);
+
+  if (deleted) {
+    selectedCropId.value = crops.value[0]?.id ?? "";
+    savedMessage.value = `Crop ${crop.name} sudah dihapus.`;
   }
 }
 
