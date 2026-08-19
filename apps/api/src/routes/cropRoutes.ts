@@ -6,6 +6,10 @@ import type { CropStatus, JsonValue, MasterCrop } from "../db/schema.js";
 import { requireTenantContext, verifyTenant, verifyTenantAdmin } from "../middleware/verifyTenant.js";
 
 const cropStatusSchema = z.enum(["active", "draft", "archived"]);
+const plantingDateSchema = z.preprocess(
+  (value) => value === "" || value === undefined ? null : value,
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal tanam harus memakai format YYYY-MM-DD.").nullable()
+).optional();
 const thresholdValueSchema = z.preprocess(
   (value) => value === "" || value === undefined ? null : value,
   z.number().finite().nullable()
@@ -14,6 +18,7 @@ const cropPayloadSchema = z.object({
   description: z.string().max(3000).optional().nullable(),
   latinName: z.string().trim().max(160).optional().nullable(),
   name: z.string().trim().min(1).max(120),
+  plantingDate: plantingDateSchema,
   plantingPeriodDays: z.number().int().positive().optional().nullable(),
   status: cropStatusSchema.optional().default("draft"),
   thresholdSource: z.string().trim().max(255).optional().nullable(),
@@ -187,6 +192,7 @@ function toCropInsertValues(crop: CropPayload, cropId: string, tenantId: string)
     ph_min: thresholds.ph?.min ?? null,
     phosphorus_max: thresholds.phosphorus?.max ?? null,
     phosphorus_min: thresholds.phosphorus?.min ?? null,
+    planting_date: crop.plantingDate ?? null,
     planting_period_days: crop.plantingPeriodDays ?? null,
     potassium_max: thresholds.potassium?.max ?? null,
     potassium_min: thresholds.potassium?.min ?? null,
@@ -203,6 +209,7 @@ function toCropUpdateValues(crop: UpdateCropPayload) {
   if ("description" in crop) values.description = crop.description ?? null;
   if ("latinName" in crop) values.latin_name = crop.latinName ?? null;
   if ("name" in crop && crop.name) values.name = crop.name;
+  if ("plantingDate" in crop) values.planting_date = crop.plantingDate ?? null;
   if ("plantingPeriodDays" in crop) values.planting_period_days = crop.plantingPeriodDays ?? null;
   if ("status" in crop && crop.status) values.status = crop.status;
   if ("thresholdSource" in crop) values.threshold_source = crop.thresholdSource ?? null;
@@ -249,6 +256,7 @@ function toCropDto(crop: MasterCrop) {
     id: crop.id,
     latinName: crop.latin_name,
     name: crop.name,
+    plantingDate: crop.planting_date ? serializeDateOnly(crop.planting_date) : null,
     plantingPeriodDays: crop.planting_period_days,
     status: crop.status as CropStatus,
     thresholdSource: crop.threshold_source,
@@ -283,4 +291,17 @@ function parseJsonArray(value: JsonValue | string | null): string[] {
 
 function serializeDate(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : value;
+}
+
+function serializeDateOnly(value: Date | string): string {
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+    return value.slice(0, 10);
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toISOString().slice(0, 10);
 }

@@ -30,6 +30,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       .addColumn("name", "varchar(120)", (column) => column.notNull())
       .addColumn("latin_name", "varchar(160)")
       .addColumn("planting_period_days", "integer")
+      .addColumn("planting_date", "date")
       .addColumn("varieties_json", "json")
       .addColumn("description", "text")
       .addColumn("status", sql`enum('active', 'draft', 'archived')`, (column) => column.notNull().defaultTo("draft"))

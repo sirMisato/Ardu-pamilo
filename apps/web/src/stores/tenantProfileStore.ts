@@ -8,6 +8,8 @@ export interface TenantFieldProfile {
   bmkgAdm4Code: string;
   cropId: string | null;
   cropLabel: string;
+  cropPlantingDate: string | null;
+  cropPlantingPeriodDays: number | null;
   id: string;
   name: string;
   polygonGeojson: unknown;
@@ -20,6 +22,8 @@ interface ApiPlotProfile {
   bmkgAdm4Code: string | null;
   cropId: string | null;
   cropName: string | null;
+  cropPlantingDate: string | null;
+  cropPlantingPeriodDays: number | null;
   id: string;
   name: string;
   polygonGeojson: unknown;
@@ -107,6 +111,8 @@ function toTenantFieldProfile(plot: ApiPlotProfile): TenantFieldProfile {
     bmkgAdm4Code: plot.bmkgAdm4Code ?? "",
     cropId: plot.cropId,
     cropLabel: plot.cropName ?? "Crop belum dipilih",
+    cropPlantingDate: plot.cropPlantingDate,
+    cropPlantingPeriodDays: plot.cropPlantingPeriodDays,
     id: plot.id,
     name: plot.name,
     polygonGeojson: plot.polygonGeojson,

@@ -4,17 +4,17 @@
       <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(260px,2fr)_repeat(3,minmax(150px,1fr))_auto] xl:items-end">
         <label class="space-y-2">
           <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <RadioTower class="h-4 w-4 text-field-mint" />
-            Topic MQTT
+            <TabletSmartphone class="h-4 w-4 text-field-mint" />
+            Nama Device
           </span>
           <select
-            v-model="activeTopic"
-            aria-label="Topic MQTT"
+            v-model="activeDeviceUid"
+            aria-label="Nama Device"
             class="min-h-12 w-full rounded-lg border border-white/10 bg-[#07111f] px-4 text-sm text-white outline-none transition focus:border-field-mint/70"
           >
-            <option v-if="topicSummaries.length === 0" value="">Belum ada topic telemetry</option>
-            <option v-for="topic in topicSummaries" :key="topic.topic" :value="topic.topic">
-              {{ topic.topic }}
+            <option v-if="deviceOptions.length === 0" value="">Belum ada device</option>
+            <option v-for="device in deviceOptions" :key="device.deviceUid" :value="device.deviceUid">
+              {{ device.label }}
             </option>
           </select>
         </label>
@@ -94,7 +94,7 @@
       </div>
       <h2 class="mt-4 text-lg font-semibold tracking-normal text-white">Belum ada parameter numerik</h2>
       <p class="mx-auto mt-2 max-w-xl text-sm text-slate-400">
-        Menunggu parameter numerik dari telemetry MQTT.
+        Menunggu parameter numerik dari device terpilih.
       </p>
     </section>
   </div>
@@ -114,10 +114,12 @@ import {
   type ChartData,
   type ChartOptions
 } from "chart.js";
-import { CalendarDays, Clock, RadioTower, RefreshCw } from "@lucide/vue";
+import { CalendarDays, Clock, RefreshCw, TabletSmartphone } from "@lucide/vue";
+import { storeToRefs } from "pinia";
 import { Line } from "vue-chartjs";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ApiClientError, apiGet } from "../../services/apiClient";
+import { useDeviceStore } from "../../stores/deviceStore";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Legend, Title, Tooltip);
 
@@ -141,10 +143,15 @@ interface TelemetryHistoryItem {
   value: unknown;
 }
 
-interface TopicSummary {
+interface DeviceOption {
+  deviceUid: string;
+  label: string;
+}
+
+interface DeviceSummary {
+  deviceUid: string;
   lastSeenAt: string;
   metricKeys: string[];
-  topic: string;
 }
 
 interface MetricChartCard {
@@ -165,7 +172,9 @@ const today = new Date();
 const threeDaysAgo = new Date(today);
 threeDaysAgo.setDate(today.getDate() - 3);
 
-const activeTopic = ref("");
+const deviceStore = useDeviceStore();
+const { devices } = storeToRefs(deviceStore);
+const activeDeviceUid = ref("");
 const errorMessage = ref<string | null>(null);
 const historyItems = ref<TelemetryHistoryItem[]>([]);
 const isLoading = ref(false);
@@ -198,41 +207,60 @@ const filteredHistoryItems = computed(() => {
   });
 });
 
-const topicSummaries = computed<TopicSummary[]>(() => {
+const deviceSummaries = computed<DeviceSummary[]>(() => {
   const grouped = new Map<string, TelemetryHistoryItem[]>();
 
   for (const item of filteredHistoryItems.value) {
-    grouped.set(item.topic, [...(grouped.get(item.topic) ?? []), item]);
+    grouped.set(item.deviceUid, [...(grouped.get(item.deviceUid) ?? []), item]);
   }
 
   return Array.from(grouped.entries())
-    .map(([topic, rows]) => {
+    .map(([deviceUid, rows]) => {
       const metricKeys = Array.from(new Set(rows.flatMap((row) => row.metricKeys)))
         .filter((metricKey) => hasNumericValue(rows, metricKey))
         .sort((left, right) => formatMetricLabel(left).localeCompare(formatMetricLabel(right)));
       const lastSeenAt = rows[rows.length - 1]?.receivedAt ?? "";
 
       return {
+        deviceUid,
         lastSeenAt,
-        metricKeys,
-        topic
+        metricKeys
       };
     })
-    .filter((topic) => topic.metricKeys.length > 0)
+    .filter((device) => device.metricKeys.length > 0)
     .sort((left, right) => right.lastSeenAt.localeCompare(left.lastSeenAt));
 });
 
-const selectedTopicRows = computed(() => filteredHistoryItems.value.filter((item) => item.topic === activeTopic.value));
+const deviceOptions = computed<DeviceOption[]>(() => {
+  const registeredDevices = devices.value.map((device) => ({
+    deviceUid: device.deviceUid,
+    label: device.displayName ? `${device.displayName} / ${device.deviceUid}` : device.deviceUid
+  }));
+  const registeredUids = new Set(registeredDevices.map((device) => device.deviceUid));
+  const historyDevices = deviceSummaries.value
+    .filter((device) => !registeredUids.has(device.deviceUid))
+    .map((device) => ({
+      deviceUid: device.deviceUid,
+      label: device.deviceUid
+    }));
+
+  return [...registeredDevices, ...historyDevices]
+    .sort((left, right) => left.label.localeCompare(right.label));
+});
+
+const selectedDeviceRows = computed(() => filteredHistoryItems.value.filter((item) => item.deviceUid === activeDeviceUid.value));
 const selectedMetricKeys = computed(() => {
-  return topicSummaries.value.find((summary) => summary.topic === activeTopic.value)?.metricKeys ?? [];
+  return Array.from(new Set(selectedDeviceRows.value.flatMap((row) => row.metricKeys)))
+    .filter((metricKey) => hasNumericValue(selectedDeviceRows.value, metricKey))
+    .sort((left, right) => formatMetricLabel(left).localeCompare(formatMetricLabel(right)));
 });
 
 const chartCards = computed<MetricChartCard[]>(() => selectedMetricKeys.value.map((metricKey, index) => {
-  const points = sampleMetricPoints(selectedTopicRows.value, metricKey);
+  const points = sampleMetricPoints(selectedDeviceRows.value, metricKey);
   const color = colorForMetric(metricKey, index);
 
   return {
-    id: `${activeTopic.value}:${metricKey}`,
+    id: `${activeDeviceUid.value}:${metricKey}`,
     label: formatMetricLabel(metricKey),
     color,
     chartData: createChartData(points, color),
@@ -248,7 +276,7 @@ const chartRangeLabel = computed(() => {
 });
 
 onMounted(() => {
-  void refreshTelemetryHistory();
+  void initializeChart();
   refreshTimer = window.setInterval(() => {
     void refreshTelemetryHistory();
   }, 30_000);
@@ -260,22 +288,27 @@ onBeforeUnmount(() => {
   }
 });
 
-watch(topicSummaries, (summaries) => {
-  if (summaries.length === 0) {
-    activeTopic.value = "";
+watch(deviceOptions, (options) => {
+  if (options.length === 0) {
+    activeDeviceUid.value = "";
     return;
   }
 
-  if (!activeTopic.value || !summaries.some((summary) => summary.topic === activeTopic.value)) {
-    activeTopic.value = summaries[0]?.topic ?? "";
+  if (!activeDeviceUid.value || !options.some((option) => option.deviceUid === activeDeviceUid.value)) {
+    activeDeviceUid.value = options[0]?.deviceUid ?? "";
   }
 }, {
   immediate: true
 });
 
-watch(() => [filters.value.startDate, filters.value.endDate], () => {
+watch(() => [filters.value.startDate, filters.value.endDate, activeDeviceUid.value], () => {
   void refreshTelemetryHistory();
 });
+
+async function initializeChart(): Promise<void> {
+  await deviceStore.fetchDevices();
+  await refreshTelemetryHistory();
+}
 
 async function refreshTelemetryHistory(): Promise<void> {
   isLoading.value = true;
@@ -298,6 +331,10 @@ function buildTelemetryHistoryUrl(): string {
     limit: "1000",
     start: startOfDayIso(startDate)
   });
+
+  if (activeDeviceUid.value) {
+    params.set("deviceId", activeDeviceUid.value);
+  }
 
   return `/api/v1/telemetry/history?${params.toString()}`;
 }

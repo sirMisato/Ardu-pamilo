@@ -17,6 +17,7 @@ export interface ApiCrop {
   id: string;
   latinName: string | null;
   name: string;
+  plantingDate: string | null;
   plantingPeriodDays: number | null;
   status: CropStatus;
   thresholdSource: string | null;
@@ -29,6 +30,7 @@ export interface CropPayload {
   description?: string | null;
   latinName?: string | null;
   name: string;
+  plantingDate?: string | null;
   plantingPeriodDays?: number | null;
   status?: CropStatus;
   thresholdSource?: string | null;
@@ -43,6 +45,8 @@ export interface ApiPlot {
   createdAt: string;
   cropId: string | null;
   cropName: string | null;
+  cropPlantingDate: string | null;
+  cropPlantingPeriodDays: number | null;
   id: string;
   name: string;
   polygonGeojson: unknown;
@@ -177,7 +181,9 @@ export const useMasterDataStore = defineStore("masterData", () => {
         ? {
             ...plot,
             cropId: null,
-            cropName: null
+            cropName: null,
+            cropPlantingDate: null,
+            cropPlantingPeriodDays: null
           }
         : plot);
       return true;

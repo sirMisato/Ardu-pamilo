@@ -2,6 +2,7 @@ import type { ColumnType, Generated, Insertable, Selectable, Updateable } from "
 
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type Timestamp = ColumnType<Date, Date | string | undefined, Date | string>;
+export type DateOnly = ColumnType<Date | string, Date | string | undefined, Date | string>;
 export type JsonColumn = ColumnType<JsonValue, JsonValue | string, JsonValue | string>;
 
 export type TenantLicenseStatus = "trial" | "active" | "suspended" | "revoked";
@@ -56,6 +57,7 @@ export interface MasterCropsTable {
   name: string;
   latin_name: string | null;
   planting_period_days: number | null;
+  planting_date: DateOnly | null;
   varieties_json: JsonColumn | null;
   description: string | null;
   status: CropStatus;

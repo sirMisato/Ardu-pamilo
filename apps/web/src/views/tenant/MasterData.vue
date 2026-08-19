@@ -55,6 +55,8 @@
             </div>
             <div class="mt-4 grid grid-cols-2 gap-3 text-xs text-slate-300">
               <span class="rounded-lg bg-white/5 p-2">{{ plantingPeriodLabel(crop.plantingPeriodDays) }}</span>
+              <span class="rounded-lg bg-white/5 p-2">{{ plantingDateLabel(crop.plantingDate) }}</span>
+              <span class="rounded-lg bg-white/5 p-2">{{ hstLabel(crop) }}</span>
               <span class="rounded-lg bg-white/5 p-2">{{ crop.varieties.join(", ") || "Varietas belum diisi" }}</span>
             </div>
           </button>
@@ -92,6 +94,25 @@
               <Trash2 class="h-4 w-4" />
             </button>
             <Sprout class="h-9 w-9 text-field-green" />
+          </div>
+        </div>
+
+        <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
+            <p class="text-xs text-slate-400">Tanggal Tanam</p>
+            <p class="mt-2 text-sm font-semibold text-white">{{ plantingDateLabel(selectedCrop.plantingDate) }}</p>
+          </div>
+          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
+            <p class="text-xs text-slate-400">Umur Tanaman</p>
+            <p class="mt-2 text-sm font-semibold text-field-mint">{{ hstLabel(selectedCrop) }}</p>
+          </div>
+          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
+            <p class="text-xs text-slate-400">Progress</p>
+            <p class="mt-2 text-sm font-semibold text-white">{{ cropProgressLabel(selectedCrop) }}</p>
+          </div>
+          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
+            <p class="text-xs text-slate-400">Estimasi Panen</p>
+            <p class="mt-2 text-sm font-semibold text-white">{{ harvestEstimateLabel(selectedCrop) }}</p>
           </div>
         </div>
 
@@ -247,10 +268,14 @@
             </label>
           </div>
 
-          <div class="grid gap-4 sm:grid-cols-2">
+          <div class="grid gap-4 sm:grid-cols-3">
             <label class="space-y-2">
               <span class="text-sm font-medium text-slate-300">Periode Tanam (hari)</span>
               <input v-model.number="cropForm.plantingPeriodDays" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" min="1" type="number" />
+            </label>
+            <label class="space-y-2">
+              <span class="text-sm font-medium text-slate-300">Tanggal Tanam</span>
+              <input v-model="cropForm.plantingDate" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" type="date" />
             </label>
             <label class="space-y-2">
               <span class="text-sm font-medium text-slate-300">Status</span>
@@ -390,6 +415,7 @@ const cropForm = reactive<{
   description: string;
   latinName: string;
   name: string;
+  plantingDate: string;
   plantingPeriodDays: number | null;
   status: CropStatus;
   thresholdSource: string;
@@ -398,6 +424,7 @@ const cropForm = reactive<{
   description: "",
   latinName: "",
   name: "",
+  plantingDate: "",
   plantingPeriodDays: null,
   status: "draft",
   thresholdSource: "",
@@ -496,6 +523,7 @@ function openCropModal(crop?: ApiCrop): void {
   cropForm.description = crop?.description ?? "";
   cropForm.latinName = crop?.latinName ?? "";
   cropForm.name = crop?.name ?? "";
+  cropForm.plantingDate = crop?.plantingDate ?? "";
   cropForm.plantingPeriodDays = crop?.plantingPeriodDays ?? null;
   cropForm.status = crop?.status ?? "draft";
   cropForm.thresholdSource = crop?.thresholdSource ?? "";
@@ -514,6 +542,7 @@ async function submitCrop(): Promise<void> {
     description: cropForm.description || null,
     latinName: cropForm.latinName || null,
     name: cropForm.name,
+    plantingDate: cropForm.plantingDate || null,
     plantingPeriodDays: cropForm.plantingPeriodDays,
     status: cropForm.status,
     thresholdSource: cropForm.thresholdSource || null,
@@ -526,6 +555,8 @@ async function submitCrop(): Promise<void> {
 
   if (saved) {
     selectedCropId.value = saved.id;
+    await masterDataStore.fetchPlots();
+    tenantProfileStore.syncFieldsFromPlots(plots.value);
     closeCropModal();
   }
 }
@@ -655,6 +686,94 @@ function formatRange(range: ThresholdRange): string {
 
 function plantingPeriodLabel(value: ApiCrop["plantingPeriodDays"]): string {
   return value ? `${value} hari` : "Periode belum diisi";
+}
+
+function plantingDateLabel(value: ApiCrop["plantingDate"]): string {
+  if (!value) {
+    return "Tanggal tanam belum diisi";
+  }
+
+  return formatDateOnly(value);
+}
+
+function hstLabel(crop: ApiCrop): string {
+  const hst = calculateHst(crop.plantingDate);
+  return hst === null ? "HST belum tersedia" : `${hst} HST`;
+}
+
+function cropProgressLabel(crop: ApiCrop): string {
+  const progress = cropProgressPercent(crop);
+  return progress === null ? "-" : `${progress}%`;
+}
+
+function harvestEstimateLabel(crop: ApiCrop): string {
+  if (!crop.plantingDate || !crop.plantingPeriodDays) {
+    return "-";
+  }
+
+  const plantingDate = parseDateOnly(crop.plantingDate);
+  if (!plantingDate) {
+    return "-";
+  }
+
+  plantingDate.setDate(plantingDate.getDate() + crop.plantingPeriodDays);
+  return formatDateOnly(toDateInputValue(plantingDate));
+}
+
+function cropProgressPercent(crop: ApiCrop): number | null {
+  const hst = calculateHst(crop.plantingDate);
+  if (hst === null || !crop.plantingPeriodDays) {
+    return null;
+  }
+
+  return Math.min(100, Math.max(0, Math.round((hst / crop.plantingPeriodDays) * 100)));
+}
+
+function calculateHst(value: string | null): number | null {
+  const plantingDate = parseDateOnly(value);
+  if (!plantingDate) {
+    return null;
+  }
+
+  const today = new Date();
+  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const diffMs = todayOnly.getTime() - plantingDate.getTime();
+
+  return Math.max(0, Math.floor(diffMs / 86_400_000));
+}
+
+function parseDateOnly(value: string | null): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatDateOnly(value: string): string {
+  const date = parseDateOnly(value);
+  if (!date) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }).format(date);
+}
+
+function toDateInputValue(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function statusLabel(status: CropStatus): string {

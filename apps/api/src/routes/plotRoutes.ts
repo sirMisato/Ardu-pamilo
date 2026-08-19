@@ -30,6 +30,8 @@ interface PlotRow {
   created_at: Date | string;
   crop_id: string | null;
   crop_name: string | null;
+  crop_planting_date: Date | string | null;
+  crop_planting_period_days: number | string | null;
   id: string;
   name: string;
   polygon_geojson: JsonValue | string;
@@ -199,7 +201,9 @@ async function selectPlotsForTenant(tenantId: string): Promise<PlotRow[]> {
       "plots.name",
       "plots.polygon_geojson",
       "plots.updated_at",
-      "master_crops.name as crop_name"
+      "master_crops.name as crop_name",
+      "master_crops.planting_date as crop_planting_date",
+      "master_crops.planting_period_days as crop_planting_period_days"
     ])
     .where("plots.tenant_id", "=", tenantId)
     .orderBy("plots.created_at", "desc")
@@ -221,7 +225,9 @@ async function selectPlotForTenant(plotId: string, tenantId: string): Promise<Pl
       "plots.name",
       "plots.polygon_geojson",
       "plots.updated_at",
-      "master_crops.name as crop_name"
+      "master_crops.name as crop_name",
+      "master_crops.planting_date as crop_planting_date",
+      "master_crops.planting_period_days as crop_planting_period_days"
     ])
     .where("plots.id", "=", plotId)
     .where("plots.tenant_id", "=", tenantId)
@@ -258,6 +264,7 @@ function toPlotUpdateValues(plot: UpdatePlotPayload, resolvedCropId: string | nu
 
 function toPlotDto(row: PlotRow) {
   const areaHectares = row.area_hectares === null ? null : Number(row.area_hectares);
+  const cropPlantingPeriodDays = row.crop_planting_period_days === null ? null : Number(row.crop_planting_period_days);
 
   return {
     areaHectares: Number.isFinite(areaHectares) ? areaHectares : null,
@@ -266,6 +273,8 @@ function toPlotDto(row: PlotRow) {
     createdAt: serializeDate(row.created_at),
     cropId: row.crop_id,
     cropName: row.crop_name,
+    cropPlantingDate: row.crop_planting_date ? serializeDateOnly(row.crop_planting_date) : null,
+    cropPlantingPeriodDays: Number.isFinite(cropPlantingPeriodDays) ? cropPlantingPeriodDays : null,
     id: row.id,
     name: row.name,
     polygonGeojson: parseJson(row.polygon_geojson),
@@ -319,4 +328,17 @@ function isJsonValue(value: unknown): value is JsonValue {
 
 function serializeDate(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : value;
+}
+
+function serializeDateOnly(value: Date | string): string {
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+    return value.slice(0, 10);
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toISOString().slice(0, 10);
 }

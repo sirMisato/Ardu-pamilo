@@ -50,15 +50,15 @@
         <div class="mt-6">
           <div class="flex items-center justify-between text-sm">
             <span class="font-medium text-slate-300">Growth Progress</span>
-            <span class="font-semibold text-field-mint">62%</span>
+            <span class="font-semibold text-field-mint">{{ growthProgressLabel }}</span>
           </div>
           <div class="mt-3 h-3 rounded-full bg-white/10">
-            <div class="h-full w-[62%] rounded-full bg-field-green"></div>
+            <div class="h-full rounded-full bg-field-green transition-[width]" :style="{ width: growthProgressBarWidth }"></div>
           </div>
           <div class="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-            <span class="rounded-lg bg-field-green/10 py-2 text-field-green">Vegetatif</span>
-            <span class="rounded-lg bg-field-mint/10 py-2 text-field-mint">Generatif</span>
-            <span class="rounded-lg bg-white/5 py-2 text-slate-400">Panen</span>
+            <span class="rounded-lg py-2" :class="growthStageClass('vegetatif')">Vegetatif</span>
+            <span class="rounded-lg py-2" :class="growthStageClass('generatif')">Generatif</span>
+            <span class="rounded-lg py-2" :class="growthStageClass('panen')">Panen</span>
           </div>
         </div>
       </article>
@@ -302,6 +302,9 @@ const activeAreaLabel = computed(() => {
 
 const cropInfo = computed(() => [
   { label: "Crop Type", value: tenantProfileStore.activeField?.cropLabel ?? "-" },
+  { label: "Tanggal Tanam", value: plantingDateLabel.value },
+  { label: "Umur Tanaman", value: hstLabel.value },
+  { label: "Estimasi Panen", value: harvestEstimateLabel.value },
   { label: "Area", value: tenantProfileStore.activeField?.areaLabel ?? "-" },
   { label: "BMKG ADM4", value: tenantProfileStore.activeField?.bmkgAdm4Code || "-" },
   { label: "Region", value: tenantProfileStore.activeField?.regionLabel ?? "-" },
@@ -310,6 +313,45 @@ const cropInfo = computed(() => [
 
 const latestMetricCards = computed(() => telemetryStore.latestMetrics.slice(0, 8));
 const dashboardDailyForecast = computed(() => dashboardForecast.value?.daily.slice(0, 3) ?? []);
+const activeCropHst = computed(() => calculateHst(tenantProfileStore.activeField?.cropPlantingDate ?? null));
+const activeCropProgressPercent = computed(() => {
+  const hst = activeCropHst.value;
+  const periodDays = tenantProfileStore.activeField?.cropPlantingPeriodDays;
+  if (hst === null || !periodDays) {
+    return null;
+  }
+
+  return Math.min(100, Math.max(0, Math.round((hst / periodDays) * 100)));
+});
+const growthProgressLabel = computed(() => activeCropProgressPercent.value === null ? "-" : `${activeCropProgressPercent.value}%`);
+const growthProgressBarWidth = computed(() => `${activeCropProgressPercent.value ?? 0}%`);
+const activeGrowthStage = computed<"generatif" | "panen" | "unknown" | "vegetatif">(() => {
+  const progress = activeCropProgressPercent.value;
+  if (progress === null) {
+    return "unknown";
+  }
+
+  if (progress >= 80) {
+    return "panen";
+  }
+
+  return progress >= 50 ? "generatif" : "vegetatif";
+});
+const plantingDateLabel = computed(() => {
+  const plantingDate = tenantProfileStore.activeField?.cropPlantingDate;
+  return plantingDate ? formatDateOnly(plantingDate) : "-";
+});
+const hstLabel = computed(() => activeCropHst.value === null ? "-" : `${activeCropHst.value} HST`);
+const harvestEstimateLabel = computed(() => {
+  const plantingDate = parseDateOnly(tenantProfileStore.activeField?.cropPlantingDate ?? null);
+  const periodDays = tenantProfileStore.activeField?.cropPlantingPeriodDays;
+  if (!plantingDate || !periodDays) {
+    return "-";
+  }
+
+  plantingDate.setDate(plantingDate.getDate() + periodDays);
+  return formatDateOnly(toDateInputValue(plantingDate));
+});
 
 async function refreshDashboardForecast(): Promise<void> {
   weatherError.value = null;
@@ -347,5 +389,64 @@ function formatTemperature(value: number | null): string {
 
 function isRainy(condition?: string): boolean {
   return condition?.toLowerCase().includes("hujan") ?? false;
+}
+
+function growthStageClass(stage: "generatif" | "panen" | "vegetatif"): string {
+  if (activeGrowthStage.value === stage) {
+    return stage === "vegetatif"
+      ? "bg-field-green/10 text-field-green"
+      : stage === "generatif"
+        ? "bg-field-mint/10 text-field-mint"
+        : "bg-amber-300/10 text-amber-200";
+  }
+
+  return "bg-white/5 text-slate-400";
+}
+
+function calculateHst(value: string | null): number | null {
+  const plantingDate = parseDateOnly(value);
+  if (!plantingDate) {
+    return null;
+  }
+
+  const today = new Date();
+  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const diffMs = todayOnly.getTime() - plantingDate.getTime();
+
+  return Math.max(0, Math.floor(diffMs / 86_400_000));
+}
+
+function parseDateOnly(value: string | null): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatDateOnly(value: string): string {
+  const date = parseDateOnly(value);
+  if (!date) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }).format(date);
+}
+
+function toDateInputValue(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 </script>
