@@ -91,4 +91,8 @@ VITE_MQTT_USERNAME=pamilo_web_demo
 VITE_MQTT_PASSWORD=the password created in EMQX
 ```
 
+For VPS deployment through GitHub Actions, set `VITE_MQTT_USERNAME` as a production environment variable
+and `VITE_MQTT_PASSWORD` as a production secret. If `VITE_MQTT_PASSWORD` is not set, the deployment
+falls back to `MQTT_DEMO_PASSWORD` for the browser MQTT user.
+
 Restart the Vite dev server after changing `.env`.

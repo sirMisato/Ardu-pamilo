@@ -41,6 +41,8 @@ services:
         VITE_WEB_BASE_URL: ${VITE_WEB_BASE_URL:-https://sedayafarm.keycloud.id}
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://sedayafarm.keycloud.id}
         VITE_MQTT_BROKER_URL: ${VITE_MQTT_BROKER_URL:-mqtts://mqtt.keycloud.id:8883}
+        VITE_MQTT_USERNAME: ${VITE_MQTT_USERNAME:-}
+        VITE_MQTT_PASSWORD: ${VITE_MQTT_PASSWORD:-}
         VITE_MQTT_WEBSOCKET_URL: ${VITE_MQTT_WEBSOCKET_URL:-wss://mqtt.keycloud.id:8084/mqtt}
         VITE_BMKG_FORECAST_BASE_URL: ${VITE_BMKG_FORECAST_BASE_URL:-https://api.bmkg.go.id/publik/prakiraan-cuaca}
     restart: unless-stopped

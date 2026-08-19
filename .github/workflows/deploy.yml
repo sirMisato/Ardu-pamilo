@@ -155,6 +155,8 @@ jobs:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
           VITE_BMKG_FORECAST_BASE_URL: ${{ vars.VITE_BMKG_FORECAST_BASE_URL }}
           VITE_MQTT_BROKER_URL: ${{ vars.VITE_MQTT_BROKER_URL }}
+          VITE_MQTT_PASSWORD: ${{ secrets.VITE_MQTT_PASSWORD }}
+          VITE_MQTT_USERNAME: ${{ vars.VITE_MQTT_USERNAME }}
           VITE_MQTT_WEBSOCKET_URL: ${{ vars.VITE_MQTT_WEBSOCKET_URL }}
           VITE_WEB_BASE_URL: ${{ vars.VITE_WEB_BASE_URL }}
           WEB_HOST: ${{ vars.WEB_HOST }}
@@ -164,7 +166,7 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT || 22 }}
           command_timeout: 30m
-          envs: APP_DIR,DATABASE_SSL,DATABASE_URL,DEMO_TENANT_EMAIL,DEMO_TENANT_ENABLED,DEMO_TENANT_ID,DEMO_TENANT_NAME,DEMO_TENANT_PASSWORD,DEMO_TENANT_RESET_DATA,EMQX_DASHBOARD_PASSWORD_B64,EMQX_DASHBOARD_USERNAME,FRONTEND_ORIGIN,JWT_EXPIRES_IN,JWT_SECRET,LETSENCRYPT_EMAIL,LOG_LEVEL,MQTT_BROKER_URL,MQTT_CLIENT_ID,MQTT_DEMO_PASSWORD,MQTT_HOST,MQTT_INGEST_ENABLED,MQTT_PASSWORD,MQTT_TELEMETRY_TOPIC,MQTT_USERNAME,REF_NAME,REPOSITORY,REPO_TOKEN,SUPER_ADMIN_EMAIL,SUPER_ADMIN_PASSWORD_HASH,SUDO_PASSWORD,VITE_API_BASE_URL,VITE_BMKG_FORECAST_BASE_URL,VITE_MQTT_BROKER_URL,VITE_MQTT_WEBSOCKET_URL,VITE_WEB_BASE_URL,WEB_HOST
+          envs: APP_DIR,DATABASE_SSL,DATABASE_URL,DEMO_TENANT_EMAIL,DEMO_TENANT_ENABLED,DEMO_TENANT_ID,DEMO_TENANT_NAME,DEMO_TENANT_PASSWORD,DEMO_TENANT_RESET_DATA,EMQX_DASHBOARD_PASSWORD_B64,EMQX_DASHBOARD_USERNAME,FRONTEND_ORIGIN,JWT_EXPIRES_IN,JWT_SECRET,LETSENCRYPT_EMAIL,LOG_LEVEL,MQTT_BROKER_URL,MQTT_CLIENT_ID,MQTT_DEMO_PASSWORD,MQTT_HOST,MQTT_INGEST_ENABLED,MQTT_PASSWORD,MQTT_TELEMETRY_TOPIC,MQTT_USERNAME,REF_NAME,REPOSITORY,REPO_TOKEN,SUPER_ADMIN_EMAIL,SUPER_ADMIN_PASSWORD_HASH,SUDO_PASSWORD,VITE_API_BASE_URL,VITE_BMKG_FORECAST_BASE_URL,VITE_MQTT_BROKER_URL,VITE_MQTT_PASSWORD,VITE_MQTT_USERNAME,VITE_MQTT_WEBSOCKET_URL,VITE_WEB_BASE_URL,WEB_HOST
           script: |
             set -euo pipefail
 
@@ -201,6 +203,8 @@ jobs:
             VITE_WEB_BASE_URL="${VITE_WEB_BASE_URL:-https://sedayafarm.keycloud.id}"
             VITE_API_BASE_URL="${VITE_API_BASE_URL:-https://sedayafarm.keycloud.id}"
             VITE_MQTT_BROKER_URL="${VITE_MQTT_BROKER_URL:-mqtts://mqtt.keycloud.id:8883}"
+            VITE_MQTT_USERNAME="${VITE_MQTT_USERNAME:-pamilo_web_demo}"
+            VITE_MQTT_PASSWORD="${VITE_MQTT_PASSWORD:-$MQTT_DEMO_PASSWORD}"
             VITE_MQTT_WEBSOCKET_URL="${VITE_MQTT_WEBSOCKET_URL:-wss://mqtt.keycloud.id:8084/mqtt}"
             VITE_BMKG_FORECAST_BASE_URL="${VITE_BMKG_FORECAST_BASE_URL:-https://api.bmkg.go.id/publik/prakiraan-cuaca}"
             WEB_HOST="${WEB_HOST:-sedayafarm.keycloud.id}"
@@ -380,6 +384,8 @@ jobs:
                 VITE_API_BASE_URL="$VITE_API_BASE_URL" \
                 VITE_BMKG_FORECAST_BASE_URL="$VITE_BMKG_FORECAST_BASE_URL" \
                 VITE_MQTT_BROKER_URL="$VITE_MQTT_BROKER_URL" \
+                VITE_MQTT_PASSWORD="$VITE_MQTT_PASSWORD" \
+                VITE_MQTT_USERNAME="$VITE_MQTT_USERNAME" \
                 VITE_MQTT_WEBSOCKET_URL="$VITE_MQTT_WEBSOCKET_URL" \
                 VITE_WEB_BASE_URL="$VITE_WEB_BASE_URL" \
                 WEB_HOST="$WEB_HOST" \
@@ -454,7 +460,7 @@ jobs:
 
             wait_for_compose_command "emqx dashboard http" backend node -e "fetch('http://emqx:18083').then((response)=>process.exit(response.status < 500 ? 0 : 1)).catch((error)=>{console.error(error);process.exit(1)})"
             wait_for_compose_command "emqx dashboard login" backend env EMQX_DASHBOARD_USERNAME="$EMQX_DASHBOARD_USERNAME" EMQX_DASHBOARD_PASSWORD="$EMQX_DASHBOARD_PASSWORD" node -e "fetch('http://emqx:18083/api/v5/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:process.env.EMQX_DASHBOARD_USERNAME,password:process.env.EMQX_DASHBOARD_PASSWORD})}).then(async(response)=>{if(!response.ok){console.error(await response.text());process.exit(1)} const body=await response.json(); process.exit(body.token||body.code===0?0:1)}).catch((error)=>{console.error(error);process.exit(1)})"
-            wait_for_compose_command "emqx mqtt users sync" backend env EMQX_DASHBOARD_USERNAME="$EMQX_DASHBOARD_USERNAME" EMQX_DASHBOARD_PASSWORD="$EMQX_DASHBOARD_PASSWORD" MQTT_DEMO_PASSWORD="$MQTT_DEMO_PASSWORD" MQTT_PASSWORD="$MQTT_PASSWORD" MQTT_USERNAME="$MQTT_USERNAME" node -e "const users=[[process.env.MQTT_USERNAME,process.env.MQTT_PASSWORD],['pamilo_device_demo',process.env.MQTT_DEMO_PASSWORD],['pamilo_web_demo',process.env.MQTT_DEMO_PASSWORD]].filter(([user,password])=>user&&password); const authId='password_based%3Abuilt_in_database'; const headers={'content-type':'application/json'}; async function api(path,options={}){const response=await fetch('http://emqx:18083'+path,options); if(!response.ok){throw new Error(await response.text())} return response.json().catch(()=>({}))} async function upsert(token,userId,password){const userPath='/api/v5/authentication/'+authId+'/users/'+encodeURIComponent(userId); const body=JSON.stringify({password,is_superuser:false}); const opts={method:'PUT',headers:{...headers,authorization:'Bearer '+token},body}; const put=await fetch('http://emqx:18083'+userPath,opts); if(put.ok)return; if(put.status!==404){throw new Error(await put.text())} const post=await fetch('http://emqx:18083/api/v5/authentication/'+authId+'/users',{method:'POST',headers:{...headers,authorization:'Bearer '+token},body:JSON.stringify({user_id:userId,password,is_superuser:false})}); if(!post.ok){throw new Error(await post.text())}} (async()=>{const login=await api('/api/v5/login',{method:'POST',headers,body:JSON.stringify({username:process.env.EMQX_DASHBOARD_USERNAME,password:process.env.EMQX_DASHBOARD_PASSWORD})}); for(const [user,password] of users){await upsert(login.token,user,password)} })().catch((error)=>{console.error(error);process.exit(1)})"
+            wait_for_compose_command "emqx mqtt users sync" backend env EMQX_DASHBOARD_USERNAME="$EMQX_DASHBOARD_USERNAME" EMQX_DASHBOARD_PASSWORD="$EMQX_DASHBOARD_PASSWORD" MQTT_DEMO_PASSWORD="$MQTT_DEMO_PASSWORD" MQTT_PASSWORD="$MQTT_PASSWORD" MQTT_USERNAME="$MQTT_USERNAME" VITE_MQTT_PASSWORD="$VITE_MQTT_PASSWORD" VITE_MQTT_USERNAME="$VITE_MQTT_USERNAME" node -e "const users=[[process.env.MQTT_USERNAME,process.env.MQTT_PASSWORD],['pamilo_device_demo',process.env.MQTT_DEMO_PASSWORD],[process.env.VITE_MQTT_USERNAME,process.env.VITE_MQTT_PASSWORD]].filter(([user,password])=>user&&password); const authId='password_based%3Abuilt_in_database'; const headers={'content-type':'application/json'}; async function api(path,options={}){const response=await fetch('http://emqx:18083'+path,options); if(!response.ok){throw new Error(await response.text())} return response.json().catch(()=>({}))} async function upsert(token,userId,password){const userPath='/api/v5/authentication/'+authId+'/users/'+encodeURIComponent(userId); const body=JSON.stringify({password,is_superuser:false}); const opts={method:'PUT',headers:{...headers,authorization:'Bearer '+token},body}; const put=await fetch('http://emqx:18083'+userPath,opts); if(put.ok)return; if(put.status!==404){throw new Error(await put.text())} const post=await fetch('http://emqx:18083/api/v5/authentication/'+authId+'/users',{method:'POST',headers:{...headers,authorization:'Bearer '+token},body:JSON.stringify({user_id:userId,password,is_superuser:false})}); if(!post.ok){throw new Error(await post.text())}} (async()=>{const login=await api('/api/v5/login',{method:'POST',headers,body:JSON.stringify({username:process.env.EMQX_DASHBOARD_USERNAME,password:process.env.EMQX_DASHBOARD_PASSWORD})}); for(const [user,password] of users){await upsert(login.token,user,password)} })().catch((error)=>{console.error(error);process.exit(1)})"
             wait_for_compose_command "frontend health" frontend wget -qO- http://127.0.0.1/health
             wait_for_compose_command "backend health" backend node -e "fetch('http://127.0.0.1:3000/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"
             if [ "$RESET_LOGIN_SEED" = "true" ]; then
