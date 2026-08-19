@@ -106,29 +106,44 @@
       </div>
 
       <div class="overflow-x-auto">
-        <table class="min-w-[880px] w-full text-left text-sm">
-          <thead class="border-b border-white/10 bg-white/5 text-xs uppercase tracking-wide text-slate-400">
+        <table class="min-w-[1680px] w-full border-separate border-spacing-0 text-left text-sm">
+          <thead class="bg-white/5 text-xs text-slate-400">
             <tr>
-              <th class="px-5 py-4 font-semibold">Timestamp</th>
-              <th class="px-5 py-4 font-semibold">Device</th>
-              <th class="px-5 py-4 font-semibold">Plot/Area</th>
-              <th class="px-5 py-4 font-semibold">Metric</th>
-              <th class="px-5 py-4 font-semibold">Value</th>
-              <th class="px-5 py-4 font-semibold">Status</th>
+              <th rowspan="3" class="border-b border-r border-white/10 px-5 py-4 align-middle font-semibold uppercase tracking-wide">Timestamp</th>
+              <th rowspan="3" class="border-b border-r border-white/10 px-5 py-4 align-middle font-semibold uppercase tracking-wide">Device</th>
+              <th rowspan="3" class="border-b border-r border-white/10 px-5 py-4 align-middle font-semibold uppercase tracking-wide">Plot/Area</th>
+              <th :colspan="metricColumns.length * 2" class="border-b border-white/10 px-5 py-3 text-center font-semibold uppercase tracking-wide">Metric</th>
+            </tr>
+            <tr>
+              <th
+                v-for="metric in metricColumns"
+                :key="`${metric.key}-group`"
+                colspan="2"
+                class="border-b border-r border-white/10 px-4 py-3 text-center font-semibold tracking-normal text-slate-300"
+              >
+                {{ metricHeaderLabel(metric) }}
+              </th>
+            </tr>
+            <tr>
+              <template v-for="metric in metricColumns" :key="metric.key">
+                <th class="border-b border-r border-white/10 px-4 py-3 text-center font-semibold uppercase tracking-wide">Value</th>
+                <th class="border-b border-r border-white/10 px-4 py-3 text-center font-semibold uppercase tracking-wide">Status</th>
+              </template>
             </tr>
           </thead>
           <tbody class="divide-y divide-white/10">
-            <tr v-for="log in paginatedLogs" :key="log.id" class="hover:bg-white/[0.03]">
-              <td class="px-5 py-4 text-slate-300">{{ formatDateTime(log.timestamp) }}</td>
-              <td class="px-5 py-4 font-semibold text-white">{{ log.deviceId }}</td>
-              <td class="px-5 py-4 text-slate-300">{{ log.plot }}</td>
-              <td class="px-5 py-4 text-slate-300">{{ log.metric }}</td>
-              <td class="px-5 py-4 text-field-mint">{{ log.value }}</td>
-              <td class="px-5 py-4">
-                <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="log.status === 'normal' ? 'bg-field-mint/10 text-field-mint' : 'bg-amber-300/10 text-amber-100'">
-                  {{ log.status }}
-                </span>
-              </td>
+            <tr v-for="row in paginatedRows" :key="row.id" class="hover:bg-white/[0.03]">
+              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ formatDateTime(row.timestamp) }}</td>
+              <td class="border-r border-white/10 px-5 py-4 font-semibold text-white">{{ row.deviceId }}</td>
+              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ row.plot }}</td>
+              <template v-for="metric in metricColumns" :key="`${row.id}-${metric.key}`">
+                <td class="border-r border-white/10 px-4 py-4 text-center text-field-mint">{{ row.metrics[metric.key].value }}</td>
+                <td class="border-r border-white/10 px-4 py-4 text-center">
+                  <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="metricStatusClass(row.metrics[metric.key].status)">
+                    {{ formatMetricStatus(row.metrics[metric.key].status) }}
+                  </span>
+                </td>
+              </template>
             </tr>
           </tbody>
         </table>
@@ -138,13 +153,13 @@
         Memuat data report...
       </div>
 
-      <div v-else-if="sampledLogs.length === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
+      <div v-else-if="sampledRows.length === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
         Tidak ada data pada filter ini.
       </div>
 
       <div v-else class="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 p-4 text-sm text-slate-300">
         <p>
-          Menampilkan {{ paginationStart }}-{{ paginationEnd }} dari {{ sampledLogs.length.toLocaleString("id-ID") }} records
+          Menampilkan {{ paginationStart }}-{{ paginationEnd }} dari {{ sampledRows.length.toLocaleString("id-ID") }} records
         </p>
         <div class="flex flex-wrap items-center gap-2">
           <label class="flex items-center gap-2 text-xs text-slate-400">
@@ -196,15 +211,30 @@ interface ReportDevice {
   label: string;
 }
 
-interface ReportLog {
-  id: string;
-  timestamp: string;
-  deviceId: string;
-  plot: string;
-  metric: string;
+type ReportMetricKey = "conductivity" | "moisture" | "nitrogen" | "phosphorus" | "potassium" | "ph" | "soil_temperature";
+type ReportMetricStatus = "normal" | "attention" | "empty";
+
+interface ReportMetricColumn {
+  key: ReportMetricKey;
+  label: string;
+  sourceKeys: string[];
+  unitLabel: string;
+}
+
+interface ReportMetricCell {
+  status: ReportMetricStatus;
   value: string;
+}
+
+type ReportMetricCells = Record<ReportMetricKey, ReportMetricCell>;
+
+interface ReportRow {
   dataset: Dataset;
-  status: "normal" | "attention";
+  deviceId: string;
+  id: string;
+  metrics: ReportMetricCells;
+  plot: string;
+  timestamp: string;
 }
 
 interface ApiDevice {
@@ -233,6 +263,51 @@ const today = new Date();
 const threeDaysAgo = new Date(today);
 threeDaysAgo.setDate(today.getDate() - 3);
 
+const metricColumns: ReportMetricColumn[] = [
+  {
+    key: "conductivity",
+    label: "Conductivity",
+    sourceKeys: ["conductivity", "ec", "electrical_conductivity"],
+    unitLabel: "µS/cm"
+  },
+  {
+    key: "moisture",
+    label: "Moisture",
+    sourceKeys: ["moisture", "soil_moisture"],
+    unitLabel: "%"
+  },
+  {
+    key: "nitrogen",
+    label: "Nitrogen",
+    sourceKeys: ["nitrogen", "n"],
+    unitLabel: "mg/kg"
+  },
+  {
+    key: "phosphorus",
+    label: "Phosphorus",
+    sourceKeys: ["phosphorus", "p"],
+    unitLabel: "mg/kg"
+  },
+  {
+    key: "potassium",
+    label: "Potassium",
+    sourceKeys: ["potassium", "k"],
+    unitLabel: "mg/kg"
+  },
+  {
+    key: "ph",
+    label: "pH",
+    sourceKeys: ["ph", "pH"],
+    unitLabel: "pH"
+  },
+  {
+    key: "soil_temperature",
+    label: "Soil Temperature",
+    sourceKeys: ["soil_temperature", "soilTemperature", "soilTemperatureC", "temperature"],
+    unitLabel: "°C"
+  }
+];
+
 const filters = reactive<{
   startDate: string;
   endDate: string;
@@ -252,7 +327,7 @@ const errorMessage = ref<string | null>(null);
 const isLoading = ref(false);
 const apiDevices = ref<ApiDevice[]>([]);
 const historyItems = ref<TelemetryHistoryItem[]>([]);
-const logs = ref<ReportLog[]>([]);
+const rows = ref<ReportRow[]>([]);
 const currentPage = ref(1);
 const pageSize = ref(25);
 const pageSizeOptions = [10, 25, 50];
@@ -285,52 +360,70 @@ const devices = computed<ReportDevice[]>(() => {
     .sort((left, right) => left.label.localeCompare(right.label));
 });
 
-const filteredLogs = computed(() => {
+const groupedRows = computed(() => {
+  const grouped = new Map<string, ReportRow>();
+
+  for (const row of rows.value) {
+    const groupKey = `${row.timestamp}:${row.deviceId}:${row.plot}`;
+    const existing = grouped.get(groupKey);
+
+    grouped.set(groupKey, existing
+      ? {
+          ...existing,
+          metrics: mergeMetricCells(existing.metrics, row.metrics)
+        }
+      : row);
+  }
+
+  return Array.from(grouped.values());
+});
+
+const filteredRows = computed(() => {
   const start = Date.parse(`${filters.startDate}T00:00:00`);
   const end = Date.parse(`${filters.endDate}T23:59:59`);
 
-  return logs.value.filter((log) => {
-    const timestamp = Date.parse(log.timestamp);
+  return groupedRows.value.filter((row) => {
+    const timestamp = Date.parse(row.timestamp);
     const matchesDate = Number.isFinite(timestamp) && timestamp >= start && timestamp <= end;
-    const matchesDevice = filters.deviceId === "all" || log.deviceId === filters.deviceId;
-    const matchesDataset = log.dataset === filters.dataset;
+    const matchesDevice = filters.deviceId === "all" || row.deviceId === filters.deviceId;
+    const matchesDataset = row.dataset === filters.dataset;
 
     return matchesDate && matchesDevice && matchesDataset;
   });
 });
 
-const sampledLogs = computed(() => {
+const sampledRows = computed(() => {
   const intervalMs = Number(filters.intervalMinutes) * 60_000;
-  const sampledByBucket = new Map<string, ReportLog>();
+  const sampledByBucket = new Map<string, ReportRow>();
 
-  for (const log of filteredLogs.value) {
-    const timestamp = Date.parse(log.timestamp);
+  for (const row of filteredRows.value) {
+    const timestamp = Date.parse(row.timestamp);
 
     if (!Number.isFinite(timestamp)) {
-      sampledByBucket.set(log.id, log);
+      sampledByBucket.set(row.id, row);
       continue;
     }
 
     const bucket = Math.floor(timestamp / intervalMs);
-    const bucketKey = `${log.dataset}:${log.deviceId}:${log.metric}:${bucket}`;
+    const bucketKey = `${row.dataset}:${row.deviceId}:${row.plot}:${bucket}`;
     const existing = sampledByBucket.get(bucketKey);
 
     if (!existing || timestamp >= Date.parse(existing.timestamp)) {
-      sampledByBucket.set(bucketKey, log);
+      sampledByBucket.set(bucketKey, row);
     }
   }
 
   return Array.from(sampledByBucket.values()).sort((left, right) => Date.parse(right.timestamp) - Date.parse(left.timestamp));
 });
 
-const totalPages = computed(() => Math.max(1, Math.ceil(sampledLogs.value.length / pageSize.value)));
+const totalPages = computed(() => Math.max(1, Math.ceil(sampledRows.value.length / pageSize.value)));
 const activePage = computed(() => Math.min(currentPage.value, totalPages.value));
-const paginatedLogs = computed(() => {
+const paginatedRows = computed(() => {
   const startIndex = (activePage.value - 1) * pageSize.value;
-  return sampledLogs.value.slice(startIndex, startIndex + pageSize.value);
+  return sampledRows.value.slice(startIndex, startIndex + pageSize.value);
 });
-const paginationStart = computed(() => sampledLogs.value.length === 0 ? 0 : (activePage.value - 1) * pageSize.value + 1);
-const paginationEnd = computed(() => Math.min(activePage.value * pageSize.value, sampledLogs.value.length));
+const paginationStart = computed(() => sampledRows.value.length === 0 ? 0 : (activePage.value - 1) * pageSize.value + 1);
+const paginationEnd = computed(() => Math.min(activePage.value * pageSize.value, sampledRows.value.length));
 const selectedSamplingLabel = computed(() => samplingOptions.find((option) => option.value === filters.intervalMinutes)?.label ?? "Per 15 menit");
 const reportPreviewLabel = computed(() => `Preview data export tenant, ${selectedSamplingLabel.value.toLowerCase()}.`);
 
@@ -366,10 +459,10 @@ async function loadReportData(): Promise<void> {
 
     apiDevices.value = deviceRows;
     historyItems.value = history.items;
-    logs.value = filters.dataset === "telemetry" ? history.items.flatMap(toReportLogs) : [];
+    rows.value = filters.dataset === "telemetry" ? history.items.map(toReportRow) : [];
   } catch (error) {
     errorMessage.value = normalizeError(error);
-    logs.value = [];
+    rows.value = [];
   } finally {
     isLoading.value = false;
   }
@@ -389,29 +482,30 @@ function buildTelemetryHistoryUrl(): string {
   return `/api/v1/telemetry/history?${params.toString()}`;
 }
 
-function toReportLogs(item: TelemetryHistoryItem): ReportLog[] {
-  const metricKeys = item.metricKeys.length > 0 ? item.metricKeys : inferMetricKeys(item.payload);
+function toReportRow(item: TelemetryHistoryItem): ReportRow {
   const device = deviceLookup.value.get(item.deviceUid);
   const plot = device?.plotName ?? "-";
+  const metrics = createEmptyMetricCells();
 
-  return metricKeys.flatMap((metricKey) => {
-    const value = readMetricValue(item.payload, metricKey);
+  for (const column of metricColumns) {
+    const value = readMetricColumnValue(item.payload, column);
 
-    if (value === undefined || isRecord(value)) {
-      return [];
+    if (value !== undefined && !isRecord(value)) {
+      metrics[column.key] = {
+        status: classifyMetricStatus(column.key, value),
+        value: formatMetricValue(value)
+      };
     }
+  }
 
-    return [{
-      dataset: "telemetry",
-      deviceId: item.deviceUid,
-      id: `${item.id}:${metricKey}`,
-      metric: formatMetricLabel(metricKey),
-      plot,
-      status: classifyMetricStatus(metricKey, value),
-      timestamp: item.receivedAt,
-      value: formatMetricValue(value, readMetricUnit(item.payload, metricKey))
-    } satisfies ReportLog];
-  });
+  return {
+    dataset: "telemetry",
+    deviceId: item.deviceUid,
+    id: item.id,
+    metrics,
+    plot,
+    timestamp: item.receivedAt
+  };
 }
 
 function exportReport(format: ExportFormat): void {
@@ -425,14 +519,17 @@ function exportReport(format: ExportFormat): void {
 
 function exportCsv(): void {
   const rows = [
-    ["Timestamp", "Device", "Plot/Area", "Metric", "Value", "Status"],
-    ...sampledLogs.value.map((log) => [
-      formatDateTime(log.timestamp),
-      log.deviceId,
-      log.plot,
-      log.metric,
-      log.value,
-      log.status
+    ["Timestamp", "Device", "Plot/Area", ...metricColumns.flatMap((metric, index) => [index === 0 ? "Metric" : "", ""])],
+    ["", "", "", ...metricColumns.flatMap((metric) => [metricHeaderLabel(metric), ""])],
+    ["", "", "", ...metricColumns.flatMap(() => ["Value", "Status"])],
+    ...sampledRows.value.map((row) => [
+      formatDateTime(row.timestamp),
+      row.deviceId,
+      row.plot,
+      ...metricColumns.flatMap((metric) => [
+        row.metrics[metric.key].value,
+        formatMetricStatus(row.metrics[metric.key].status)
+      ])
     ])
   ];
   const csv = rows.map((row) => row.map(escapeCsvCell).join(",")).join("\r\n");
@@ -446,7 +543,7 @@ function exportCsv(): void {
   link.download = `pamilo-${filters.dataset}-${filters.startDate}-${filters.endDate}.csv`;
   link.click();
   URL.revokeObjectURL(url);
-  exportMessage.value = `CSV export dibuat untuk ${sampledLogs.value.length} ${filters.dataset} records (${selectedSamplingLabel.value.toLowerCase()}).`;
+  exportMessage.value = `CSV export dibuat untuk ${sampledRows.value.length} ${filters.dataset} records (${selectedSamplingLabel.value.toLowerCase()}).`;
 }
 
 function exportPdf(): void {
@@ -460,11 +557,64 @@ function exportPdf(): void {
   reportWindow.document.close();
   reportWindow.focus();
   reportWindow.print();
-  exportMessage.value = `PDF export disiapkan untuk ${sampledLogs.value.length} ${filters.dataset} records (${selectedSamplingLabel.value.toLowerCase()}).`;
+  exportMessage.value = `PDF export disiapkan untuk ${sampledRows.value.length} ${filters.dataset} records (${selectedSamplingLabel.value.toLowerCase()}).`;
 }
 
 function setPage(page: number): void {
   currentPage.value = Math.min(Math.max(page, 1), totalPages.value);
+}
+
+function createEmptyMetricCells(): ReportMetricCells {
+  return metricColumns.reduce((cells, column) => {
+    cells[column.key] = {
+      status: "empty",
+      value: "-"
+    };
+
+    return cells;
+  }, {} as ReportMetricCells);
+}
+
+function mergeMetricCells(left: ReportMetricCells, right: ReportMetricCells): ReportMetricCells {
+  const merged = createEmptyMetricCells();
+
+  for (const column of metricColumns) {
+    merged[column.key] = left[column.key].status === "empty" ? right[column.key] : left[column.key];
+  }
+
+  return merged;
+}
+
+function readMetricColumnValue(payload: TelemetryPayload, column: ReportMetricColumn): unknown {
+  for (const key of column.sourceKeys) {
+    const value = readMetricValue(payload, key);
+
+    if (value !== undefined) {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
+function metricHeaderLabel(metric: ReportMetricColumn): string {
+  return `${metric.label} (${metric.unitLabel})`;
+}
+
+function metricStatusClass(status: ReportMetricStatus): string {
+  if (status === "normal") {
+    return "bg-field-mint/10 text-field-mint";
+  }
+
+  if (status === "attention") {
+    return "bg-amber-300/10 text-amber-100";
+  }
+
+  return "bg-white/5 text-slate-500";
+}
+
+function formatMetricStatus(status: ReportMetricStatus): string {
+  return status === "empty" ? "-" : status;
 }
 
 function toInputDate(value: Date): string {
@@ -509,12 +659,6 @@ function readMetricValue(payload: TelemetryPayload, metricKey: string): unknown 
   return unwrapMetricValue(readNestedValue(metrics, metricKey.replace(/^metrics\./, "")));
 }
 
-function readMetricUnit(payload: TelemetryPayload, metricKey: string): string {
-  const units = isRecord(payload.units) ? payload.units : {};
-  const unit = readNestedValue(units, metricKey.replace(/^metrics\./, ""));
-  return typeof unit === "string" ? unit : "";
-}
-
 function readNestedValue(payload: Record<string, unknown>, path: string): unknown {
   return path.split(".").reduce<unknown>((current, segment) => {
     if (!isRecord(current)) {
@@ -529,49 +673,39 @@ function unwrapMetricValue(value: unknown): unknown {
   return isRecord(value) && "value" in value ? value.value : value;
 }
 
-function inferMetricKeys(payload: TelemetryPayload): string[] {
-  const source = isRecord(payload.metrics) ? payload.metrics : payload;
-  const reservedKeys = new Set(["device_id", "deviceId", "node_id", "nodeId", "tenant_id", "tenantId", "timestamp", "time", "ts", "metrics", "units", "location", "lat", "lng", "latitude", "longitude"]);
+function formatMetricValue(value: unknown): string {
+  if (value === null) {
+    return "-";
+  }
 
-  return Object.entries(source)
-    .filter(([key, value]) => !reservedKeys.has(key) && !isRecord(value))
-    .map(([key]) => key)
-    .sort((left, right) => formatMetricLabel(left).localeCompare(formatMetricLabel(right)));
-}
-
-function formatMetricLabel(metricKey: string): string {
-  return metricKey
-    .replace(/^metrics\./, "")
-    .replace(/[-_.]+/g, " ")
-    .replace(/\b\w/g, (character) => character.toUpperCase());
-}
-
-function formatMetricValue(value: unknown, unit: string): string {
   const normalizedValue = typeof value === "number"
     ? new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(Math.round(value * 100) / 100)
     : String(value);
 
-  return `${normalizedValue} ${unit}`.trim();
+  return normalizedValue;
 }
 
-function classifyMetricStatus(metricKey: string, value: unknown): ReportLog["status"] {
-  const numericValue = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
-  const normalizedKey = metricKey.toLowerCase();
+function classifyMetricStatus(metricKey: ReportMetricKey, value: unknown): Exclude<ReportMetricStatus, "empty"> {
+  const numericValue = typeof value === "number" ? value : typeof value === "string" ? Number(value.replace(",", ".")) : Number.NaN;
 
   if (!Number.isFinite(numericValue)) {
     return "normal";
   }
 
-  if (normalizedKey.includes("ph")) {
+  if (metricKey === "ph") {
     return numericValue < 5.5 || numericValue > 7.5 ? "attention" : "normal";
   }
 
-  if (normalizedKey.includes("moisture")) {
+  if (metricKey === "moisture") {
     return numericValue < 25 || numericValue > 85 ? "attention" : "normal";
   }
 
-  if (normalizedKey.includes("temperature")) {
+  if (metricKey === "soil_temperature") {
     return numericValue < 15 || numericValue > 42 ? "attention" : "normal";
+  }
+
+  if (metricKey === "phosphorus") {
+    return numericValue > 350 ? "attention" : "normal";
   }
 
   return "normal";
@@ -582,14 +716,17 @@ function escapeCsvCell(value: string): string {
 }
 
 function createPrintableReportHtml(): string {
-  const rows = sampledLogs.value.map((log) => `
+  const metricGroupHeaders = metricColumns.map((metric) => `<th colspan="2">${escapeHtml(metricHeaderLabel(metric))}</th>`).join("");
+  const metricSubHeaders = metricColumns.map(() => "<th>Value</th><th>Status</th>").join("");
+  const rows = sampledRows.value.map((row) => `
     <tr>
-      <td>${escapeHtml(formatDateTime(log.timestamp))}</td>
-      <td>${escapeHtml(log.deviceId)}</td>
-      <td>${escapeHtml(log.plot)}</td>
-      <td>${escapeHtml(log.metric)}</td>
-      <td>${escapeHtml(log.value)}</td>
-      <td>${escapeHtml(log.status)}</td>
+      <td>${escapeHtml(formatDateTime(row.timestamp))}</td>
+      <td>${escapeHtml(row.deviceId)}</td>
+      <td>${escapeHtml(row.plot)}</td>
+      ${metricColumns.map((metric) => `
+        <td>${escapeHtml(row.metrics[metric.key].value)}</td>
+        <td>${escapeHtml(formatMetricStatus(row.metrics[metric.key].status))}</td>
+      `).join("")}
     </tr>
   `).join("");
 
@@ -599,26 +736,32 @@ function createPrintableReportHtml(): string {
       <head>
         <title>PAMILO ${filters.dataset} report</title>
         <style>
+          @page { size: landscape; }
           body { color: #0f172a; font-family: Arial, sans-serif; padding: 24px; }
           h1 { font-size: 22px; margin: 0 0 8px; }
           p { color: #475569; margin: 0 0 20px; }
           table { border-collapse: collapse; width: 100%; }
-          th, td { border: 1px solid #cbd5e1; font-size: 12px; padding: 8px; text-align: left; }
+          th, td { border: 1px solid #cbd5e1; font-size: 10px; padding: 6px; text-align: left; }
+          .center { text-align: center; }
           th { background: #e2e8f0; }
         </style>
       </head>
       <body>
         <h1>PAMILO ${escapeHtml(filters.dataset)} report</h1>
-        <p>${escapeHtml(filters.startDate)} sampai ${escapeHtml(filters.endDate)} - ${sampledLogs.value.length} records - ${escapeHtml(selectedSamplingLabel.value)}</p>
+        <p>${escapeHtml(filters.startDate)} sampai ${escapeHtml(filters.endDate)} - ${sampledRows.value.length} records - ${escapeHtml(selectedSamplingLabel.value)}</p>
         <table>
           <thead>
             <tr>
-              <th>Timestamp</th>
-              <th>Device</th>
-              <th>Plot/Area</th>
-              <th>Metric</th>
-              <th>Value</th>
-              <th>Status</th>
+              <th rowspan="3">Timestamp</th>
+              <th rowspan="3">Device</th>
+              <th rowspan="3">Plot/Area</th>
+              <th class="center" colspan="${metricColumns.length * 2}">Metric</th>
+            </tr>
+            <tr>
+              ${metricGroupHeaders}
+            </tr>
+            <tr>
+              ${metricSubHeaders}
             </tr>
           </thead>
           <tbody>${rows}</tbody>

@@ -140,6 +140,7 @@ watch(
     activeDeviceId.value,
     activeSensorPosition.value?.toString() ?? "",
     activeDeviceId.value ? telemetryStore.deviceById(activeDeviceId.value)?.online : false,
+    activeDeviceId.value ? telemetryStore.deviceById(activeDeviceId.value)?.lastSeenAt : "",
     activeDeviceId.value ? telemetryStore.latestMetricsForDevice(activeDeviceId.value).map((metric) => `${metric.key}:${metric.displayValue}`).join("|") : ""
   ],
   () => {
@@ -286,7 +287,7 @@ function createPopupHtml(deviceId: string): string {
   const metrics = telemetryStore.latestMetricsForDevice(deviceId);
   const statusText = device?.online ? "Online" : "Offline";
   const statusClass = device?.online ? "online" : "offline";
-  const lastSeen = device?.lastSeenAt ? formatTime(device.lastSeenAt) : "No telemetry yet";
+  const lastSeen = device?.lastSeenAt ? `Update terakhir ${formatTime(device.lastSeenAt)}` : "No telemetry yet";
   const metricRows = metrics.length > 0
     ? metrics.map((metric) => `
       <div class="metric-row">

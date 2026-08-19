@@ -1,23 +1,68 @@
 <template>
   <div class="space-y-5">
     <section class="panel-surface p-4">
-      <div class="flex flex-col gap-3 md:flex-row md:items-center">
-        <select
-          v-model="activeTopic"
-          aria-label="Topic MQTT"
-          class="min-h-12 flex-1 rounded-lg border border-white/10 bg-[#07111f] px-4 text-sm text-white outline-none transition focus:border-field-mint/70"
-        >
-          <option v-if="topicSummaries.length === 0" value="">Belum ada topic telemetry</option>
-          <option v-for="topic in topicSummaries" :key="topic.topic" :value="topic.topic">
-            {{ topic.topic }}
-          </option>
-        </select>
+      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(260px,2fr)_repeat(3,minmax(150px,1fr))_auto] xl:items-end">
+        <label class="space-y-2">
+          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
+            <RadioTower class="h-4 w-4 text-field-mint" />
+            Topic MQTT
+          </span>
+          <select
+            v-model="activeTopic"
+            aria-label="Topic MQTT"
+            class="min-h-12 w-full rounded-lg border border-white/10 bg-[#07111f] px-4 text-sm text-white outline-none transition focus:border-field-mint/70"
+          >
+            <option v-if="topicSummaries.length === 0" value="">Belum ada topic telemetry</option>
+            <option v-for="topic in topicSummaries" :key="topic.topic" :value="topic.topic">
+              {{ topic.topic }}
+            </option>
+          </select>
+        </label>
+
+        <label class="space-y-2">
+          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
+            <CalendarDays class="h-4 w-4 text-field-green" />
+            Start Date
+          </span>
+          <input
+            v-model="filters.startDate"
+            class="min-h-12 w-full rounded-lg border border-white/10 bg-[#07111f] px-4 text-sm text-white outline-none transition focus:border-field-mint/70"
+            type="date"
+          />
+        </label>
+
+        <label class="space-y-2">
+          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
+            <CalendarDays class="h-4 w-4 text-sky-200" />
+            End Date
+          </span>
+          <input
+            v-model="filters.endDate"
+            class="min-h-12 w-full rounded-lg border border-white/10 bg-[#07111f] px-4 text-sm text-white outline-none transition focus:border-field-mint/70"
+            type="date"
+          />
+        </label>
+
+        <label class="space-y-2">
+          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
+            <Clock class="h-4 w-4 text-amber-200" />
+            Interval
+          </span>
+          <select
+            v-model="filters.intervalMinutes"
+            class="min-h-12 w-full rounded-lg border border-white/10 bg-[#07111f] px-4 text-sm text-white outline-none transition focus:border-field-mint/70"
+          >
+            <option v-for="option in intervalOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+          </select>
+        </label>
+
         <button
           type="button"
-          class="inline-flex min-h-12 items-center justify-center rounded-lg border border-field-mint/25 bg-field-mint/10 px-5 text-sm font-semibold text-field-mint transition hover:bg-field-mint hover:text-[#07111f] disabled:cursor-not-allowed disabled:opacity-60"
+          class="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-field-mint/25 bg-field-mint/10 px-5 text-sm font-semibold text-field-mint transition hover:bg-field-mint hover:text-[#07111f] disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="isLoading"
           @click="refreshTelemetryHistory"
         >
+          <RefreshCw class="h-4 w-4" :class="isLoading ? 'animate-spin' : ''" />
           {{ isLoading ? "Memuat..." : "Refresh" }}
         </button>
       </div>
@@ -29,8 +74,12 @@
 
     <section v-if="chartCards.length > 0" class="grid gap-5 xl:grid-cols-2">
       <article v-for="card in chartCards" :key="card.id" class="panel-surface overflow-hidden">
-        <div class="border-b border-white/10 px-5 py-4">
-          <h3 class="text-base font-semibold tracking-normal text-white">{{ card.label }}</h3>
+        <div class="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
+          <div>
+            <h3 class="text-base font-semibold tracking-normal text-white">{{ card.label }}</h3>
+            <p class="mt-1 text-xs text-slate-400">{{ selectedIntervalLabel }} / {{ card.pointCount }} points</p>
+          </div>
+          <span class="rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-slate-300">{{ chartRangeLabel }}</span>
         </div>
 
         <div class="h-[310px] p-4">
@@ -65,6 +114,7 @@ import {
   type ChartData,
   type ChartOptions
 } from "chart.js";
+import { CalendarDays, Clock, RadioTower, RefreshCw } from "@lucide/vue";
 import { Line } from "vue-chartjs";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ApiClientError, apiGet } from "../../services/apiClient";
@@ -72,6 +122,7 @@ import { ApiClientError, apiGet } from "../../services/apiClient";
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Legend, Title, Tooltip);
 
 type TelemetryPayload = Record<string, unknown>;
+type ChartInterval = "5" | "15" | "60";
 
 interface TelemetryHistoryResponse {
   count: number;
@@ -102,6 +153,7 @@ interface MetricChartCard {
   color: string;
   chartData: ChartData<"line", Array<number | null>, string>;
   chartOptions: ChartOptions<"line">;
+  pointCount: number;
 }
 
 interface MetricPoint {
@@ -109,20 +161,47 @@ interface MetricPoint {
   value: number | null;
 }
 
+const today = new Date();
+const threeDaysAgo = new Date(today);
+threeDaysAgo.setDate(today.getDate() - 3);
+
 const activeTopic = ref("");
 const errorMessage = ref<string | null>(null);
 const historyItems = ref<TelemetryHistoryItem[]>([]);
 const isLoading = ref(false);
 let refreshTimer: number | undefined;
 
+const filters = ref({
+  endDate: toInputDate(today),
+  intervalMinutes: "15" as ChartInterval,
+  startDate: toInputDate(threeDaysAgo)
+});
+
+const intervalOptions: Array<{ label: string; value: ChartInterval }> = [
+  { label: "Per 5 menit", value: "5" },
+  { label: "Per 15 menit", value: "15" },
+  { label: "Per jam", value: "60" }
+];
+
 const orderedHistoryItems = computed(() => [...historyItems.value].sort((left, right) => {
   return new Date(left.receivedAt).getTime() - new Date(right.receivedAt).getTime();
 }));
 
+const filteredHistoryItems = computed(() => {
+  const { endDate, startDate } = normalizedDateRange();
+  const start = Date.parse(`${startDate}T00:00:00`);
+  const end = Date.parse(`${endDate}T23:59:59.999`);
+
+  return orderedHistoryItems.value.filter((item) => {
+    const timestamp = Date.parse(item.receivedAt);
+    return Number.isFinite(timestamp) && timestamp >= start && timestamp <= end;
+  });
+});
+
 const topicSummaries = computed<TopicSummary[]>(() => {
   const grouped = new Map<string, TelemetryHistoryItem[]>();
 
-  for (const item of orderedHistoryItems.value) {
+  for (const item of filteredHistoryItems.value) {
     grouped.set(item.topic, [...(grouped.get(item.topic) ?? []), item]);
   }
 
@@ -143,16 +222,13 @@ const topicSummaries = computed<TopicSummary[]>(() => {
     .sort((left, right) => right.lastSeenAt.localeCompare(left.lastSeenAt));
 });
 
-const selectedTopicRows = computed(() => orderedHistoryItems.value.filter((item) => item.topic === activeTopic.value));
+const selectedTopicRows = computed(() => filteredHistoryItems.value.filter((item) => item.topic === activeTopic.value));
 const selectedMetricKeys = computed(() => {
   return topicSummaries.value.find((summary) => summary.topic === activeTopic.value)?.metricKeys ?? [];
 });
 
 const chartCards = computed<MetricChartCard[]>(() => selectedMetricKeys.value.map((metricKey, index) => {
-  const points = selectedTopicRows.value.map((row) => ({
-    timestamp: row.receivedAt,
-    value: coerceNumericValue(readMetricValue(row.payload, metricKey))
-  }));
+  const points = sampleMetricPoints(selectedTopicRows.value, metricKey);
   const color = colorForMetric(metricKey, index);
 
   return {
@@ -160,9 +236,16 @@ const chartCards = computed<MetricChartCard[]>(() => selectedMetricKeys.value.ma
     label: formatMetricLabel(metricKey),
     color,
     chartData: createChartData(points, color),
-    chartOptions: createChartOptions(metricKey, color)
+    chartOptions: createChartOptions(metricKey, color),
+    pointCount: points.length
   };
 }));
+
+const selectedIntervalLabel = computed(() => intervalOptions.find((option) => option.value === filters.value.intervalMinutes)?.label ?? "Per 15 menit");
+const chartRangeLabel = computed(() => {
+  const { endDate, startDate } = normalizedDateRange();
+  return startDate === endDate ? startDate : `${startDate} - ${endDate}`;
+});
 
 onMounted(() => {
   void refreshTelemetryHistory();
@@ -190,18 +273,93 @@ watch(topicSummaries, (summaries) => {
   immediate: true
 });
 
+watch(() => [filters.value.startDate, filters.value.endDate], () => {
+  void refreshTelemetryHistory();
+});
+
 async function refreshTelemetryHistory(): Promise<void> {
   isLoading.value = true;
   errorMessage.value = null;
 
   try {
-    const response = await apiGet<TelemetryHistoryResponse>("/api/v1/telemetry/history?limit=240");
+    const response = await apiGet<TelemetryHistoryResponse>(buildTelemetryHistoryUrl());
     historyItems.value = response.items;
   } catch (error) {
     errorMessage.value = normalizeError(error);
   } finally {
     isLoading.value = false;
   }
+}
+
+function buildTelemetryHistoryUrl(): string {
+  const { endDate, startDate } = normalizedDateRange();
+  const params = new URLSearchParams({
+    end: endOfDayIso(endDate),
+    limit: "1000",
+    start: startOfDayIso(startDate)
+  });
+
+  return `/api/v1/telemetry/history?${params.toString()}`;
+}
+
+function sampleMetricPoints(rows: TelemetryHistoryItem[], metricKey: string): MetricPoint[] {
+  const intervalMs = Number(filters.value.intervalMinutes) * 60_000;
+  const sampledByBucket = new Map<number, MetricPoint>();
+
+  for (const row of rows) {
+    const timestamp = Date.parse(row.receivedAt);
+    if (!Number.isFinite(timestamp)) {
+      continue;
+    }
+
+    const value = coerceNumericValue(readMetricValue(row.payload, metricKey));
+    if (value === null) {
+      continue;
+    }
+
+    const bucket = Math.floor(timestamp / intervalMs);
+    const existing = sampledByBucket.get(bucket);
+
+    if (!existing || timestamp >= Date.parse(existing.timestamp)) {
+      sampledByBucket.set(bucket, {
+        timestamp: row.receivedAt,
+        value
+      });
+    }
+  }
+
+  return Array.from(sampledByBucket.values()).sort((left, right) => {
+    return Date.parse(left.timestamp) - Date.parse(right.timestamp);
+  });
+}
+
+function normalizedDateRange(): { endDate: string; startDate: string } {
+  const startDate = isInputDate(filters.value.startDate) ? filters.value.startDate : toInputDate(threeDaysAgo);
+  const endDate = isInputDate(filters.value.endDate) ? filters.value.endDate : toInputDate(today);
+
+  return startDate <= endDate
+    ? { endDate, startDate }
+    : { endDate: startDate, startDate: endDate };
+}
+
+function isInputDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(`${value}T00:00:00`).getTime());
+}
+
+function toInputDate(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function startOfDayIso(value: string): string {
+  return new Date(`${value}T00:00:00`).toISOString();
+}
+
+function endOfDayIso(value: string): string {
+  return new Date(`${value}T23:59:59.999`).toISOString();
 }
 
 function createChartData(points: MetricPoint[], color: string): ChartData<"line", Array<number | null>, string> {
@@ -347,6 +505,16 @@ function formatChartTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return value;
+  }
+
+  const { endDate, startDate } = normalizedDateRange();
+  if (startDate !== endDate) {
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      month: "short"
+    }).format(date);
   }
 
   return new Intl.DateTimeFormat("id-ID", {

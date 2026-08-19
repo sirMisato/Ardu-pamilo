@@ -207,7 +207,10 @@ export const useTelemetryStore = defineStore("telemetry", () => {
   function ingestMqttMessage(topicName: string, rawMessage: string): void {
     try {
       const payload = JSON.parse(rawMessage) as unknown;
-      ingestTelemetryPayload(topicName, payload);
+      ingestTelemetryPayload(topicName, payload, {
+        observedAt: new Date().toISOString(),
+        online: true
+      });
     } catch {
       errorMessage.value = "Received MQTT payload is not valid JSON.";
     }
@@ -238,6 +241,11 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     const units = isRecord(payload.units) ? payload.units : {};
     const location = readPayloadLocation(payload);
     const previous = devices.value[deviceId];
+
+    if (previous && isIncomingTelemetryOlder(previous.lastSeenAt, observedAt)) {
+      return;
+    }
+
     const nextMetrics = {
       ...(previous?.metrics ?? {})
     };
@@ -404,6 +412,12 @@ function readPayloadLocation(payload: Record<string, unknown>): { latitude: numb
 function isTelemetryRecent(value: string): boolean {
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) && Date.now() - timestamp <= telemetryOnlineWindowMs;
+}
+
+function isIncomingTelemetryOlder(previousTimestamp: string, nextTimestamp: string): boolean {
+  const previousTime = Date.parse(previousTimestamp);
+  const nextTime = Date.parse(nextTimestamp);
+  return Number.isFinite(previousTime) && Number.isFinite(nextTime) && nextTime < previousTime;
 }
 
 function buildDefaultSubscriptionTopic(tenantId: string): string {
