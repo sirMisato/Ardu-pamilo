@@ -145,7 +145,7 @@
             <div class="flex flex-wrap items-center gap-2">
               <span class="inline-flex items-center gap-2 rounded-full bg-field-mint/10 px-3 py-1 text-xs font-semibold text-field-mint">
                 <Sparkles class="h-3.5 w-3.5" />
-                {{ result.model }}
+                {{ formatProvider(result.provider) }} / {{ result.model }}
               </span>
               <span class="rounded-full px-3 py-1 text-xs font-semibold" :class="levelClass(result.recommendation.confidence)">
                 Confidence {{ formatLevel(result.recommendation.confidence) }}
@@ -470,6 +470,13 @@ function levelClass(level: RecommendationLevel): string {
 
 function formatLevel(level: RecommendationLevel): string {
   return level.replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function formatProvider(provider: string): string {
+  if (provider === "openai") return "OpenAI";
+  if (provider === "tencent") return "Tencent";
+  if (provider === "sumopod") return "Sumopod";
+  return "Custom";
 }
 
 function formatTemperature(value: number | null): string {

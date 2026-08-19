@@ -140,6 +140,11 @@ interface ChatCompletionResponse {
   }>;
 }
 
+interface ChatMessage {
+  content: string;
+  role: "system" | "user";
+}
+
 const reservedPayloadKeys = new Set([
   "device_id",
   "deviceId",
@@ -233,6 +238,7 @@ export const aiRecommendationRoutes: FastifyPluginAsync = async (app) => {
       },
       generatedAt: new Date().toISOString(),
       model: env.aiRecommendation.model,
+      provider: env.aiRecommendation.provider,
       recommendation
     };
   });
@@ -545,77 +551,12 @@ function summarizePayload(payloadValue: JsonValue | string, metricKeysValue: Jso
 
 async function requestAiRecommendation(context: ReturnType<typeof buildAiContext>): Promise<AiRecommendation> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 35_000);
+  const timeoutId = setTimeout(() => controller.abort(), env.aiRecommendation.timeoutMs);
+  const messages = buildRecommendationMessages(context);
 
   try {
-    const response = await fetch(`${env.aiRecommendation.baseUrl}/v1/chat/completions`, {
-      body: JSON.stringify({
-        max_tokens: env.aiRecommendation.maxTokens,
-        messages: [
-          {
-            content: [
-              "Anda adalah agronom AI untuk PAMILO Smart Farming.",
-              "Analisis data tanah, cuaca, histori lahan, crop, perangkat, dan telemetry yang diberikan.",
-              "Jawab dalam Bahasa Indonesia, ringkas, praktis, dan berbasis data.",
-              "Jangan mengarang angka dosis spesifik jika data tidak cukup; beri rentang tindakan, prioritas, waktu, dan data yang perlu dilengkapi.",
-              "Untuk OPT, berikan prinsip pengamatan dan pengendalian terpadu; penggunaan pestisida harus mengikuti label produk dan rekomendasi petugas/POPT setempat.",
-              "Kembalikan JSON valid saja sesuai schema tanpa markdown."
-            ].join(" "),
-            role: "system"
-          },
-          {
-            content: JSON.stringify({
-              context,
-              outputSchema: {
-                confidence: "low|medium|high",
-                dataGaps: ["string"],
-                executiveSummary: "string",
-                fertilizer: [{
-                  actions: ["string"],
-                  confidence: "low|medium|high",
-                  priority: "low|medium|high",
-                  rationale: "string",
-                  timing: "string",
-                  title: "string"
-                }],
-                irrigation: [{
-                  actions: ["string"],
-                  confidence: "low|medium|high",
-                  priority: "low|medium|high",
-                  rationale: "string",
-                  timing: "string",
-                  title: "string"
-                }],
-                pestManagement: [{
-                  actions: ["string"],
-                  confidence: "low|medium|high",
-                  priority: "low|medium|high",
-                  rationale: "string",
-                  timing: "string",
-                  title: "string"
-                }],
-                riskAlerts: [{
-                  action: "string",
-                  rationale: "string",
-                  severity: "low|medium|high",
-                  title: "string"
-                }],
-                yieldOptimization: [{
-                  actions: ["string"],
-                  confidence: "low|medium|high",
-                  priority: "low|medium|high",
-                  rationale: "string",
-                  timing: "string",
-                  title: "string"
-                }]
-              }
-            }),
-            role: "user"
-          }
-        ],
-        model: env.aiRecommendation.model,
-        temperature: env.aiRecommendation.temperature
-      }),
+    const response = await fetch(buildChatCompletionsUrl(env.aiRecommendation.baseUrl), {
+      body: JSON.stringify(buildChatCompletionBody(messages)),
       headers: {
         Authorization: `Bearer ${env.aiRecommendation.apiKey}`,
         "Content-Type": "application/json"
@@ -639,6 +580,99 @@ async function requestAiRecommendation(context: ReturnType<typeof buildAiContext
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+function buildRecommendationMessages(context: ReturnType<typeof buildAiContext>): ChatMessage[] {
+  return [
+    {
+      content: [
+        "Anda adalah agronom AI untuk PAMILO Smart Farming.",
+        "Analisis data tanah, cuaca, histori lahan, crop, perangkat, dan telemetry yang diberikan.",
+        "Jawab dalam Bahasa Indonesia, ringkas, praktis, dan berbasis data.",
+        "Jangan mengarang angka dosis spesifik jika data tidak cukup; beri rentang tindakan, prioritas, waktu, dan data yang perlu dilengkapi.",
+        "Untuk OPT, berikan prinsip pengamatan dan pengendalian terpadu; penggunaan pestisida harus mengikuti label produk dan rekomendasi petugas/POPT setempat.",
+        "Kembalikan JSON valid saja sesuai schema tanpa markdown."
+      ].join(" "),
+      role: "system"
+    },
+    {
+      content: JSON.stringify({
+        context,
+        outputSchema: {
+          confidence: "low|medium|high",
+          dataGaps: ["string"],
+          executiveSummary: "string",
+          fertilizer: [{
+            actions: ["string"],
+            confidence: "low|medium|high",
+            priority: "low|medium|high",
+            rationale: "string",
+            timing: "string",
+            title: "string"
+          }],
+          irrigation: [{
+            actions: ["string"],
+            confidence: "low|medium|high",
+            priority: "low|medium|high",
+            rationale: "string",
+            timing: "string",
+            title: "string"
+          }],
+          pestManagement: [{
+            actions: ["string"],
+            confidence: "low|medium|high",
+            priority: "low|medium|high",
+            rationale: "string",
+            timing: "string",
+            title: "string"
+          }],
+          riskAlerts: [{
+            action: "string",
+            rationale: "string",
+            severity: "low|medium|high",
+            title: "string"
+          }],
+          yieldOptimization: [{
+            actions: ["string"],
+            confidence: "low|medium|high",
+            priority: "low|medium|high",
+            rationale: "string",
+            timing: "string",
+            title: "string"
+          }]
+        }
+      }),
+      role: "user"
+    }
+  ];
+}
+
+function buildChatCompletionBody(messages: ChatMessage[]): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    messages,
+    model: env.aiRecommendation.model
+  };
+
+  if (usesMaxCompletionTokens(env.aiRecommendation.provider, env.aiRecommendation.model)) {
+    body.max_completion_tokens = env.aiRecommendation.maxTokens;
+    return body;
+  }
+
+  body.max_tokens = env.aiRecommendation.maxTokens;
+  body.temperature = env.aiRecommendation.temperature;
+
+  return body;
+}
+
+function usesMaxCompletionTokens(provider: string, model: string): boolean {
+  return provider === "openai" && /^(gpt-5|o\d|o\d-)/i.test(model);
+}
+
+function buildChatCompletionsUrl(baseUrl: string): string {
+  const normalizedBaseUrl = baseUrl.replace(/\/+$/, "");
+  return normalizedBaseUrl.endsWith("/v1")
+    ? `${normalizedBaseUrl}/chat/completions`
+    : `${normalizedBaseUrl}/v1/chat/completions`;
 }
 
 function parseRecommendationJson(content: string): unknown {

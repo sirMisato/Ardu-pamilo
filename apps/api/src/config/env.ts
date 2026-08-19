@@ -1,6 +1,34 @@
 import "dotenv/config";
 import { z } from "zod";
 
+const optionalTrimmedString = z.preprocess(
+  (value) => typeof value === "string" && value.trim() === "" ? undefined : value,
+  z.string().trim().min(1).optional()
+);
+const optionalUrl = z.preprocess(
+  (value) => typeof value === "string" && value.trim() === "" ? undefined : value,
+  z.string().url().optional()
+);
+const aiProviderSchema = z.enum(["custom", "openai", "sumopod", "tencent"]);
+const aiProviderDefaults: Record<z.infer<typeof aiProviderSchema>, { baseUrl: string | null; model: string | null }> = {
+  custom: {
+    baseUrl: null,
+    model: null
+  },
+  openai: {
+    baseUrl: "https://api.openai.com/v1",
+    model: "gpt-5-nano"
+  },
+  sumopod: {
+    baseUrl: "https://ai.sumopod.com",
+    model: "gpt-5-nano"
+  },
+  tencent: {
+    baseUrl: "https://api.hunyuan.cloud.tencent.com/v1",
+    model: "hy3"
+  }
+};
+
 const envSchema = z.object({
   DATABASE_SSL: z.enum(["true", "false"]).default("false"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
@@ -14,11 +42,16 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   JWT_EXPIRES_IN: z.string().default("8h"),
   LOG_LEVEL: z.string().default("info"),
-  AI_RECOMMENDATION_API_KEY: z.string().optional(),
-  AI_RECOMMENDATION_BASE_URL: z.string().url().default("https://ai.sumopod.com"),
+  AI_RECOMMENDATION_API_KEY: optionalTrimmedString,
+  AI_RECOMMENDATION_BASE_URL: optionalUrl,
   AI_RECOMMENDATION_MAX_TOKENS: z.coerce.number().int().positive().max(4000).default(1600),
-  AI_RECOMMENDATION_MODEL: z.string().trim().min(1).default("MiniMax-M2.7-highspeed"),
+  AI_RECOMMENDATION_MODEL: optionalTrimmedString,
+  AI_RECOMMENDATION_OPENAI_API_KEY: optionalTrimmedString,
+  AI_RECOMMENDATION_PROVIDER: aiProviderSchema.default("sumopod"),
   AI_RECOMMENDATION_TEMPERATURE: z.coerce.number().min(0).max(2).default(0.35),
+  AI_RECOMMENDATION_TENCENT_API_KEY: optionalTrimmedString,
+  AI_RECOMMENDATION_TIMEOUT_MS: z.coerce.number().int().min(10_000).max(180_000).default(90_000),
+  HUNYUAN_API_KEY: optionalTrimmedString,
   MQTT_BROKER_URL: z.string().default("mqtt://127.0.0.1:1883"),
   MQTT_CLIENT_ID: z.string().default("pamilo-api-local"),
   MQTT_INGEST_ENABLED: z.enum(["true", "false"]).default("false"),
@@ -27,8 +60,10 @@ const envSchema = z.object({
   MQTT_USERNAME: z.string().optional(),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(3000),
+  OPENAI_API_KEY: optionalTrimmedString,
   SUPER_ADMIN_EMAIL: z.string().email().optional(),
-  SUPER_ADMIN_PASSWORD_HASH: z.string().optional()
+  SUPER_ADMIN_PASSWORD_HASH: z.string().optional(),
+  TENCENT_API_KEY: optionalTrimmedString
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -40,6 +75,21 @@ if (!parsedEnv.success) {
 
   throw new Error(`Invalid API environment: ${details}`);
 }
+
+const aiProvider = parsedEnv.data.AI_RECOMMENDATION_PROVIDER;
+const aiProviderDefault = aiProviderDefaults[aiProvider];
+const aiBaseUrl = (parsedEnv.data.AI_RECOMMENDATION_BASE_URL ?? aiProviderDefault.baseUrl)?.replace(/\/+$/, "");
+const aiModel = parsedEnv.data.AI_RECOMMENDATION_MODEL ?? aiProviderDefault.model;
+
+if (!aiBaseUrl || !aiModel) {
+  throw new Error("Invalid API environment: AI_RECOMMENDATION_BASE_URL and AI_RECOMMENDATION_MODEL are required when AI_RECOMMENDATION_PROVIDER=custom");
+}
+
+const providerApiKey = aiProvider === "openai"
+  ? parsedEnv.data.AI_RECOMMENDATION_OPENAI_API_KEY ?? parsedEnv.data.OPENAI_API_KEY
+  : aiProvider === "tencent"
+    ? parsedEnv.data.AI_RECOMMENDATION_TENCENT_API_KEY ?? parsedEnv.data.HUNYUAN_API_KEY ?? parsedEnv.data.TENCENT_API_KEY
+    : undefined;
 
 export const env = {
   database: {
@@ -59,11 +109,13 @@ export const env = {
   jwtExpiresIn: parsedEnv.data.JWT_EXPIRES_IN,
   logLevel: parsedEnv.data.LOG_LEVEL,
   aiRecommendation: {
-    apiKey: parsedEnv.data.AI_RECOMMENDATION_API_KEY || undefined,
-    baseUrl: parsedEnv.data.AI_RECOMMENDATION_BASE_URL.replace(/\/+$/, ""),
+    apiKey: providerApiKey ?? parsedEnv.data.AI_RECOMMENDATION_API_KEY,
+    baseUrl: aiBaseUrl,
     maxTokens: parsedEnv.data.AI_RECOMMENDATION_MAX_TOKENS,
-    model: parsedEnv.data.AI_RECOMMENDATION_MODEL,
-    temperature: parsedEnv.data.AI_RECOMMENDATION_TEMPERATURE
+    model: aiModel,
+    provider: aiProvider,
+    temperature: parsedEnv.data.AI_RECOMMENDATION_TEMPERATURE,
+    timeoutMs: parsedEnv.data.AI_RECOMMENDATION_TIMEOUT_MS
   },
   mqtt: {
     brokerUrl: parsedEnv.data.MQTT_BROKER_URL,

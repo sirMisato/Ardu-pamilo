@@ -61,6 +61,7 @@ export interface AiRecommendationResponse {
   };
   generatedAt: string;
   model: string;
+  provider: "custom" | "openai" | "sumopod" | "tencent";
   recommendation: AiRecommendation;
 }
 
