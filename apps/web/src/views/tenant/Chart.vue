@@ -124,7 +124,7 @@ import { useDeviceStore } from "../../stores/deviceStore";
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Legend, Title, Tooltip);
 
 type TelemetryPayload = Record<string, unknown>;
-type ChartInterval = "5" | "15" | "60";
+type ChartInterval = "raw" | "5" | "15" | "60";
 
 interface TelemetryHistoryResponse {
   count: number;
@@ -182,11 +182,12 @@ let refreshTimer: number | undefined;
 
 const filters = ref({
   endDate: toInputDate(today),
-  intervalMinutes: "15" as ChartInterval,
+  intervalMinutes: "raw" as ChartInterval,
   startDate: toInputDate(threeDaysAgo)
 });
 
 const intervalOptions: Array<{ label: string; value: ChartInterval }> = [
+  { label: "Semua data", value: "raw" },
   { label: "Per 5 menit", value: "5" },
   { label: "Per 15 menit", value: "15" },
   { label: "Per jam", value: "60" }
@@ -269,7 +270,7 @@ const chartCards = computed<MetricChartCard[]>(() => selectedMetricKeys.value.ma
   };
 }));
 
-const selectedIntervalLabel = computed(() => intervalOptions.find((option) => option.value === filters.value.intervalMinutes)?.label ?? "Per 15 menit");
+const selectedIntervalLabel = computed(() => intervalOptions.find((option) => option.value === filters.value.intervalMinutes)?.label ?? "Semua data");
 const chartRangeLabel = computed(() => {
   const { endDate, startDate } = normalizedDateRange();
   return startDate === endDate ? startDate : `${startDate} - ${endDate}`;
@@ -340,6 +341,23 @@ function buildTelemetryHistoryUrl(): string {
 }
 
 function sampleMetricPoints(rows: TelemetryHistoryItem[], metricKey: string): MetricPoint[] {
+  if (filters.value.intervalMinutes === "raw") {
+    return rows
+      .flatMap((row) => {
+        const timestamp = Date.parse(row.receivedAt);
+        if (!Number.isFinite(timestamp)) {
+          return [];
+        }
+
+        const value = coerceNumericValue(readMetricValue(row.payload, metricKey));
+        return value === null ? [] : [{
+          timestamp: row.receivedAt,
+          value
+        }];
+      })
+      .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp));
+  }
+
   const intervalMs = Number(filters.value.intervalMinutes) * 60_000;
   const sampledByBucket = new Map<number, MetricPoint>();
 
@@ -545,6 +563,16 @@ function formatChartTime(value: string): string {
   }
 
   const { endDate, startDate } = normalizedDateRange();
+  if (filters.value.intervalMinutes === "raw") {
+    return new Intl.DateTimeFormat("id-ID", {
+      day: startDate !== endDate ? "2-digit" : undefined,
+      hour: "2-digit",
+      minute: "2-digit",
+      month: startDate !== endDate ? "short" : undefined,
+      second: "2-digit"
+    }).format(date);
+  }
+
   if (startDate !== endDate) {
     return new Intl.DateTimeFormat("id-ID", {
       day: "2-digit",

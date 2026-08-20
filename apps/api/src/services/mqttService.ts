@@ -4,6 +4,7 @@ import mqtt, { type IClientOptions, type MqttClient } from "mqtt";
 import type { Database, JsonValue } from "../db/schema.js";
 
 const telemetryTopicPattern = /^pamilo\/v1\/tenants\/([^/]+)\/devices\/([^/]+)\/telemetry$/;
+const duplicateTelemetryWindowMs = 3_000;
 
 export interface MqttTelemetryServiceOptions {
   brokerUrl: string;
@@ -75,17 +76,17 @@ export async function ingestTelemetryMessage(input: {
   logger: FastifyBaseLogger;
   payload: Buffer;
   topic: string;
-}): Promise<void> {
+}): Promise<boolean> {
   const topicParts = parseTelemetryTopic(input.topic);
   if (!topicParts) {
     input.logger.warn({ topic: input.topic }, "Ignoring MQTT message from unsupported topic.");
-    return;
+    return false;
   }
 
   const parsedPayload = parseJsonPayload(input.payload);
   if (!parsedPayload) {
     input.logger.warn({ topic: input.topic }, "Ignoring telemetry payload that is not a JSON object.");
-    return;
+    return false;
   }
 
   const device = await input.db
@@ -104,18 +105,37 @@ export async function ingestTelemetryMessage(input: {
       },
       "Ignoring telemetry for an unregistered device."
     );
-    return;
+    return false;
   }
 
   const receivedAt = new Date();
   const metricKeys = collectMetricKeys(parsedPayload);
+  const payloadJson = JSON.stringify(parsedPayload);
+
+  if (await isDuplicateTelemetry({
+    db: input.db,
+    deviceId: device.id,
+    payload: parsedPayload,
+    receivedAt,
+    tenantId: topicParts.tenantId,
+    topic: input.topic
+  })) {
+    input.logger.info(
+      {
+        deviceUid: topicParts.deviceUid,
+        tenantId: topicParts.tenantId
+      },
+      "Skipping duplicate telemetry payload."
+    );
+    return false;
+  }
 
   await input.db
     .insertInto("telemetry_data")
     .values({
       device_id: device.id,
       metric_keys_json: JSON.stringify(metricKeys),
-      payload_json: JSON.stringify(parsedPayload),
+      payload_json: payloadJson,
       received_at: receivedAt,
       tenant_id: topicParts.tenantId,
       topic: input.topic
@@ -140,9 +160,11 @@ export async function ingestTelemetryMessage(input: {
     },
     "Telemetry payload ingested."
   );
+
+  return true;
 }
 
-function parseTelemetryTopic(topic: string): { deviceUid: string; tenantId: string } | null {
+export function parseTelemetryTopic(topic: string): { deviceUid: string; tenantId: string } | null {
   const match = telemetryTopicPattern.exec(topic);
   if (!match) {
     return null;
@@ -203,6 +225,58 @@ function collectMetricKeys(payload: Record<string, JsonValue>): string[] {
   visit(payload, "");
 
   return Array.from(keys).sort();
+}
+
+async function isDuplicateTelemetry(input: {
+  db: Kysely<Database>;
+  deviceId: string;
+  payload: Record<string, JsonValue>;
+  receivedAt: Date;
+  tenantId: string;
+  topic: string;
+}): Promise<boolean> {
+  const duplicateWindowStart = new Date(input.receivedAt.getTime() - duplicateTelemetryWindowMs);
+  const incomingPayloadKey = stableJsonStringify(input.payload);
+  const recentRows = await input.db
+    .selectFrom("telemetry_data")
+    .select(["payload_json"])
+    .where("tenant_id", "=", input.tenantId)
+    .where("device_id", "=", input.deviceId)
+    .where("topic", "=", input.topic)
+    .where("received_at", ">=", duplicateWindowStart)
+    .orderBy("received_at", "desc")
+    .limit(8)
+    .execute();
+
+  return recentRows.some((row) => stableJsonStringify(parseStoredJsonObject(row.payload_json)) === incomingPayloadKey);
+}
+
+function parseStoredJsonObject(value: JsonValue | string): Record<string, JsonValue> {
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return isPlainObject(parsed) ? parsed as Record<string, JsonValue> : {};
+    } catch {
+      return {};
+    }
+  }
+
+  return isPlainObject(value) ? value : {};
+}
+
+function stableJsonStringify(value: JsonValue): string {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableJsonStringify(item)).join(",")}]`;
+  }
+
+  return `{${Object.entries(value)
+    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+    .map(([key, childValue]) => `${JSON.stringify(key)}:${stableJsonStringify(childValue)}`)
+    .join(",")}}`;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

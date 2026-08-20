@@ -136,7 +136,7 @@
 
 <script setup lang="ts">
 import { CloudRain, CloudSun, Cpu, Sprout, Waves } from "@lucide/vue";
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import FieldMap from "../../components/dashboard/FieldMap.vue";
 import { appEnvironment } from "../../config/environment";
 import { fetchBmkgForecast, type BmkgForecastResult } from "../../services/bmkgService";
@@ -147,7 +147,6 @@ const telemetryStore = useTelemetryStore();
 const tenantProfileStore = useTenantProfileStore();
 const dashboardForecast = ref<BmkgForecastResult | null>(null);
 const weatherError = ref<string | null>(null);
-let telemetryRefreshTimer: number | undefined;
 
 const bmkgHost = computed(() => {
   try {
@@ -159,18 +158,7 @@ const bmkgHost = computed(() => {
 
 onMounted(async () => {
   await tenantProfileStore.fetchFields();
-  telemetryStore.connect();
-  await telemetryStore.refreshHistory();
-  telemetryRefreshTimer = window.setInterval(() => {
-    void telemetryStore.refreshHistory();
-  }, 30_000);
   void refreshDashboardForecast();
-});
-
-onBeforeUnmount(() => {
-  if (telemetryRefreshTimer) {
-    window.clearInterval(telemetryRefreshTimer);
-  }
 });
 
 watch(() => tenantProfileStore.activeBmkgAdm4Code, () => {

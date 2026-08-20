@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "../db/client.js";
 import type { JsonValue } from "../db/schema.js";
 import { requireTenantContext, verifyTenant } from "../middleware/verifyTenant.js";
+import { ingestTelemetryMessage, parseTelemetryTopic } from "../services/mqttService.js";
 
 const historyQuerySchema = z.object({
   deviceId: z.string().trim().min(1).optional(),
@@ -10,6 +11,10 @@ const historyQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(1000).default(250),
   metricKey: z.string().trim().min(1).optional(),
   start: z.string().datetime().optional()
+});
+const ingestPayloadSchema = z.object({
+  payload: z.record(z.string(), z.unknown()),
+  topic: z.string().trim().min(1).max(255)
 });
 
 interface TelemetryHistoryRow {
@@ -23,6 +28,45 @@ interface TelemetryHistoryRow {
 
 export const telemetryRoutes: FastifyPluginAsync = async (app) => {
   app.addHook("preHandler", verifyTenant);
+
+  app.post<{ Body: z.input<typeof ingestPayloadSchema> }>("/telemetry/ingest", async (request, reply) => {
+    const tenant = requireTenantContext(request);
+    const parsed = ingestPayloadSchema.safeParse(request.body ?? {});
+
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: "Invalid telemetry ingest payload",
+        issues: parsed.error.flatten().fieldErrors
+      });
+    }
+
+    const topicParts = parseTelemetryTopic(parsed.data.topic);
+    if (!topicParts) {
+      return reply.code(400).send({
+        error: "Invalid telemetry topic",
+        message: "Topic harus memakai format pamilo/v1/tenants/{tenant_id}/devices/{device_uid}/telemetry."
+      });
+    }
+
+    if (topicParts.tenantId !== tenant.tenantId) {
+      return reply.code(403).send({
+        error: "Telemetry topic forbidden",
+        message: "Tenant pada topic telemetry tidak sesuai dengan tenant login."
+      });
+    }
+
+    const inserted = await ingestTelemetryMessage({
+      db,
+      logger: request.log,
+      payload: Buffer.from(JSON.stringify(parsed.data.payload), "utf8"),
+      topic: parsed.data.topic
+    });
+
+    return {
+      inserted,
+      ok: true
+    };
+  });
 
   app.get<{ Querystring: z.input<typeof historyQuerySchema> }>("/telemetry/history", async (request, reply) => {
     const tenant = requireTenantContext(request);
@@ -176,5 +220,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function serializeDate(value: Date | string): string {
-  return value instanceof Date ? value.toISOString() : value;
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(value)) {
+    return new Date(`${value.replace(" ", "T")}Z`).toISOString();
+  }
+
+  return value;
 }

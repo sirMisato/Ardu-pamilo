@@ -2,7 +2,7 @@ import mqtt, { type IClientOptions, type MqttClient } from "mqtt";
 import { computed, ref, shallowRef } from "vue";
 import { defineStore } from "pinia";
 import { appEnvironment } from "../config/environment";
-import { apiGet } from "../services/apiClient";
+import { apiGet, apiPost } from "../services/apiClient";
 import { useAuthStore } from "./authStore";
 
 export type TelemetryValue = boolean | number | string | null;
@@ -45,7 +45,9 @@ interface TelemetryIngestOptions {
 }
 
 const defaultTenantId = "demo-tenant";
+const browserIngestDuplicateWindowMs = 3_000;
 const telemetryOnlineWindowMs = 15 * 60 * 1000;
+const persistedPayloadCache = new Map<string, number>();
 const reservedPayloadKeys = new Set([
   "device_id",
   "deviceId",
@@ -211,6 +213,10 @@ export const useTelemetryStore = defineStore("telemetry", () => {
         observedAt: new Date().toISOString(),
         online: true
       });
+
+      if (isRecord(payload)) {
+        void persistLiveTelemetryPayload(topicName, rawMessage, payload);
+      }
     } catch {
       errorMessage.value = "Received MQTT payload is not valid JSON.";
     }
@@ -275,6 +281,21 @@ export const useTelemetryStore = defineStore("telemetry", () => {
         rawPayload: payload
       }
     };
+  }
+
+  async function persistLiveTelemetryPayload(topicName: string, rawMessage: string, payload: Record<string, unknown>): Promise<void> {
+    if (!shouldPersistLivePayload(topicName, rawMessage)) {
+      return;
+    }
+
+    try {
+      await apiPost<{ inserted: boolean; ok: boolean }>("/api/v1/telemetry/ingest", {
+        payload,
+        topic: topicName
+      });
+    } catch {
+      // Backend MQTT ingestion remains the primary persistence path; this browser path is only a fallback.
+    }
   }
 
   function latestMetricsForDevice(deviceId: string): DynamicMetric[] {
@@ -418,6 +439,25 @@ function isIncomingTelemetryOlder(previousTimestamp: string, nextTimestamp: stri
   const previousTime = Date.parse(previousTimestamp);
   const nextTime = Date.parse(nextTimestamp);
   return Number.isFinite(previousTime) && Number.isFinite(nextTime) && nextTime < previousTime;
+}
+
+function shouldPersistLivePayload(topicName: string, rawMessage: string): boolean {
+  const now = Date.now();
+  const cacheKey = `${topicName}:${rawMessage}`;
+  const previousPersistedAt = persistedPayloadCache.get(cacheKey);
+
+  for (const [key, persistedAt] of persistedPayloadCache) {
+    if (now - persistedAt > browserIngestDuplicateWindowMs) {
+      persistedPayloadCache.delete(key);
+    }
+  }
+
+  if (previousPersistedAt && now - previousPersistedAt <= browserIngestDuplicateWindowMs) {
+    return false;
+  }
+
+  persistedPayloadCache.set(cacheKey, now);
+  return true;
 }
 
 function buildDefaultSubscriptionTopic(tenantId: string): string {

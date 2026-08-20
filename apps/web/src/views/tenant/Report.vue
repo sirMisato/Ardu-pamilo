@@ -70,6 +70,15 @@
 
         <div class="flex gap-3">
           <button
+            class="inline-flex min-h-11 items-center gap-2 rounded-lg border border-field-mint/30 bg-field-mint/10 px-4 text-sm font-semibold text-field-mint hover:bg-field-mint/15 disabled:cursor-not-allowed disabled:opacity-60"
+            type="button"
+            :disabled="isLoading"
+            @click="refreshReportData"
+          >
+            <RefreshCw class="h-4 w-4" :class="isLoading ? 'animate-spin' : ''" />
+            Refresh
+          </button>
+          <button
             class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-field-green px-4 text-sm font-semibold text-[#102016] hover:bg-field-mint"
             type="button"
             @click="exportReport('CSV')"
@@ -197,13 +206,13 @@
 </template>
 
 <script setup lang="ts">
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Download, FileDown, FileText, Filter, TableProperties } from "@lucide/vue";
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, Download, FileDown, FileText, Filter, RefreshCw, TableProperties } from "@lucide/vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { ApiClientError, apiGet } from "../../services/apiClient";
 
 type ExportFormat = "CSV" | "PDF";
 type Dataset = "telemetry" | "alerts" | "weather";
-type SamplingInterval = "5" | "15" | "60";
+type SamplingInterval = "raw" | "5" | "15" | "60";
 type TelemetryPayload = Record<string, unknown>;
 
 interface ReportDevice {
@@ -319,7 +328,7 @@ const filters = reactive<{
   endDate: toInputDate(today),
   deviceId: "all",
   dataset: "telemetry",
-  intervalMinutes: "15"
+  intervalMinutes: "raw"
 });
 
 const exportMessage = ref("");
@@ -331,7 +340,9 @@ const rows = ref<ReportRow[]>([]);
 const currentPage = ref(1);
 const pageSize = ref(25);
 const pageSizeOptions = [10, 25, 50];
+let refreshTimer: number | undefined;
 const samplingOptions: Array<{ label: string; value: SamplingInterval }> = [
+  { label: "Semua data", value: "raw" },
   { label: "Per 5 menit", value: "5" },
   { label: "Per 15 menit", value: "15" },
   { label: "Per jam", value: "60" }
@@ -364,7 +375,7 @@ const groupedRows = computed(() => {
   const grouped = new Map<string, ReportRow>();
 
   for (const row of rows.value) {
-    const groupKey = `${row.timestamp}:${row.deviceId}:${row.plot}`;
+    const groupKey = `${row.id}:${row.timestamp}:${row.deviceId}:${row.plot}`;
     const existing = grouped.get(groupKey);
 
     grouped.set(groupKey, existing
@@ -393,6 +404,10 @@ const filteredRows = computed(() => {
 });
 
 const sampledRows = computed(() => {
+  if (filters.intervalMinutes === "raw") {
+    return [...filteredRows.value].sort((left, right) => Date.parse(right.timestamp) - Date.parse(left.timestamp));
+  }
+
   const intervalMs = Number(filters.intervalMinutes) * 60_000;
   const sampledByBucket = new Map<string, ReportRow>();
 
@@ -424,11 +439,22 @@ const paginatedRows = computed(() => {
 });
 const paginationStart = computed(() => sampledRows.value.length === 0 ? 0 : (activePage.value - 1) * pageSize.value + 1);
 const paginationEnd = computed(() => Math.min(activePage.value * pageSize.value, sampledRows.value.length));
-const selectedSamplingLabel = computed(() => samplingOptions.find((option) => option.value === filters.intervalMinutes)?.label ?? "Per 15 menit");
+const selectedSamplingLabel = computed(() => samplingOptions.find((option) => option.value === filters.intervalMinutes)?.label ?? "Semua data");
 const reportPreviewLabel = computed(() => `Preview data export tenant, ${selectedSamplingLabel.value.toLowerCase()}.`);
 
 onMounted(() => {
   void loadReportData();
+  refreshTimer = window.setInterval(() => {
+    void loadReportData({
+      clearExportMessage: false
+    });
+  }, 30_000);
+});
+
+onBeforeUnmount(() => {
+  if (refreshTimer) {
+    window.clearInterval(refreshTimer);
+  }
 });
 
 watch(() => [filters.startDate, filters.endDate, filters.deviceId, filters.dataset], () => {
@@ -444,10 +470,22 @@ watch(pageSize, () => {
   currentPage.value = 1;
 });
 
-async function loadReportData(): Promise<void> {
+async function refreshReportData(): Promise<void> {
+  currentPage.value = 1;
+  await loadReportData();
+}
+
+async function loadReportData(options: { clearExportMessage?: boolean } = {}): Promise<void> {
+  if (isLoading.value) {
+    return;
+  }
+
   isLoading.value = true;
   errorMessage.value = null;
-  exportMessage.value = "";
+
+  if (options.clearExportMessage !== false) {
+    exportMessage.value = "";
+  }
 
   try {
     const [deviceRows, history] = await Promise.all([
@@ -633,7 +671,7 @@ function formatDateTime(value: string): string {
 
   return new Intl.DateTimeFormat("id-ID", {
     dateStyle: "medium",
-    timeStyle: "short"
+    timeStyle: "medium"
   }).format(date);
 }
 

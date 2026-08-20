@@ -30,10 +30,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import Sidebar from "./Sidebar.vue";
 import Topbar from "./Topbar.vue";
+import { useTelemetryStore } from "../../stores/telemetryStore";
 
 const sidebarOpen = ref(false);
 const sidebarCollapsed = ref(false);
+const telemetryStore = useTelemetryStore();
+let telemetryRefreshTimer: number | undefined;
+
+onMounted(() => {
+  telemetryStore.connect();
+  void telemetryStore.refreshHistory();
+  telemetryRefreshTimer = window.setInterval(() => {
+    void telemetryStore.refreshHistory();
+  }, 30_000);
+});
+
+onBeforeUnmount(() => {
+  if (telemetryRefreshTimer) {
+    window.clearInterval(telemetryRefreshTimer);
+  }
+
+  telemetryStore.disconnect();
+});
 </script>
