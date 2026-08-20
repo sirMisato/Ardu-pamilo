@@ -166,6 +166,7 @@ const reservedPayloadKeys = new Set([
   "ts",
   "units"
 ]);
+const minimumReasoningModelCompletionTokens = 4000;
 
 export const aiRecommendationRoutes: FastifyPluginAsync = async (app) => {
   app.addHook("preHandler", verifyTenant);
@@ -215,7 +216,7 @@ export const aiRecommendationRoutes: FastifyPluginAsync = async (app) => {
     try {
       recommendation = await requestAiRecommendation(context);
     } catch (error) {
-      request.log.error({ error }, "AI recommendation request failed");
+      request.log.error({ err: error }, "AI recommendation request failed");
       return reply.code(502).send({
         error: "AI recommendation failed",
         message: error instanceof Error && error.name === "AbortError"
@@ -591,6 +592,7 @@ function buildRecommendationMessages(context: ReturnType<typeof buildAiContext>)
         "Jawab dalam Bahasa Indonesia, ringkas, praktis, dan berbasis data.",
         "Jangan mengarang angka dosis spesifik jika data tidak cukup; beri rentang tindakan, prioritas, waktu, dan data yang perlu dilengkapi.",
         "Untuk OPT, berikan prinsip pengamatan dan pengendalian terpadu; penggunaan pestisida harus mengikuti label produk dan rekomendasi petugas/POPT setempat.",
+        "Batasi maksimal 3 rekomendasi per kategori, 5 data gaps, 5 risk alerts, dan 3 action items per rekomendasi.",
         "Kembalikan JSON valid saja sesuai schema tanpa markdown."
       ].join(" "),
       role: "system"
@@ -653,8 +655,15 @@ function buildChatCompletionBody(messages: ChatMessage[]): Record<string, unknow
     model: env.aiRecommendation.model
   };
 
+  if (usesJsonObjectResponseFormat(env.aiRecommendation.provider)) {
+    body.response_format = {
+      type: "json_object"
+    };
+  }
+
   if (usesMaxCompletionTokens(env.aiRecommendation.provider, env.aiRecommendation.model)) {
-    body.max_completion_tokens = env.aiRecommendation.maxTokens;
+    body.max_completion_tokens = Math.max(env.aiRecommendation.maxTokens, minimumReasoningModelCompletionTokens);
+    body.reasoning_effort = "low";
     return body;
   }
 
@@ -664,8 +673,12 @@ function buildChatCompletionBody(messages: ChatMessage[]): Record<string, unknow
   return body;
 }
 
-function usesMaxCompletionTokens(provider: string, model: string): boolean {
-  return provider === "openai" && /^(gpt-5|o\d|o\d-)/i.test(model);
+function usesMaxCompletionTokens(_provider: string, model: string): boolean {
+  return /^(gpt-5|o\d|o\d-)/i.test(model);
+}
+
+function usesJsonObjectResponseFormat(provider: string): boolean {
+  return provider === "custom" || provider === "openai" || provider === "sumopod";
 }
 
 function buildChatCompletionsUrl(baseUrl: string): string {
@@ -693,68 +706,138 @@ function normalizeRecommendation(value: unknown): AiRecommendation {
     throw new Error("AI recommendation payload must be an object.");
   }
 
+  const root = isRecord(value.recommendation) ? value.recommendation : value;
+  const sectionsRoot = isRecord(root.recommendations) ? root.recommendations : root;
+
   return {
-    confidence: normalizeConfidence(value.confidence),
-    dataGaps: normalizeStringArray(value.dataGaps),
-    executiveSummary: readString(value.executiveSummary, "Rekomendasi berhasil dibuat, namun ringkasan tidak tersedia."),
-    fertilizer: normalizeRecommendationItems(value.fertilizer),
-    irrigation: normalizeRecommendationItems(value.irrigation),
-    pestManagement: normalizeRecommendationItems(value.pestManagement),
-    riskAlerts: normalizeRiskAlerts(value.riskAlerts),
-    yieldOptimization: normalizeRecommendationItems(value.yieldOptimization)
+    confidence: normalizeConfidence(readFirstAliasedValue([root], ["confidence", "confidenceLevel", "tingkatKeyakinan"])),
+    dataGaps: readAliasedStringArray(root, ["dataGaps", "data_gaps", "gaps", "missingData", "kekuranganData"]),
+    executiveSummary: readAliasedString(
+      root,
+      ["executiveSummary", "executive_summary", "summary", "ringkasan", "ringkasanEksekutif"],
+      "Rekomendasi berhasil dibuat, namun ringkasan tidak tersedia."
+    ),
+    fertilizer: normalizeRecommendationItems(readFirstAliasedValue([root, sectionsRoot], ["fertilizer", "fertilization", "pemupukan"])),
+    irrigation: normalizeRecommendationItems(readFirstAliasedValue([root, sectionsRoot], ["irrigation", "pengairan", "irigasi"])),
+    pestManagement: normalizeRecommendationItems(readFirstAliasedValue([root, sectionsRoot], ["pestManagement", "pest_management", "pest", "opt", "pengendalianOPT"])),
+    riskAlerts: normalizeRiskAlerts(readFirstAliasedValue([root, sectionsRoot], ["riskAlerts", "risk_alerts", "risks", "alerts", "peringatanRisiko"])),
+    yieldOptimization: normalizeRecommendationItems(readFirstAliasedValue([root, sectionsRoot], ["yieldOptimization", "yield_optimization", "yield", "panen", "optimalisasiPanen"]))
   };
 }
 
 function normalizeRecommendationItems(value: unknown): RecommendationItem[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
+  const items = Array.isArray(value)
+    ? value
+    : isRecord(value)
+      ? [value]
+      : typeof value === "string" && value.trim().length > 0
+        ? [{ title: value }]
+        : [];
 
-  return value
+  return items
     .filter(isRecord)
-    .map((item) => ({
-      actions: normalizeStringArray(item.actions),
-      confidence: normalizeConfidence(item.confidence),
-      priority: normalizePriority(item.priority),
-      rationale: readString(item.rationale, "-"),
-      timing: readString(item.timing, "Segera saat kondisi lapang memungkinkan."),
-      title: readString(item.title, "Rekomendasi")
-    }))
+    .map((item) => {
+      const actions = readAliasedStringArray(item, ["actions", "actionItems", "action_items", "steps", "langkah"]);
+      const fallbackAction = readOptionalString(readFirstAliasedValue([item], ["action", "recommendation", "rekomendasi"]));
+
+      return {
+        actions: actions.length > 0 ? actions : fallbackAction ? [fallbackAction] : [],
+        confidence: normalizeConfidence(readFirstAliasedValue([item], ["confidence", "confidenceLevel", "tingkatKeyakinan"])),
+        priority: normalizePriority(readFirstAliasedValue([item], ["priority", "prioritas"])),
+        rationale: readAliasedString(item, ["rationale", "reason", "alasan", "note", "catatan", "description", "deskripsi"], "-"),
+        timing: readAliasedString(item, ["timing", "time", "when", "waktu"], "Segera saat kondisi lapang memungkinkan."),
+        title: readAliasedString(item, ["title", "judul", "recommendation", "rekomendasi"], "Rekomendasi")
+      };
+    })
     .slice(0, 8);
 }
 
 function normalizeRiskAlerts(value: unknown): RiskAlert[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
+  const items = Array.isArray(value)
+    ? value
+    : isRecord(value)
+      ? [value]
+      : typeof value === "string" && value.trim().length > 0
+        ? [{ title: value }]
+        : [];
 
-  return value
+  return items
     .filter(isRecord)
     .map((item) => ({
-      action: readString(item.action, "-"),
-      rationale: readString(item.rationale, "-"),
-      severity: normalizeSeverity(item.severity),
-      title: readString(item.title, "Peringatan risiko")
+      action: readAliasedString(item, ["action", "mitigation", "recommendation", "rekomendasi"], "-"),
+      rationale: readAliasedString(item, ["rationale", "reason", "alasan", "note", "catatan", "description", "deskripsi"], "-"),
+      severity: normalizeSeverity(readFirstAliasedValue([item], ["severity", "level", "tingkatRisiko"])),
+      title: readAliasedString(item, ["title", "judul", "risk", "risiko"], "Peringatan risiko")
     }))
     .slice(0, 8);
 }
 
 function normalizeConfidence(value: unknown): RecommendationConfidence {
-  return value === "high" || value === "medium" || value === "low" ? value : "low";
+  return normalizeLevel(value, "low");
 }
 
 function normalizePriority(value: unknown): RecommendationPriority {
-  return value === "high" || value === "medium" || value === "low" ? value : "medium";
+  return normalizeLevel(value, "medium");
 }
 
 function normalizeSeverity(value: unknown): RiskSeverity {
-  return value === "high" || value === "medium" || value === "low" ? value : "medium";
+  return normalizeLevel(value, "medium");
 }
 
 function normalizeStringArray(value: unknown): string[] {
+  if (typeof value === "string" && value.trim().length > 0) {
+    return [value.trim()];
+  }
+
   return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).slice(0, 10)
+    ? value.flatMap((item) => typeof item === "string" && item.trim().length > 0 ? [item.trim()] : []).slice(0, 10)
     : [];
+}
+
+function normalizeLevel(value: unknown, fallback: RecommendationPriority): RecommendationPriority {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized === "high" || normalized === "tinggi" || normalized === "urgent") {
+    return "high";
+  }
+
+  if (normalized === "medium" || normalized === "sedang" || normalized === "moderate") {
+    return "medium";
+  }
+
+  if (normalized === "low" || normalized === "rendah") {
+    return "low";
+  }
+
+  return fallback;
+}
+
+function readFirstAliasedValue(records: Record<string, unknown>[], keys: string[]): unknown {
+  for (const record of records) {
+    for (const key of keys) {
+      if (key in record) {
+        return record[key];
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function readAliasedString(record: Record<string, unknown>, keys: string[], fallback: string): string {
+  return readString(readFirstAliasedValue([record], keys), fallback);
+}
+
+function readAliasedStringArray(record: Record<string, unknown>, keys: string[]): string[] {
+  return normalizeStringArray(readFirstAliasedValue([record], keys));
+}
+
+function readOptionalString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
 function parseJsonObject(value: JsonValue | string | null): Record<string, JsonValue> {

@@ -107,7 +107,7 @@ export async function ingestTelemetryMessage(input: {
     return;
   }
 
-  const receivedAt = resolvePayloadTimestamp(parsedPayload) ?? new Date();
+  const receivedAt = new Date();
   const metricKeys = collectMetricKeys(parsedPayload);
 
   await input.db
@@ -203,23 +203,6 @@ function collectMetricKeys(payload: Record<string, JsonValue>): string[] {
   visit(payload, "");
 
   return Array.from(keys).sort();
-}
-
-function resolvePayloadTimestamp(payload: Record<string, JsonValue>): Date | null {
-  const timestamp = payload.timestamp ?? payload.time ?? payload.ts;
-
-  if (typeof timestamp === "number") {
-    const milliseconds = timestamp > 10_000_000_000 ? timestamp : timestamp * 1000;
-    const date = new Date(milliseconds);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  if (typeof timestamp === "string") {
-    const date = new Date(timestamp);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  return null;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
