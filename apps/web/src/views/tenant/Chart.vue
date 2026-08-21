@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-5">
     <section class="panel-surface p-4">
-      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(260px,2fr)_repeat(3,minmax(150px,1fr))_auto] xl:items-end">
+      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(260px,2fr)_minmax(150px,1fr)_auto] xl:items-end">
         <label class="space-y-2">
           <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
             <TabletSmartphone class="h-4 w-4 text-field-mint" />
@@ -17,30 +17,6 @@
               {{ device.label }}
             </option>
           </select>
-        </label>
-
-        <label class="space-y-2">
-          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <CalendarDays class="h-4 w-4 text-field-green" />
-            Start Date
-          </span>
-          <input
-            v-model="filters.startDate"
-            class="min-h-12 w-full rounded-lg border border-white/10 bg-[#07111f] px-4 text-sm text-white outline-none transition focus:border-field-mint/70"
-            type="date"
-          />
-        </label>
-
-        <label class="space-y-2">
-          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <CalendarDays class="h-4 w-4 text-sky-200" />
-            End Date
-          </span>
-          <input
-            v-model="filters.endDate"
-            class="min-h-12 w-full rounded-lg border border-white/10 bg-[#07111f] px-4 text-sm text-white outline-none transition focus:border-field-mint/70"
-            type="date"
-          />
         </label>
 
         <label class="space-y-2">
@@ -69,6 +45,9 @@
 
       <p v-if="errorMessage" class="mt-4 rounded-lg border border-amber-200/20 bg-amber-200/10 px-4 py-3 text-sm text-amber-100">
         {{ errorMessage }}
+      </p>
+      <p v-if="infoMessage" class="mt-4 rounded-lg border border-field-mint/25 bg-field-mint/10 px-4 py-3 text-sm text-field-mint">
+        {{ infoMessage }}
       </p>
     </section>
 
@@ -114,7 +93,7 @@ import {
   type ChartData,
   type ChartOptions
 } from "chart.js";
-import { CalendarDays, Clock, RefreshCw, TabletSmartphone } from "@lucide/vue";
+import { Clock, RefreshCw, TabletSmartphone } from "@lucide/vue";
 import { storeToRefs } from "pinia";
 import { Line } from "vue-chartjs";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
@@ -129,7 +108,9 @@ type ChartInterval = "raw" | "5" | "15" | "60";
 interface TelemetryHistoryResponse {
   count: number;
   items: TelemetryHistoryItem[];
+  limit?: number;
   metricKey: string | null;
+  offset?: number;
 }
 
 interface TelemetryHistoryItem {
@@ -141,6 +122,21 @@ interface TelemetryHistoryItem {
   receivedAt: string;
   topic: string;
   value: unknown;
+}
+
+interface TelemetryHistoryRequest {
+  deviceUid: string;
+  endIso: string;
+  endTime: number;
+  startIso: string;
+  startTime: number;
+}
+
+interface TelemetryHistoryWindow {
+  endIso: string;
+  endTime: number;
+  startIso: string;
+  startTime: number;
 }
 
 interface DeviceOption {
@@ -168,22 +164,23 @@ interface MetricPoint {
   value: number | null;
 }
 
-const today = new Date();
-const threeDaysAgo = new Date(today);
-threeDaysAgo.setDate(today.getDate() - 3);
+const chartHistoryWindowMs = 24 * 60 * 60 * 1000;
+const telemetryHistoryPageSize = 1000;
+const telemetryHistoryMaxRows = 100_000;
 
 const deviceStore = useDeviceStore();
 const { devices } = storeToRefs(deviceStore);
 const activeDeviceUid = ref("");
 const errorMessage = ref<string | null>(null);
+const historyWindow = ref<TelemetryHistoryWindow>(createTelemetryHistoryWindow());
 const historyItems = ref<TelemetryHistoryItem[]>([]);
+const infoMessage = ref<string | null>(null);
 const isLoading = ref(false);
 let refreshTimer: number | undefined;
+let telemetryHistoryRequestId = 0;
 
 const filters = ref({
-  endDate: toInputDate(today),
-  intervalMinutes: "raw" as ChartInterval,
-  startDate: toInputDate(threeDaysAgo)
+  intervalMinutes: "raw" as ChartInterval
 });
 
 const intervalOptions: Array<{ label: string; value: ChartInterval }> = [
@@ -198,13 +195,11 @@ const orderedHistoryItems = computed(() => [...historyItems.value].sort((left, r
 }));
 
 const filteredHistoryItems = computed(() => {
-  const { endDate, startDate } = normalizedDateRange();
-  const start = Date.parse(`${startDate}T00:00:00`);
-  const end = Date.parse(`${endDate}T23:59:59.999`);
+  const { endTime, startTime } = historyWindow.value;
 
   return orderedHistoryItems.value.filter((item) => {
     const timestamp = Date.parse(item.receivedAt);
-    return Number.isFinite(timestamp) && timestamp >= start && timestamp <= end;
+    return Number.isFinite(timestamp) && timestamp >= startTime && timestamp <= endTime;
   });
 });
 
@@ -271,10 +266,7 @@ const chartCards = computed<MetricChartCard[]>(() => selectedMetricKeys.value.ma
 }));
 
 const selectedIntervalLabel = computed(() => intervalOptions.find((option) => option.value === filters.value.intervalMinutes)?.label ?? "Semua data");
-const chartRangeLabel = computed(() => {
-  const { endDate, startDate } = normalizedDateRange();
-  return startDate === endDate ? startDate : `${startDate} - ${endDate}`;
-});
+const chartRangeLabel = computed(() => "24 jam terakhir");
 
 onMounted(() => {
   void initializeChart();
@@ -302,7 +294,7 @@ watch(deviceOptions, (options) => {
   immediate: true
 });
 
-watch(() => [filters.value.startDate, filters.value.endDate, activeDeviceUid.value], () => {
+watch(activeDeviceUid, () => {
   void refreshTelemetryHistory();
 });
 
@@ -312,29 +304,77 @@ async function initializeChart(): Promise<void> {
 }
 
 async function refreshTelemetryHistory(): Promise<void> {
+  const requestId = ++telemetryHistoryRequestId;
+  const historyRequest = createTelemetryHistoryRequest();
+
   isLoading.value = true;
   errorMessage.value = null;
+  infoMessage.value = null;
 
   try {
-    const response = await apiGet<TelemetryHistoryResponse>(buildTelemetryHistoryUrl());
-    historyItems.value = response.items;
+    const result = await fetchTelemetryHistoryItems(historyRequest);
+
+    if (requestId !== telemetryHistoryRequestId) {
+      return;
+    }
+
+    historyItems.value = result.items;
+
+    if (result.isCapped) {
+      infoMessage.value = `Grafik dibatasi ${telemetryHistoryMaxRows.toLocaleString("id-ID")} records dalam 24 jam terakhir.`;
+    }
   } catch (error) {
-    errorMessage.value = normalizeError(error);
+    if (requestId === telemetryHistoryRequestId) {
+      errorMessage.value = normalizeError(error);
+    }
   } finally {
-    isLoading.value = false;
+    if (requestId === telemetryHistoryRequestId) {
+      isLoading.value = false;
+    }
   }
 }
 
-function buildTelemetryHistoryUrl(): string {
-  const { endDate, startDate } = normalizedDateRange();
+async function fetchTelemetryHistoryItems(historyRequest: TelemetryHistoryRequest): Promise<{
+  isCapped: boolean;
+  items: TelemetryHistoryItem[];
+}> {
+  const items: TelemetryHistoryItem[] = [];
+
+  for (let offset = 0; offset < telemetryHistoryMaxRows; offset += telemetryHistoryPageSize) {
+    const response = await apiGet<TelemetryHistoryResponse>(buildTelemetryHistoryUrl(historyRequest, offset));
+    items.push(...response.items);
+
+    if (response.items.length < telemetryHistoryPageSize) {
+      break;
+    }
+  }
+
+  return {
+    isCapped: items.length >= telemetryHistoryMaxRows,
+    items
+  };
+}
+
+function createTelemetryHistoryRequest(): TelemetryHistoryRequest {
+  const nextWindow = createTelemetryHistoryWindow();
+  historyWindow.value = nextWindow;
+
+  return {
+    deviceUid: activeDeviceUid.value,
+    ...nextWindow
+  };
+}
+
+function buildTelemetryHistoryUrl(historyRequest: TelemetryHistoryRequest, offset = 0): string {
   const params = new URLSearchParams({
-    end: endOfDayIso(endDate),
-    limit: "1000",
-    start: startOfDayIso(startDate)
+    end: historyRequest.endIso,
+    limit: String(telemetryHistoryPageSize),
+    offset: String(offset),
+    start: historyRequest.startIso
   });
 
-  if (activeDeviceUid.value) {
-    params.set("deviceId", activeDeviceUid.value);
+  if (historyRequest.deviceUid) {
+    params.set("deviceId", historyRequest.deviceUid);
   }
 
   return `/api/v1/telemetry/history?${params.toString()}`;
@@ -388,33 +428,16 @@ function sampleMetricPoints(rows: TelemetryHistoryItem[], metricKey: string): Me
   });
 }
 
-function normalizedDateRange(): { endDate: string; startDate: string } {
-  const startDate = isInputDate(filters.value.startDate) ? filters.value.startDate : toInputDate(threeDaysAgo);
-  const endDate = isInputDate(filters.value.endDate) ? filters.value.endDate : toInputDate(today);
+function createTelemetryHistoryWindow(): TelemetryHistoryWindow {
+  const endTime = Date.now();
+  const startTime = endTime - chartHistoryWindowMs;
 
-  return startDate <= endDate
-    ? { endDate, startDate }
-    : { endDate: startDate, startDate: endDate };
-}
-
-function isInputDate(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(`${value}T00:00:00`).getTime());
-}
-
-function toInputDate(value: Date): string {
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, "0");
-  const day = String(value.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
-function startOfDayIso(value: string): string {
-  return new Date(`${value}T00:00:00`).toISOString();
-}
-
-function endOfDayIso(value: string): string {
-  return new Date(`${value}T23:59:59.999`).toISOString();
+  return {
+    endIso: new Date(endTime).toISOString(),
+    endTime,
+    startIso: new Date(startTime).toISOString(),
+    startTime
+  };
 }
 
 function createChartData(points: MetricPoint[], color: string): ChartData<"line", Array<number | null>, string> {
@@ -562,18 +585,18 @@ function formatChartTime(value: string): string {
     return value;
   }
 
-  const { endDate, startDate } = normalizedDateRange();
+  const spansMultipleDates = !isSameLocalDate(historyWindow.value.startTime, historyWindow.value.endTime);
   if (filters.value.intervalMinutes === "raw") {
     return new Intl.DateTimeFormat("id-ID", {
-      day: startDate !== endDate ? "2-digit" : undefined,
+      day: spansMultipleDates ? "2-digit" : undefined,
       hour: "2-digit",
       minute: "2-digit",
-      month: startDate !== endDate ? "short" : undefined,
+      month: spansMultipleDates ? "short" : undefined,
       second: "2-digit"
     }).format(date);
   }
 
-  if (startDate !== endDate) {
+  if (spansMultipleDates) {
     return new Intl.DateTimeFormat("id-ID", {
       day: "2-digit",
       hour: "2-digit",
@@ -586,6 +609,15 @@ function formatChartTime(value: string): string {
     hour: "2-digit",
     minute: "2-digit"
   }).format(date);
+}
+
+function isSameLocalDate(leftTime: number, rightTime: number): boolean {
+  const left = new Date(leftTime);
+  const right = new Date(rightTime);
+
+  return left.getFullYear() === right.getFullYear()
+    && left.getMonth() === right.getMonth()
+    && left.getDate() === right.getDate();
 }
 
 function colorForMetric(key: string, index: number): string {

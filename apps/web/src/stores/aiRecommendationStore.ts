@@ -41,6 +41,7 @@ export interface AiRecommendationRequest {
     current?: Record<string, unknown>;
     daily?: Array<Record<string, unknown>>;
     fetchedAt?: string;
+    hourly?: Array<Record<string, unknown>>;
     location?: Record<string, unknown>;
     source?: string;
     summary?: string;

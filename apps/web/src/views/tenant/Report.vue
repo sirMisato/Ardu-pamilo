@@ -256,7 +256,9 @@ interface ApiDevice {
 interface TelemetryHistoryResponse {
   count: number;
   items: TelemetryHistoryItem[];
+  limit?: number;
   metricKey: string | null;
+  offset?: number;
 }
 
 interface TelemetryHistoryItem {
@@ -271,6 +273,8 @@ interface TelemetryHistoryItem {
 const today = new Date();
 const threeDaysAgo = new Date(today);
 threeDaysAgo.setDate(today.getDate() - 3);
+const telemetryHistoryPageSize = 1000;
+const telemetryHistoryMaxRows = 100_000;
 
 const metricColumns: ReportMetricColumn[] = [
   {
@@ -488,16 +492,16 @@ async function loadReportData(options: { clearExportMessage?: boolean } = {}): P
   }
 
   try {
-    const [deviceRows, history] = await Promise.all([
+    const [deviceRows, telemetryItems] = await Promise.all([
       apiGet<ApiDevice[]>("/api/v1/devices"),
       filters.dataset === "telemetry"
-        ? apiGet<TelemetryHistoryResponse>(buildTelemetryHistoryUrl())
-        : Promise.resolve({ count: 0, items: [], metricKey: null } satisfies TelemetryHistoryResponse)
+        ? fetchTelemetryHistoryItems()
+        : Promise.resolve([] satisfies TelemetryHistoryItem[])
     ]);
 
     apiDevices.value = deviceRows;
-    historyItems.value = history.items;
-    rows.value = filters.dataset === "telemetry" ? history.items.map(toReportRow) : [];
+    historyItems.value = telemetryItems;
+    rows.value = filters.dataset === "telemetry" ? telemetryItems.map(toReportRow) : [];
   } catch (error) {
     errorMessage.value = normalizeError(error);
     rows.value = [];
@@ -506,10 +510,30 @@ async function loadReportData(options: { clearExportMessage?: boolean } = {}): P
   }
 }
 
-function buildTelemetryHistoryUrl(): string {
+async function fetchTelemetryHistoryItems(): Promise<TelemetryHistoryItem[]> {
+  const items: TelemetryHistoryItem[] = [];
+
+  for (let offset = 0; offset < telemetryHistoryMaxRows; offset += telemetryHistoryPageSize) {
+    const response = await apiGet<TelemetryHistoryResponse>(buildTelemetryHistoryUrl(offset));
+    items.push(...response.items);
+
+    if (response.items.length < telemetryHistoryPageSize) {
+      break;
+    }
+  }
+
+  if (items.length >= telemetryHistoryMaxRows) {
+    exportMessage.value = `Report dibatasi ${telemetryHistoryMaxRows.toLocaleString("id-ID")} records. Persempit rentang tanggal untuk mengambil data yang lebih spesifik.`;
+  }
+
+  return items;
+}
+
+function buildTelemetryHistoryUrl(offset = 0): string {
   const params = new URLSearchParams({
     end: endOfDayIso(filters.endDate),
-    limit: "1000",
+    limit: String(telemetryHistoryPageSize),
+    offset: String(offset),
     start: startOfDayIso(filters.startDate)
   });
 

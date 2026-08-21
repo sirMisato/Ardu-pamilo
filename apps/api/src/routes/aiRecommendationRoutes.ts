@@ -15,6 +15,7 @@ const recommendationRequestSchema = z.object({
     current: z.record(z.string(), z.unknown()).optional(),
     daily: z.array(z.record(z.string(), z.unknown())).max(7).optional(),
     fetchedAt: z.string().optional(),
+    hourly: z.array(z.record(z.string(), z.unknown())).max(24).optional(),
     location: z.record(z.string(), z.unknown()).optional(),
     source: z.string().trim().max(255).optional(),
     summary: z.string().trim().max(3000).optional()
@@ -534,7 +535,8 @@ function summarizePayload(payloadValue: JsonValue | string, metricKeysValue: Jso
 
   return keys
     .map((key) => {
-      const rawValue = readNestedJsonValue(metricsRoot, key);
+      const normalizedKey = normalizeMetricKey(key);
+      const rawValue = readMetricPayloadValue(payload, metricsRoot, key);
       const value = normalizeMetricValue(unwrapMetricValue(rawValue));
 
       if (value === undefined) {
@@ -542,12 +544,41 @@ function summarizePayload(payloadValue: JsonValue | string, metricKeysValue: Jso
       }
 
       return {
-        key: normalizeMetricKey(key),
-        unit: readMetricUnit(rawValue, units[key] as JsonValue | undefined),
+        key: normalizedKey,
+        unit: readMetricUnit(rawValue, readMetricUnitCandidate(units, key, normalizedKey)),
         value
       };
     })
     .filter((item): item is { key: string; unit: string; value: number | string | boolean | null } => item !== null);
+}
+
+function readMetricPayloadValue(
+  payload: Record<string, JsonValue>,
+  metricsRoot: Record<string, unknown>,
+  key: string
+): JsonValue | undefined {
+  const directValue = readNestedJsonValue(payload, key);
+  if (directValue !== undefined) {
+    return directValue;
+  }
+
+  const metricKey = key.replace(/^metrics\./, "");
+  return readNestedJsonValue(metricsRoot, metricKey);
+}
+
+function readMetricUnitCandidate(
+  units: Record<string, unknown>,
+  key: string,
+  normalizedKey: string
+): JsonValue | undefined {
+  for (const candidateKey of [key, key.replace(/^metrics\./, ""), normalizedKey]) {
+    const unit = readNestedJsonValue(units, candidateKey);
+    if (unit !== undefined) {
+      return unit;
+    }
+  }
+
+  return undefined;
 }
 
 async function requestAiRecommendation(context: ReturnType<typeof buildAiContext>): Promise<AiRecommendation> {

@@ -444,6 +444,17 @@ function buildWeatherContext(): AiRecommendationRequest["weatherContext"] {
       rainChancePercent: day.rainChancePercent,
       summary: day.summary
     })),
+    hourly: forecast.value.items.slice(0, 24).map((item) => ({
+      cloudCoverPercent: item.cloudCoverPercent,
+      condition: item.condition,
+      dateTime: item.dateTime,
+      humidityPercent: item.humidityPercent,
+      localDateTime: item.localDateTime,
+      rainfallMm: item.rainfallMm,
+      temperatureC: item.temperatureC,
+      windDirection: item.windDirection,
+      windSpeed: item.windSpeed
+    })),
     fetchedAt: forecast.value.fetchedAt,
     location: {
       adm4: forecast.value.location.adm4,

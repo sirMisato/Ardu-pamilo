@@ -10,6 +10,7 @@ const historyQuerySchema = z.object({
   end: z.string().datetime().optional(),
   limit: z.coerce.number().int().min(1).max(1000).default(250),
   metricKey: z.string().trim().min(1).optional(),
+  offset: z.coerce.number().int().min(0).max(100_000).default(0),
   start: z.string().datetime().optional()
 });
 const ingestPayloadSchema = z.object({
@@ -79,7 +80,7 @@ export const telemetryRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    const { deviceId, end, limit, metricKey, start } = parsed.data;
+    const { deviceId, end, limit, metricKey, offset, start } = parsed.data;
     let query = db
       .selectFrom("telemetry_data")
       .innerJoin("devices", "devices.id", "telemetry_data.device_id")
@@ -94,7 +95,8 @@ export const telemetryRoutes: FastifyPluginAsync = async (app) => {
       .where("telemetry_data.tenant_id", "=", tenant.tenantId)
       .where("devices.tenant_id", "=", tenant.tenantId)
       .orderBy("telemetry_data.received_at", "desc")
-      .limit(limit);
+      .limit(limit)
+      .offset(offset);
 
     if (deviceId) {
       query = query.where((expressionBuilder) => expressionBuilder.or([
@@ -120,7 +122,9 @@ export const telemetryRoutes: FastifyPluginAsync = async (app) => {
     return {
       count: items.length,
       items,
-      metricKey: metricKey ?? null
+      limit,
+      metricKey: metricKey ?? null,
+      offset
     };
   });
 
