@@ -103,7 +103,7 @@ import { useDeviceStore } from "../../stores/deviceStore";
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Legend, Title, Tooltip);
 
 type TelemetryPayload = Record<string, unknown>;
-type ChartInterval = "raw" | "5" | "15" | "60";
+type ChartInterval = "15" | "60";
 
 interface TelemetryHistoryResponse {
   count: number;
@@ -180,12 +180,10 @@ let refreshTimer: number | undefined;
 let telemetryHistoryRequestId = 0;
 
 const filters = ref({
-  intervalMinutes: "raw" as ChartInterval
+  intervalMinutes: "15" as ChartInterval
 });
 
 const intervalOptions: Array<{ label: string; value: ChartInterval }> = [
-  { label: "Semua data", value: "raw" },
-  { label: "Per 5 menit", value: "5" },
   { label: "Per 15 menit", value: "15" },
   { label: "Per jam", value: "60" }
 ];
@@ -265,7 +263,7 @@ const chartCards = computed<MetricChartCard[]>(() => selectedMetricKeys.value.ma
   };
 }));
 
-const selectedIntervalLabel = computed(() => intervalOptions.find((option) => option.value === filters.value.intervalMinutes)?.label ?? "Semua data");
+const selectedIntervalLabel = computed(() => intervalOptions.find((option) => option.value === filters.value.intervalMinutes)?.label ?? "Per 15 menit");
 const chartRangeLabel = computed(() => "24 jam terakhir");
 
 onMounted(() => {
@@ -381,23 +379,6 @@ function buildTelemetryHistoryUrl(historyRequest: TelemetryHistoryRequest, offse
 }
 
 function sampleMetricPoints(rows: TelemetryHistoryItem[], metricKey: string): MetricPoint[] {
-  if (filters.value.intervalMinutes === "raw") {
-    return rows
-      .flatMap((row) => {
-        const timestamp = Date.parse(row.receivedAt);
-        if (!Number.isFinite(timestamp)) {
-          return [];
-        }
-
-        const value = coerceNumericValue(readMetricValue(row.payload, metricKey));
-        return value === null ? [] : [{
-          timestamp: row.receivedAt,
-          value
-        }];
-      })
-      .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp));
-  }
-
   const intervalMs = Number(filters.value.intervalMinutes) * 60_000;
   const sampledByBucket = new Map<number, MetricPoint>();
 
@@ -586,16 +567,6 @@ function formatChartTime(value: string): string {
   }
 
   const spansMultipleDates = !isSameLocalDate(historyWindow.value.startTime, historyWindow.value.endTime);
-  if (filters.value.intervalMinutes === "raw") {
-    return new Intl.DateTimeFormat("id-ID", {
-      day: spansMultipleDates ? "2-digit" : undefined,
-      hour: "2-digit",
-      minute: "2-digit",
-      month: spansMultipleDates ? "short" : undefined,
-      second: "2-digit"
-    }).format(date);
-  }
-
   if (spansMultipleDates) {
     return new Intl.DateTimeFormat("id-ID", {
       day: "2-digit",
