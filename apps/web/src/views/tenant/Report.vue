@@ -34,6 +34,7 @@
           <select
             v-model="filters.deviceId"
             class="min-h-11 w-full rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+            :disabled="filters.dataset === 'weather'"
           >
             <option value="all">Semua Device</option>
             <option v-for="device in devices" :key="device.id" :value="device.id">{{ device.label }}</option>
@@ -114,7 +115,7 @@
         <FileText class="h-6 w-6 text-field-mint" />
       </div>
 
-      <div class="overflow-x-auto">
+      <div v-if="filters.dataset === 'telemetry'" class="overflow-x-auto">
         <table class="min-w-[1680px] w-full border-separate border-spacing-0 text-left text-sm">
           <thead class="bg-white/5 text-xs text-slate-400">
             <tr>
@@ -141,7 +142,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-white/10">
-            <tr v-for="row in paginatedRows" :key="row.id" class="hover:bg-white/[0.03]">
+            <tr v-for="row in paginatedTelemetryRows" :key="row.id" class="hover:bg-white/[0.03]">
               <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ formatDateTime(row.timestamp) }}</td>
               <td class="border-r border-white/10 px-5 py-4 font-semibold text-white">{{ row.deviceId }}</td>
               <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ row.plot }}</td>
@@ -153,6 +154,68 @@
                   </span>
                 </td>
               </template>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-else-if="filters.dataset === 'weather'" class="overflow-x-auto">
+        <table class="min-w-[1180px] w-full border-separate border-spacing-0 text-left text-sm">
+          <thead class="bg-white/5 text-xs uppercase tracking-wide text-slate-400">
+            <tr>
+              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Timestamp</th>
+              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Lokasi</th>
+              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">ADM4</th>
+              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Kondisi</th>
+              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Temp</th>
+              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Humidity</th>
+              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Rainfall</th>
+              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Rain Chance</th>
+              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Wind</th>
+              <th class="border-b border-white/10 px-5 py-4 font-semibold">Source</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/10">
+            <tr v-for="row in paginatedWeatherRows" :key="row.id" class="hover:bg-white/[0.03]">
+              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ formatDateTime(row.timestamp) }}</td>
+              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ row.location }}</td>
+              <td class="border-r border-white/10 px-5 py-4 font-semibold text-field-mint">{{ row.adm4Code }}</td>
+              <td class="border-r border-white/10 px-5 py-4 font-semibold text-white">{{ row.condition }}</td>
+              <td class="border-r border-white/10 px-5 py-4 text-amber-100">{{ formatTemperature(row.temperatureC) }}</td>
+              <td class="border-r border-white/10 px-5 py-4 text-sky-100">{{ formatHumidity(row.humidityPercent) }}</td>
+              <td class="border-r border-white/10 px-5 py-4 text-field-mint">{{ formatRain(row.rainfallMm) }}</td>
+              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ formatPercent(row.rainChancePercent) }}</td>
+              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ row.wind }}</td>
+              <td class="px-5 py-4 text-slate-400">{{ row.source }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-else class="overflow-x-auto">
+        <table class="min-w-[1120px] w-full border-separate border-spacing-0 text-left text-sm">
+          <thead class="bg-white/5 text-xs uppercase tracking-wide text-slate-400">
+            <tr>
+              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Timestamp</th>
+              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Severity</th>
+              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Source</th>
+              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Subject</th>
+              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Alert</th>
+              <th class="border-b border-white/10 px-5 py-4 font-semibold">Detail</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/10">
+            <tr v-for="row in paginatedAlertRows" :key="row.id" class="hover:bg-white/[0.03]">
+              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ formatDateTime(row.timestamp) }}</td>
+              <td class="border-r border-white/10 px-5 py-4">
+                <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="alertSeverityClass(row.severity)">
+                  {{ formatAlertSeverity(row.severity) }}
+                </span>
+              </td>
+              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ row.source }}</td>
+              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ row.subject }}</td>
+              <td class="border-r border-white/10 px-5 py-4 font-semibold text-white">{{ row.title }}</td>
+              <td class="px-5 py-4 text-slate-300">{{ row.message }}</td>
             </tr>
           </tbody>
         </table>
@@ -237,14 +300,45 @@ interface ReportMetricCell {
 
 type ReportMetricCells = Record<ReportMetricKey, ReportMetricCell>;
 
-interface ReportRow {
+interface ReportRowBase {
   dataset: Dataset;
-  deviceId: string;
   id: string;
-  metrics: ReportMetricCells;
-  plot: string;
   timestamp: string;
 }
+
+interface TelemetryReportRow extends ReportRowBase {
+  dataset: "telemetry";
+  deviceId: string;
+  metrics: ReportMetricCells;
+  plot: string;
+}
+
+interface WeatherReportRow extends ReportRowBase {
+  adm4Code: string;
+  condition: string;
+  dataset: "weather";
+  humidityPercent: number | null;
+  location: string;
+  rainfallMm: number | null;
+  rainChancePercent: number | null;
+  source: string;
+  temperatureC: number | null;
+  wind: string;
+}
+
+type AlertSeverity = "high" | "low" | "medium";
+
+interface AlertReportRow extends ReportRowBase {
+  dataset: "alerts";
+  deviceId: string | null;
+  message: string;
+  severity: AlertSeverity;
+  source: string;
+  subject: string;
+  title: string;
+}
+
+type ReportRow = AlertReportRow | TelemetryReportRow | WeatherReportRow;
 
 interface ApiDevice {
   deviceUid: string;
@@ -270,11 +364,40 @@ interface TelemetryHistoryItem {
   topic: string;
 }
 
+interface WeatherHistoryResponse {
+  count: number;
+  items: WeatherHistoryItem[];
+  limit: number;
+  offset: number;
+}
+
+interface WeatherHistoryItem {
+  adm4Code: string;
+  condition: string;
+  current: unknown;
+  daily: unknown[];
+  fetchedAt: string;
+  humidityPercent: number | null;
+  id: string;
+  isMock: boolean;
+  location: unknown;
+  observedAt: string;
+  plotId: string | null;
+  plotName: string | null;
+  rainfallMm: number | null;
+  source: string;
+  temperatureC: number | null;
+  windDirection: string | null;
+  windSpeed: number | null;
+}
+
 const today = new Date();
 const threeDaysAgo = new Date(today);
 threeDaysAgo.setDate(today.getDate() - 3);
 const telemetryHistoryPageSize = 1000;
 const telemetryHistoryMaxRows = 100_000;
+const weatherHistoryPageSize = 1000;
+const weatherHistoryMaxRows = 100_000;
 
 const metricColumns: ReportMetricColumn[] = [
   {
@@ -340,6 +463,7 @@ const errorMessage = ref<string | null>(null);
 const isLoading = ref(false);
 const apiDevices = ref<ApiDevice[]>([]);
 const historyItems = ref<TelemetryHistoryItem[]>([]);
+const weatherHistoryItems = ref<WeatherHistoryItem[]>([]);
 const rows = ref<ReportRow[]>([]);
 const currentPage = ref(1);
 const pageSize = ref(25);
@@ -379,10 +503,15 @@ const groupedRows = computed(() => {
   const grouped = new Map<string, ReportRow>();
 
   for (const row of rows.value) {
+    if (!isTelemetryReportRow(row)) {
+      grouped.set(row.id, row);
+      continue;
+    }
+
     const groupKey = `${row.id}:${row.timestamp}:${row.deviceId}:${row.plot}`;
     const existing = grouped.get(groupKey);
 
-    grouped.set(groupKey, existing
+    grouped.set(groupKey, existing && isTelemetryReportRow(existing)
       ? {
           ...existing,
           metrics: mergeMetricCells(existing.metrics, row.metrics)
@@ -400,7 +529,7 @@ const filteredRows = computed(() => {
   return groupedRows.value.filter((row) => {
     const timestamp = Date.parse(row.timestamp);
     const matchesDate = Number.isFinite(timestamp) && timestamp >= start && timestamp <= end;
-    const matchesDevice = filters.deviceId === "all" || row.deviceId === filters.deviceId;
+    const matchesDevice = filters.dataset === "weather" || filters.deviceId === "all" || (hasDeviceId(row) && row.deviceId === filters.deviceId);
     const matchesDataset = row.dataset === filters.dataset;
 
     return matchesDate && matchesDevice && matchesDataset;
@@ -424,7 +553,7 @@ const sampledRows = computed(() => {
     }
 
     const bucket = Math.floor(timestamp / intervalMs);
-    const bucketKey = `${row.dataset}:${row.deviceId}:${row.plot}:${bucket}`;
+    const bucketKey = `${row.dataset}:${reportRowSubjectKey(row)}:${bucket}`;
     const existing = sampledByBucket.get(bucketKey);
 
     if (!existing || timestamp >= Date.parse(existing.timestamp)) {
@@ -441,6 +570,9 @@ const paginatedRows = computed(() => {
   const startIndex = (activePage.value - 1) * pageSize.value;
   return sampledRows.value.slice(startIndex, startIndex + pageSize.value);
 });
+const paginatedTelemetryRows = computed(() => paginatedRows.value.filter(isTelemetryReportRow));
+const paginatedWeatherRows = computed(() => paginatedRows.value.filter(isWeatherReportRow));
+const paginatedAlertRows = computed(() => paginatedRows.value.filter(isAlertReportRow));
 const paginationStart = computed(() => sampledRows.value.length === 0 ? 0 : (activePage.value - 1) * pageSize.value + 1);
 const paginationEnd = computed(() => Math.min(activePage.value * pageSize.value, sampledRows.value.length));
 const selectedSamplingLabel = computed(() => samplingOptions.find((option) => option.value === filters.intervalMinutes)?.label ?? "Semua data");
@@ -464,6 +596,12 @@ onBeforeUnmount(() => {
 watch(() => [filters.startDate, filters.endDate, filters.deviceId, filters.dataset], () => {
   currentPage.value = 1;
   void loadReportData();
+});
+
+watch(() => filters.dataset, (dataset) => {
+  if (dataset === "weather") {
+    filters.deviceId = "all";
+  }
 });
 
 watch(() => filters.intervalMinutes, () => {
@@ -492,22 +630,40 @@ async function loadReportData(options: { clearExportMessage?: boolean } = {}): P
   }
 
   try {
-    const [deviceRows, telemetryItems] = await Promise.all([
-      apiGet<ApiDevice[]>("/api/v1/devices"),
-      filters.dataset === "telemetry"
-        ? fetchTelemetryHistoryItems()
-        : Promise.resolve([] satisfies TelemetryHistoryItem[])
-    ]);
+    const deviceRows = await apiGet<ApiDevice[]>("/api/v1/devices");
 
     apiDevices.value = deviceRows;
-    historyItems.value = telemetryItems;
-    rows.value = filters.dataset === "telemetry" ? telemetryItems.map(toReportRow) : [];
+    rows.value = await fetchReportRowsForDataset();
   } catch (error) {
     errorMessage.value = normalizeError(error);
     rows.value = [];
   } finally {
     isLoading.value = false;
   }
+}
+
+async function fetchReportRowsForDataset(): Promise<ReportRow[]> {
+  if (filters.dataset === "weather") {
+    historyItems.value = [];
+    const weatherItems = await fetchWeatherHistoryItems();
+    weatherHistoryItems.value = weatherItems;
+    return weatherItems.map(toWeatherReportRow);
+  }
+
+  const telemetryItems = await fetchTelemetryHistoryItems();
+  historyItems.value = telemetryItems;
+
+  if (filters.dataset === "alerts") {
+    const weatherItems = await fetchWeatherHistoryItems();
+    weatherHistoryItems.value = weatherItems;
+    return [
+      ...telemetryItems.flatMap(toTelemetryAlertRows),
+      ...weatherItems.flatMap(toWeatherAlertRows)
+    ];
+  }
+
+  weatherHistoryItems.value = [];
+  return telemetryItems.map(toReportRow);
 }
 
 async function fetchTelemetryHistoryItems(): Promise<TelemetryHistoryItem[]> {
@@ -529,6 +685,25 @@ async function fetchTelemetryHistoryItems(): Promise<TelemetryHistoryItem[]> {
   return items;
 }
 
+async function fetchWeatherHistoryItems(): Promise<WeatherHistoryItem[]> {
+  const items: WeatherHistoryItem[] = [];
+
+  for (let offset = 0; offset < weatherHistoryMaxRows; offset += weatherHistoryPageSize) {
+    const response = await apiGet<WeatherHistoryResponse>(buildWeatherHistoryUrl(offset));
+    items.push(...response.items);
+
+    if (response.items.length < weatherHistoryPageSize) {
+      break;
+    }
+  }
+
+  if (items.length >= weatherHistoryMaxRows) {
+    exportMessage.value = `Report weather dibatasi ${weatherHistoryMaxRows.toLocaleString("id-ID")} records. Persempit rentang tanggal untuk mengambil data yang lebih spesifik.`;
+  }
+
+  return items;
+}
+
 function buildTelemetryHistoryUrl(offset = 0): string {
   const params = new URLSearchParams({
     end: endOfDayIso(filters.endDate),
@@ -542,6 +717,17 @@ function buildTelemetryHistoryUrl(offset = 0): string {
   }
 
   return `/api/v1/telemetry/history?${params.toString()}`;
+}
+
+function buildWeatherHistoryUrl(offset = 0): string {
+  const params = new URLSearchParams({
+    end: endOfDayIso(filters.endDate),
+    limit: String(weatherHistoryPageSize),
+    offset: String(offset),
+    start: startOfDayIso(filters.startDate)
+  });
+
+  return `/api/v1/weather/history?${params.toString()}`;
 }
 
 function toReportRow(item: TelemetryHistoryItem): ReportRow {
@@ -570,6 +756,72 @@ function toReportRow(item: TelemetryHistoryItem): ReportRow {
   };
 }
 
+function toWeatherReportRow(item: WeatherHistoryItem): WeatherReportRow {
+  return {
+    adm4Code: item.adm4Code,
+    condition: item.condition,
+    dataset: "weather",
+    humidityPercent: item.humidityPercent,
+    id: `weather-${item.id}`,
+    location: formatWeatherLocation(item),
+    rainfallMm: item.rainfallMm,
+    rainChancePercent: readWeatherRainChance(item),
+    source: item.isMock ? "BMKG fallback" : item.source,
+    temperatureC: item.temperatureC,
+    timestamp: item.observedAt,
+    wind: formatWind(item.windSpeed, item.windDirection ?? "-")
+  };
+}
+
+function toTelemetryAlertRows(item: TelemetryHistoryItem): AlertReportRow[] {
+  const device = deviceLookup.value.get(item.deviceUid);
+  const plot = device?.plotName ?? "-";
+  const alerts: AlertReportRow[] = [];
+
+  for (const column of metricColumns) {
+    const value = readMetricColumnValue(item.payload, column);
+
+    if (value === undefined || isRecord(value) || classifyMetricStatus(column.key, value) !== "attention") {
+      continue;
+    }
+
+    alerts.push({
+      dataset: "alerts",
+      deviceId: item.deviceUid,
+      id: `alert-telemetry-${item.id}-${column.key}`,
+      message: `${column.label} ${formatMetricValue(value)} ${column.unitLabel} berada di luar rentang normal pada ${plot}.`,
+      severity: telemetryAlertSeverity(column.key, value),
+      source: "Telemetry",
+      subject: `${item.deviceUid} / ${plot}`,
+      timestamp: item.receivedAt,
+      title: `${column.label} perlu perhatian`
+    });
+  }
+
+  return alerts;
+}
+
+function toWeatherAlertRows(item: WeatherHistoryItem): AlertReportRow[] {
+  const rainChance = readWeatherRainChance(item);
+  const isRainy = item.condition.toLowerCase().includes("hujan") || (item.rainfallMm ?? 0) > 0 || (rainChance ?? 0) >= 60;
+
+  if (!isRainy) {
+    return [];
+  }
+
+  return [{
+    dataset: "alerts",
+    deviceId: null,
+    id: `alert-weather-${item.id}`,
+    message: `${item.condition}; rainfall ${formatRain(item.rainfallMm)}; rain chance ${formatPercent(rainChance)}.`,
+    severity: weatherAlertSeverity(item, rainChance),
+    source: "Weather",
+    subject: formatWeatherLocation(item),
+    timestamp: item.observedAt,
+    title: "Peringatan cuaca"
+  }];
+}
+
 function exportReport(format: ExportFormat): void {
   if (format === "CSV") {
     exportCsv();
@@ -580,20 +832,7 @@ function exportReport(format: ExportFormat): void {
 }
 
 function exportCsv(): void {
-  const rows = [
-    ["Timestamp", "Device", "Plot/Area", ...metricColumns.flatMap((metric, index) => [index === 0 ? "Metric" : "", ""])],
-    ["", "", "", ...metricColumns.flatMap((metric) => [metricHeaderLabel(metric), ""])],
-    ["", "", "", ...metricColumns.flatMap(() => ["Value", "Status"])],
-    ...sampledRows.value.map((row) => [
-      formatDateTime(row.timestamp),
-      row.deviceId,
-      row.plot,
-      ...metricColumns.flatMap((metric) => [
-        row.metrics[metric.key].value,
-        formatMetricStatus(row.metrics[metric.key].status)
-      ])
-    ])
-  ];
+  const rows = createCsvRows();
   const csv = rows.map((row) => row.map(escapeCsvCell).join(",")).join("\r\n");
   const blob = new Blob([csv], {
     type: "text/csv;charset=utf-8"
@@ -606,6 +845,55 @@ function exportCsv(): void {
   link.click();
   URL.revokeObjectURL(url);
   exportMessage.value = `CSV export dibuat untuk ${sampledRows.value.length} ${filters.dataset} records (${selectedSamplingLabel.value.toLowerCase()}).`;
+}
+
+function createCsvRows(): string[][] {
+  if (filters.dataset === "weather") {
+    return [
+      ["Timestamp", "Lokasi", "ADM4", "Kondisi", "Temp", "Humidity", "Rainfall", "Rain Chance", "Wind", "Source"],
+      ...sampledRows.value.filter(isWeatherReportRow).map((row) => [
+        formatDateTime(row.timestamp),
+        row.location,
+        row.adm4Code,
+        row.condition,
+        formatTemperature(row.temperatureC),
+        formatHumidity(row.humidityPercent),
+        formatRain(row.rainfallMm),
+        formatPercent(row.rainChancePercent),
+        row.wind,
+        row.source
+      ])
+    ];
+  }
+
+  if (filters.dataset === "alerts") {
+    return [
+      ["Timestamp", "Severity", "Source", "Subject", "Alert", "Detail"],
+      ...sampledRows.value.filter(isAlertReportRow).map((row) => [
+        formatDateTime(row.timestamp),
+        formatAlertSeverity(row.severity),
+        row.source,
+        row.subject,
+        row.title,
+        row.message
+      ])
+    ];
+  }
+
+  return [
+    ["Timestamp", "Device", "Plot/Area", ...metricColumns.flatMap((metric, index) => [index === 0 ? "Metric" : "", ""])],
+    ["", "", "", ...metricColumns.flatMap((metric) => [metricHeaderLabel(metric), ""])],
+    ["", "", "", ...metricColumns.flatMap(() => ["Value", "Status"])],
+    ...sampledRows.value.filter(isTelemetryReportRow).map((row) => [
+      formatDateTime(row.timestamp),
+      row.deviceId,
+      row.plot,
+      ...metricColumns.flatMap((metric) => [
+        row.metrics[metric.key].value,
+        formatMetricStatus(row.metrics[metric.key].status)
+      ])
+    ])
+  ];
 }
 
 function exportPdf(): void {
@@ -659,6 +947,87 @@ function readMetricColumnValue(payload: TelemetryPayload, column: ReportMetricCo
   return undefined;
 }
 
+function readWeatherRainChance(item: WeatherHistoryItem): number | null {
+  const firstDaily = item.daily[0];
+  if (!isRecord(firstDaily)) {
+    return null;
+  }
+
+  const value = firstDaily.rainChancePercent;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value.replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+function telemetryAlertSeverity(metricKey: ReportMetricKey, value: unknown): AlertSeverity {
+  const numericValue = typeof value === "number" ? value : typeof value === "string" ? Number(value.replace(",", ".")) : Number.NaN;
+
+  if (!Number.isFinite(numericValue)) {
+    return "medium";
+  }
+
+  if (metricKey === "ph" && (numericValue < 5 || numericValue > 8)) {
+    return "high";
+  }
+
+  if (metricKey === "moisture" && (numericValue < 15 || numericValue > 95)) {
+    return "high";
+  }
+
+  if (metricKey === "soil_temperature" && (numericValue < 10 || numericValue > 45)) {
+    return "high";
+  }
+
+  if (metricKey === "phosphorus" && numericValue > 500) {
+    return "high";
+  }
+
+  return "medium";
+}
+
+function weatherAlertSeverity(item: WeatherHistoryItem, rainChance: number | null): AlertSeverity {
+  if ((item.rainfallMm ?? 0) >= 20 || (rainChance ?? 0) >= 80 || item.condition.toLowerCase().includes("petir")) {
+    return "high";
+  }
+
+  return "medium";
+}
+
+function reportRowSubjectKey(row: ReportRow): string {
+  if (isTelemetryReportRow(row)) {
+    return `${row.deviceId}:${row.plot}`;
+  }
+
+  if (isAlertReportRow(row)) {
+    return `${row.source}:${row.subject}`;
+  }
+
+  return `${row.adm4Code}:${row.location}`;
+}
+
+function hasDeviceId(row: ReportRow): row is AlertReportRow | TelemetryReportRow {
+  return "deviceId" in row && row.deviceId !== null;
+}
+
+function isTelemetryReportRow(row: ReportRow): row is TelemetryReportRow {
+  return row.dataset === "telemetry";
+}
+
+function isWeatherReportRow(row: ReportRow): row is WeatherReportRow {
+  return row.dataset === "weather";
+}
+
+function isAlertReportRow(row: ReportRow): row is AlertReportRow {
+  return row.dataset === "alerts";
+}
+
 function metricHeaderLabel(metric: ReportMetricColumn): string {
   return `${metric.label} (${metric.unitLabel})`;
 }
@@ -677,6 +1046,59 @@ function metricStatusClass(status: ReportMetricStatus): string {
 
 function formatMetricStatus(status: ReportMetricStatus): string {
   return status === "empty" ? "-" : status;
+}
+
+function alertSeverityClass(severity: AlertSeverity): string {
+  if (severity === "high") {
+    return "bg-rose-300/10 text-rose-100";
+  }
+
+  if (severity === "medium") {
+    return "bg-amber-300/10 text-amber-100";
+  }
+
+  return "bg-field-mint/10 text-field-mint";
+}
+
+function formatAlertSeverity(severity: AlertSeverity): string {
+  if (severity === "high") return "High";
+  if (severity === "medium") return "Medium";
+  return "Low";
+}
+
+function formatWeatherLocation(item: WeatherHistoryItem): string {
+  if (isRecord(item.location)) {
+    const village = typeof item.location.village === "string" ? item.location.village : "";
+    const district = typeof item.location.district === "string" ? item.location.district : "";
+    const city = typeof item.location.city === "string" ? item.location.city : "";
+    const parts = [village, district, city].filter(Boolean);
+
+    if (parts.length > 0) {
+      return parts.join(", ");
+    }
+  }
+
+  return item.plotName ?? `ADM4 ${item.adm4Code}`;
+}
+
+function formatTemperature(value: number | null): string {
+  return value === null ? "-" : `${formatMetricValue(value)} C`;
+}
+
+function formatHumidity(value: number | null): string {
+  return value === null ? "-" : `${formatMetricValue(value)}%`;
+}
+
+function formatRain(value: number | null): string {
+  return value === null ? "-" : `${formatMetricValue(value)} mm`;
+}
+
+function formatPercent(value: number | null): string {
+  return value === null ? "-" : `${formatMetricValue(value)}%`;
+}
+
+function formatWind(value: number | null, direction: string): string {
+  return value === null ? "-" : `${formatMetricValue(value)} km/j ${direction}`.trim();
 }
 
 function toInputDate(value: Date): string {
@@ -778,19 +1200,7 @@ function escapeCsvCell(value: string): string {
 }
 
 function createPrintableReportHtml(): string {
-  const metricGroupHeaders = metricColumns.map((metric) => `<th colspan="2">${escapeHtml(metricHeaderLabel(metric))}</th>`).join("");
-  const metricSubHeaders = metricColumns.map(() => "<th>Value</th><th>Status</th>").join("");
-  const rows = sampledRows.value.map((row) => `
-    <tr>
-      <td>${escapeHtml(formatDateTime(row.timestamp))}</td>
-      <td>${escapeHtml(row.deviceId)}</td>
-      <td>${escapeHtml(row.plot)}</td>
-      ${metricColumns.map((metric) => `
-        <td>${escapeHtml(row.metrics[metric.key].value)}</td>
-        <td>${escapeHtml(formatMetricStatus(row.metrics[metric.key].status))}</td>
-      `).join("")}
-    </tr>
-  `).join("");
+  const table = createPrintableTableHtml();
 
   return `
     <!doctype html>
@@ -811,25 +1221,111 @@ function createPrintableReportHtml(): string {
       <body>
         <h1>PAMILO ${escapeHtml(filters.dataset)} report</h1>
         <p>${escapeHtml(filters.startDate)} sampai ${escapeHtml(filters.endDate)} - ${sampledRows.value.length} records - ${escapeHtml(selectedSamplingLabel.value)}</p>
-        <table>
-          <thead>
-            <tr>
-              <th rowspan="3">Timestamp</th>
-              <th rowspan="3">Device</th>
-              <th rowspan="3">Plot/Area</th>
-              <th class="center" colspan="${metricColumns.length * 2}">Metric</th>
-            </tr>
-            <tr>
-              ${metricGroupHeaders}
-            </tr>
-            <tr>
-              ${metricSubHeaders}
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
+        ${table}
       </body>
     </html>
+  `;
+}
+
+function createPrintableTableHtml(): string {
+  if (filters.dataset === "weather") {
+    const rows = sampledRows.value.filter(isWeatherReportRow).map((row) => `
+      <tr>
+        <td>${escapeHtml(formatDateTime(row.timestamp))}</td>
+        <td>${escapeHtml(row.location)}</td>
+        <td>${escapeHtml(row.adm4Code)}</td>
+        <td>${escapeHtml(row.condition)}</td>
+        <td>${escapeHtml(formatTemperature(row.temperatureC))}</td>
+        <td>${escapeHtml(formatHumidity(row.humidityPercent))}</td>
+        <td>${escapeHtml(formatRain(row.rainfallMm))}</td>
+        <td>${escapeHtml(formatPercent(row.rainChancePercent))}</td>
+        <td>${escapeHtml(row.wind)}</td>
+        <td>${escapeHtml(row.source)}</td>
+      </tr>
+    `).join("");
+
+    return `
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Lokasi</th>
+            <th>ADM4</th>
+            <th>Kondisi</th>
+            <th>Temp</th>
+            <th>Humidity</th>
+            <th>Rainfall</th>
+            <th>Rain Chance</th>
+            <th>Wind</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  if (filters.dataset === "alerts") {
+    const rows = sampledRows.value.filter(isAlertReportRow).map((row) => `
+      <tr>
+        <td>${escapeHtml(formatDateTime(row.timestamp))}</td>
+        <td>${escapeHtml(formatAlertSeverity(row.severity))}</td>
+        <td>${escapeHtml(row.source)}</td>
+        <td>${escapeHtml(row.subject)}</td>
+        <td>${escapeHtml(row.title)}</td>
+        <td>${escapeHtml(row.message)}</td>
+      </tr>
+    `).join("");
+
+    return `
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Severity</th>
+            <th>Source</th>
+            <th>Subject</th>
+            <th>Alert</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  const metricGroupHeaders = metricColumns.map((metric) => `<th colspan="2">${escapeHtml(metricHeaderLabel(metric))}</th>`).join("");
+  const metricSubHeaders = metricColumns.map(() => "<th>Value</th><th>Status</th>").join("");
+  const rows = sampledRows.value.filter(isTelemetryReportRow).map((row) => `
+    <tr>
+      <td>${escapeHtml(formatDateTime(row.timestamp))}</td>
+      <td>${escapeHtml(row.deviceId)}</td>
+      <td>${escapeHtml(row.plot)}</td>
+      ${metricColumns.map((metric) => `
+        <td>${escapeHtml(row.metrics[metric.key].value)}</td>
+        <td>${escapeHtml(formatMetricStatus(row.metrics[metric.key].status))}</td>
+      `).join("")}
+    </tr>
+  `).join("");
+
+  return `
+    <table>
+      <thead>
+        <tr>
+          <th rowspan="3">Timestamp</th>
+          <th rowspan="3">Device</th>
+          <th rowspan="3">Plot/Area</th>
+          <th class="center" colspan="${metricColumns.length * 2}">Metric</th>
+        </tr>
+        <tr>
+          ${metricGroupHeaders}
+        </tr>
+        <tr>
+          ${metricSubHeaders}
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
   `;
 }
 

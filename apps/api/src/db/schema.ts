@@ -87,6 +87,31 @@ export interface TelemetryDataTable {
   created_at: Timestamp;
 }
 
+export interface WeatherHistoryTable {
+  id: Generated<string>;
+  tenant_id: string;
+  plot_id: string | null;
+  adm4_code: string;
+  source: string;
+  forecast_url: string;
+  current_condition: string;
+  current_temperature_c: number | string | null;
+  humidity_percent: number | string | null;
+  rainfall_mm: number | string | null;
+  wind_speed: number | string | null;
+  wind_direction: string | null;
+  cloud_cover_percent: number | string | null;
+  observed_at: Timestamp;
+  fetched_at: Timestamp;
+  location_json: JsonColumn;
+  current_json: JsonColumn;
+  daily_json: JsonColumn;
+  hourly_json: JsonColumn;
+  is_mock: boolean | number;
+  error_message: string | null;
+  created_at: Timestamp;
+}
+
 export interface TenantSettingsTable {
   tenant_id: string;
   display_preferences_json: JsonColumn;
@@ -115,6 +140,7 @@ export interface Database {
   tenant_settings: TenantSettingsTable;
   tenant_users: TenantUsersTable;
   tenants: TenantsTable;
+  weather_history: WeatherHistoryTable;
 }
 
 export type Tenant = Selectable<TenantsTable>;
@@ -135,6 +161,9 @@ export type MasterCropUpdate = Updateable<MasterCropsTable>;
 
 export type TelemetryRecord = Selectable<TelemetryDataTable>;
 export type NewTelemetryRecord = Insertable<TelemetryDataTable>;
+
+export type WeatherHistoryRecord = Selectable<WeatherHistoryTable>;
+export type NewWeatherHistoryRecord = Insertable<WeatherHistoryTable>;
 
 export type TenantSettings = Selectable<TenantSettingsTable>;
 export type NewTenantSettings = Insertable<TenantSettingsTable>;

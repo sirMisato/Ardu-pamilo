@@ -149,9 +149,90 @@
       </section>
     </section>
 
-    <section v-else-if="activeTab === 'monthly'" class="panel-surface p-6">
-      <h2 class="text-lg font-semibold tracking-normal text-white">Report Bulanan</h2>
-      <p class="mt-2 text-sm text-slate-400">Ringkasan bulanan akan menggunakan histori cuaca dan telemetry setelah backend report aktif.</p>
+    <section v-else-if="activeTab === 'monthly'" class="space-y-5">
+      <section class="panel-surface p-5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-semibold tracking-normal text-white">Report Bulanan</h2>
+            <p class="mt-1 text-sm text-slate-400">{{ monthlyReportLabel }}</p>
+          </div>
+          <button
+            class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-field-mint/30 bg-field-mint/10 px-4 text-sm font-semibold text-field-mint transition hover:bg-field-mint/15"
+            type="button"
+            :disabled="isHistoryLoading"
+            @click="loadWeatherHistory"
+          >
+            <RefreshCw class="h-4 w-4" :class="isHistoryLoading ? 'animate-spin' : ''" />
+            Refresh
+          </button>
+        </div>
+
+        <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
+            <p class="text-xs text-slate-400">Records</p>
+            <p class="mt-2 text-xl font-semibold tracking-normal text-white">{{ weatherHistory.length }}</p>
+          </div>
+          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
+            <p class="text-xs text-slate-400">Avg Temp</p>
+            <p class="mt-2 text-xl font-semibold tracking-normal text-white">{{ formatTemperature(monthlySummary.averageTemperatureC) }}</p>
+          </div>
+          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
+            <p class="text-xs text-slate-400">Total Rain</p>
+            <p class="mt-2 text-xl font-semibold tracking-normal text-sky-200">{{ formatRain(monthlySummary.totalRainfallMm) }}</p>
+          </div>
+          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
+            <p class="text-xs text-slate-400">Rain Records</p>
+            <p class="mt-2 text-xl font-semibold tracking-normal text-field-mint">{{ monthlySummary.rainyRecords }}</p>
+          </div>
+          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
+            <p class="text-xs text-slate-400">Latest</p>
+            <p class="mt-2 truncate text-sm font-semibold text-white">{{ monthlySummary.latestCondition }}</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-surface overflow-hidden">
+        <div class="border-b border-white/10 p-5">
+          <h3 class="text-base font-semibold tracking-normal text-white">Histori Cuaca</h3>
+          <p class="mt-1 text-sm text-slate-400">ADM4 {{ activeAdm4 || "-" }}</p>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-[980px] w-full text-left text-sm">
+            <thead class="border-b border-white/10 bg-white/5 text-xs uppercase tracking-wide text-slate-400">
+              <tr>
+                <th class="px-4 py-3 font-semibold">Timestamp</th>
+                <th class="px-4 py-3 font-semibold">Lokasi</th>
+                <th class="px-4 py-3 font-semibold">Kondisi</th>
+                <th class="px-4 py-3 font-semibold">Temp</th>
+                <th class="px-4 py-3 font-semibold">Humidity</th>
+                <th class="px-4 py-3 font-semibold">Rainfall</th>
+                <th class="px-4 py-3 font-semibold">Wind</th>
+                <th class="px-4 py-3 font-semibold">Source</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/10">
+              <tr v-for="item in recentWeatherHistory" :key="item.id" class="hover:bg-white/[0.03]">
+                <td class="px-4 py-4 text-slate-300">{{ formatDateTime(item.observedAt) }}</td>
+                <td class="px-4 py-4 text-slate-300">{{ formatWeatherHistoryLocation(item) }}</td>
+                <td class="px-4 py-4 font-semibold text-white">{{ item.condition }}</td>
+                <td class="px-4 py-4 text-amber-100">{{ formatTemperature(item.temperatureC) }}</td>
+                <td class="px-4 py-4 text-sky-100">{{ formatHumidity(item.humidityPercent) }}</td>
+                <td class="px-4 py-4 text-field-mint">{{ formatRain(item.rainfallMm) }}</td>
+                <td class="px-4 py-4 text-slate-300">{{ formatWind(item.windSpeed, item.windDirection ?? "-") }}</td>
+                <td class="px-4 py-4 text-slate-400">{{ item.isMock ? "Fallback" : item.source }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-if="isHistoryLoading" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
+          Memuat histori cuaca...
+        </div>
+        <div v-else-if="weatherHistory.length === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
+          Belum ada histori cuaca untuk bulan ini.
+        </div>
+      </section>
     </section>
 
     <section v-else class="panel-surface p-6">
@@ -344,14 +425,62 @@ import {
   fetchBmkgForecast,
   type BmkgForecastResult
 } from "../../services/bmkgService";
+import { ApiClientError, apiGet, apiPost } from "../../services/apiClient";
 import { useTenantProfileStore } from "../../stores/tenantProfileStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useWeatherConfigStore, type WeatherConfigInput } from "../../stores/weatherConfigStore";
 
 type WeatherTab = "forecast" | "monthly" | "config";
 
+interface WeatherHistoryItem {
+  adm4Code: string;
+  cloudCoverPercent: number | null;
+  condition: string;
+  current: unknown;
+  daily: unknown[];
+  errorMessage: string | null;
+  fetchedAt: string;
+  forecastUrl: string;
+  hourly: unknown[];
+  humidityPercent: number | null;
+  id: string;
+  isMock: boolean;
+  location: unknown;
+  observedAt: string;
+  plotId: string | null;
+  plotName: string | null;
+  rainfallMm: number | null;
+  source: string;
+  temperatureC: number | null;
+  windDirection: string | null;
+  windSpeed: number | null;
+}
+
+interface WeatherHistoryResponse {
+  count: number;
+  items: WeatherHistoryItem[];
+  limit: number;
+  offset: number;
+}
+
+interface WeatherHistoryPayload {
+  adm4Code: string;
+  current: Record<string, unknown>;
+  daily: Array<Record<string, unknown>>;
+  errorMessage?: string | null;
+  fetchedAt: string;
+  forecastUrl: string;
+  hourly: Array<Record<string, unknown>>;
+  isMock: boolean;
+  location: Record<string, unknown>;
+  plotId: string | null;
+  source: string;
+}
+
 const activeTab = ref<WeatherTab>("forecast");
 const forecast = ref<BmkgForecastResult | null>(null);
+const weatherHistory = ref<WeatherHistoryItem[]>([]);
+const isHistoryLoading = ref(false);
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
 const authStore = useAuthStore();
@@ -390,6 +519,9 @@ const locationLabel = computed(() => {
 
 const dailyForecast = computed(() => forecast.value?.daily.slice(0, 3) ?? []);
 const hourlyForecast = computed(() => forecast.value?.items.slice(0, 8) ?? []);
+const recentWeatherHistory = computed(() => [...weatherHistory.value]
+  .sort((left, right) => Date.parse(right.observedAt) - Date.parse(left.observedAt))
+  .slice(0, 30));
 const isConfigFormOpen = ref(false);
 const editingConfigId = ref<string | null>(null);
 const configForm = reactive<WeatherConfigInput>({
@@ -452,6 +584,28 @@ const currentWeatherMetrics = computed(() => {
     }
   ];
 });
+const monthlySummary = computed(() => {
+  const temperatureValues = weatherHistory.value
+    .map((item) => item.temperatureC)
+    .filter((value): value is number => typeof value === "number");
+  const rainfallValues = weatherHistory.value
+    .map((item) => item.rainfallMm)
+    .filter((value): value is number => typeof value === "number");
+  const latest = recentWeatherHistory.value[0] ?? null;
+
+  return {
+    averageTemperatureC: average(temperatureValues),
+    latestCondition: latest?.condition ?? "-",
+    rainyRecords: weatherHistory.value.filter((item) => isRainyWeather(item)).length,
+    totalRainfallMm: rainfallValues.length > 0
+      ? roundMetric(rainfallValues.reduce((total, value) => total + value, 0))
+      : null
+  };
+});
+const monthlyReportLabel = computed(() => {
+  const { end, start } = currentMonthRange();
+  return `${formatDateOnly(start)} - ${formatDateOnly(end)}`;
+});
 
 onMounted(async () => {
   await tenantProfileStore.fetchFields();
@@ -461,6 +615,12 @@ onMounted(async () => {
 
 watch([activeAdm4, configuredBaseUrl], () => {
   void refreshForecast();
+});
+
+watch(activeTab, (tab) => {
+  if (tab === "monthly") {
+    void loadWeatherHistory();
+  }
 });
 
 watch(isReadOnlyTenant, (readOnly) => {
@@ -482,10 +642,102 @@ async function refreshForecast(): Promise<void> {
   });
 
   forecast.value = result;
-  errorMessage.value = result.isMock
-    ? `BMKG live data belum bisa diambil: ${result.errorMessage ?? "menggunakan data contoh."}`
-    : null;
+  const messages = result.isMock
+    ? [`BMKG live data belum bisa diambil: ${result.errorMessage ?? "menggunakan data contoh."}`]
+    : [];
+
+  try {
+    await persistWeatherHistory(result);
+  } catch (error) {
+    messages.push(`Histori cuaca belum tersimpan: ${normalizeApiError(error)}`);
+  }
+
+  errorMessage.value = messages.length > 0 ? messages.join(" ") : null;
   isLoading.value = false;
+
+  if (activeTab.value === "monthly") {
+    void loadWeatherHistory();
+  }
+}
+
+async function persistWeatherHistory(result: BmkgForecastResult): Promise<void> {
+  await apiPost<{ inserted: boolean; item: WeatherHistoryItem | null }>("/api/v1/weather/history", buildWeatherHistoryPayload(result));
+}
+
+async function loadWeatherHistory(): Promise<void> {
+  if (!activeAdm4.value) {
+    weatherHistory.value = [];
+    return;
+  }
+
+  isHistoryLoading.value = true;
+
+  try {
+    const { end, start } = currentMonthRange();
+    const params = new URLSearchParams({
+      adm4Code: activeAdm4.value,
+      end: end.toISOString(),
+      limit: "1000",
+      start: start.toISOString()
+    });
+    const response = await apiGet<WeatherHistoryResponse>(`/api/v1/weather/history?${params.toString()}`);
+
+    weatherHistory.value = response.items;
+  } catch (error) {
+    errorMessage.value = normalizeApiError(error);
+    weatherHistory.value = [];
+  } finally {
+    isHistoryLoading.value = false;
+  }
+}
+
+function buildWeatherHistoryPayload(result: BmkgForecastResult): WeatherHistoryPayload {
+  return {
+    adm4Code: result.location.adm4 || activeAdm4.value,
+    current: toCurrentWeatherPayload(result.current),
+    daily: result.daily.slice(0, 7).map((day) => ({
+      averageTemperatureC: day.averageTemperatureC,
+      date: day.date,
+      dateLabel: day.dateLabel,
+      humidityRange: day.humidityRange,
+      rainChancePercent: day.rainChancePercent,
+      summary: day.summary
+    })),
+    errorMessage: result.errorMessage ?? null,
+    fetchedAt: result.fetchedAt,
+    forecastUrl: result.forecastUrl,
+    hourly: result.items.slice(0, 24).map(toCurrentWeatherPayload),
+    isMock: result.isMock,
+    location: {
+      adm4: result.location.adm4,
+      city: result.location.city,
+      district: result.location.district,
+      latitude: result.location.latitude,
+      longitude: result.location.longitude,
+      province: result.location.province,
+      timezone: result.location.timezone,
+      village: result.location.village
+    },
+    plotId: activeField.value?.id ?? null,
+    source: result.isMock ? "BMKG fallback" : result.attribution
+  };
+}
+
+function toCurrentWeatherPayload(item: BmkgForecastResult["current"]): Record<string, unknown> {
+  return {
+    cloudCoverPercent: item.cloudCoverPercent,
+    condition: item.condition,
+    conditionEn: item.conditionEn,
+    dateTime: item.dateTime,
+    humidityPercent: item.humidityPercent,
+    localDateTime: item.localDateTime,
+    rainfallMm: item.rainfallMm,
+    temperatureC: item.temperatureC,
+    visibility: item.visibility,
+    weatherCode: item.weatherCode,
+    windDirection: item.windDirection,
+    windSpeed: item.windSpeed
+  };
 }
 
 function openCreateConfigForm(): void {
@@ -611,6 +863,21 @@ function formatWind(value: number | null, direction: string): string {
   return value === null ? "-" : `${value} km/j ${direction}`.trim();
 }
 
+function formatWeatherHistoryLocation(item: WeatherHistoryItem): string {
+  if (isRecord(item.location)) {
+    const village = typeof item.location.village === "string" ? item.location.village : "";
+    const district = typeof item.location.district === "string" ? item.location.district : "";
+    const city = typeof item.location.city === "string" ? item.location.city : "";
+    const locationParts = [village, district, city].filter(Boolean);
+
+    if (locationParts.length > 0) {
+      return locationParts.join(", ");
+    }
+  }
+
+  return item.plotName ?? `ADM4 ${item.adm4Code}`;
+}
+
 function formatDateTime(value: string): string {
   const normalized = value.includes("T") ? value : value.replace(" ", "T");
   const date = new Date(normalized);
@@ -622,6 +889,14 @@ function formatDateTime(value: string): string {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(date);
+}
+
+function formatDateOnly(value: Date): string {
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }).format(value);
 }
 
 function formatTimeOnly(value: string): string {
@@ -658,5 +933,45 @@ function safeUrlHost(value: string): string {
   } catch {
     return value;
   }
+}
+
+function currentMonthRange(): { end: Date; start: Date } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  return { end, start };
+}
+
+function average(values: number[]): number | null {
+  if (values.length === 0) {
+    return null;
+  }
+
+  return roundMetric(values.reduce((total, value) => total + value, 0) / values.length);
+}
+
+function roundMetric(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function isRainyWeather(item: WeatherHistoryItem): boolean {
+  return (item.rainfallMm ?? 0) > 0 || item.condition.toLowerCase().includes("hujan");
+}
+
+function normalizeApiError(error: unknown): string {
+  if (error instanceof ApiClientError) {
+    return error.status === 401 ? "Sesi login berakhir. Silakan login ulang." : error.message;
+  }
+
+  if (error instanceof TypeError) {
+    return "API backend belum dapat dihubungi.";
+  }
+
+  return "Gagal memproses histori cuaca.";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 </script>

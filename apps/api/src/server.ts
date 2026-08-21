@@ -15,6 +15,7 @@ import { plotRoutes } from "./routes/plotRoutes.js";
 import { settingsRoutes } from "./routes/settingsRoutes.js";
 import { telemetryRoutes } from "./routes/telemetryRoutes.js";
 import { tenantUserRoutes } from "./routes/tenantUserRoutes.js";
+import { weatherRoutes } from "./routes/weatherRoutes.js";
 import { startMqttTelemetryService, type MqttTelemetryService } from "./services/mqttService.js";
 
 export async function buildServer(): Promise<FastifyInstance> {
@@ -86,6 +87,9 @@ export async function buildServer(): Promise<FastifyInstance> {
     prefix: "/api/v1"
   });
   await app.register(aiRecommendationRoutes, {
+    prefix: "/api/v1"
+  });
+  await app.register(weatherRoutes, {
     prefix: "/api/v1"
   });
 
