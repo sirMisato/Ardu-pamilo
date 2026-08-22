@@ -1,4 +1,4 @@
-import mqtt, { type IClientOptions, type MqttClient } from "mqtt";
+import type { IClientOptions, MqttClient } from "mqtt";
 import { computed, ref, shallowRef } from "vue";
 import { defineStore } from "pinia";
 import { appEnvironment } from "../config/environment";
@@ -86,11 +86,17 @@ export const useTelemetryStore = defineStore("telemetry", () => {
   const onlineDeviceCount = computed(() => Object.values(devices.value).filter((device) => device.online).length);
   const deviceCount = computed(() => Object.keys(devices.value).length);
 
-  function connect(topic = buildDefaultSubscriptionTopic(authStore.tenant?.id ?? defaultTenantId)): void {
+  async function connect(topic = buildDefaultSubscriptionTopic(authStore.tenant?.id ?? defaultTenantId)): Promise<void> {
     subscriptionTopic.value = topic;
     void refreshHistory();
 
     if (client.value) {
+      return;
+    }
+
+    if (!appEnvironment.mqttBrowserEnabled) {
+      connectionState.value = "history";
+      errorMessage.value = null;
       return;
     }
 
@@ -120,7 +126,16 @@ export const useTelemetryStore = defineStore("telemetry", () => {
       username: appEnvironment.mqttUsername
     };
 
-    const mqttClient = mqtt.connect(appEnvironment.mqttWebSocketUrl, options);
+    let mqttClient: MqttClient;
+    try {
+      const { default: mqtt } = await import("mqtt");
+      mqttClient = mqtt.connect(appEnvironment.mqttWebSocketUrl, options);
+    } catch (error) {
+      connectionState.value = "error";
+      errorMessage.value = error instanceof Error ? error.message : "Gagal membuka koneksi MQTT browser.";
+      return;
+    }
+
     client.value = mqttClient;
 
     mqttClient.on("connect", () => {

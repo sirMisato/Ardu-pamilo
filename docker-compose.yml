@@ -40,6 +40,7 @@ services:
       args:
         VITE_WEB_BASE_URL: ${VITE_WEB_BASE_URL:-https://sedayafarm.keycloud.id}
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://sedayafarm.keycloud.id}
+        VITE_MQTT_BROWSER_ENABLED: ${VITE_MQTT_BROWSER_ENABLED:-false}
         VITE_MQTT_BROKER_URL: ${VITE_MQTT_BROKER_URL:-mqtts://mqtt.keycloud.id:8883}
         VITE_MQTT_USERNAME: ${VITE_MQTT_USERNAME:-}
         VITE_MQTT_PASSWORD: ${VITE_MQTT_PASSWORD:-}

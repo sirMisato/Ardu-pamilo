@@ -41,7 +41,7 @@ const telemetryStore = useTelemetryStore();
 let telemetryRefreshTimer: number | undefined;
 
 onMounted(() => {
-  telemetryStore.connect();
+  void telemetryStore.connect();
   void telemetryStore.refreshHistory();
   telemetryRefreshTimer = window.setInterval(() => {
     void telemetryStore.refreshHistory();
