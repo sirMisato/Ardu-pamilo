@@ -2,6 +2,7 @@ import type { FastifyBaseLogger } from "fastify";
 import { type Kysely } from "kysely";
 import mqtt, { type IClientOptions, type MqttClient } from "mqtt";
 import type { Database, JsonValue } from "../db/schema.js";
+import { emitTelemetryEvent } from "./telemetryEventBus.js";
 
 const telemetryTopicPattern = /^pamilo\/v1\/tenants\/([^/]+)\/devices\/([^/]+)\/telemetry$/;
 const duplicateTelemetryWindowMs = 3_000;
@@ -151,6 +152,15 @@ export async function ingestTelemetryMessage(input: {
     .where("id", "=", device.id)
     .where("tenant_id", "=", topicParts.tenantId)
     .execute();
+
+  emitTelemetryEvent({
+    deviceUid: topicParts.deviceUid,
+    metricKeys,
+    payload: parsedPayload,
+    receivedAt: receivedAt.toISOString(),
+    tenantId: topicParts.tenantId,
+    topic: input.topic
+  });
 
   input.logger.info(
     {

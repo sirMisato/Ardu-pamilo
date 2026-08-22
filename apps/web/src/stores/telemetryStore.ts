@@ -1,8 +1,7 @@
-import type { IClientOptions, MqttClient } from "mqtt";
 import { computed, ref, shallowRef } from "vue";
 import { defineStore } from "pinia";
-import { appEnvironment } from "../config/environment";
-import { apiGet, apiPost } from "../services/apiClient";
+import { resolveApiUrl } from "../config/environment";
+import { apiGet, getAccessToken } from "../services/apiClient";
 import { useAuthStore } from "./authStore";
 
 export type TelemetryValue = boolean | number | string | null;
@@ -33,6 +32,15 @@ export interface DeviceTelemetry {
 
 interface TelemetryHistoryItem {
   deviceUid: string;
+  metricKeys?: string[];
+  payload: unknown;
+  receivedAt: string;
+  topic: string;
+}
+
+interface TelemetryStreamItem {
+  deviceUid: string;
+  metricKeys: string[];
   payload: unknown;
   receivedAt: string;
   topic: string;
@@ -45,9 +53,7 @@ interface TelemetryIngestOptions {
 }
 
 const defaultTenantId = "demo-tenant";
-const browserIngestDuplicateWindowMs = 3_000;
 const telemetryOnlineWindowMs = 15 * 60 * 1000;
-const persistedPayloadCache = new Map<string, number>();
 const reservedPayloadKeys = new Set([
   "device_id",
   "deviceId",
@@ -71,7 +77,7 @@ const reservedPayloadKeys = new Set([
 
 export const useTelemetryStore = defineStore("telemetry", () => {
   const authStore = useAuthStore();
-  const client = shallowRef<MqttClient | null>(null);
+  const streamController = shallowRef<AbortController | null>(null);
   const connectionState = ref<MqttConnectionState>("idle");
   const errorMessage = ref<string | null>(null);
   const isHistoryLoading = ref(false);
@@ -85,107 +91,174 @@ export const useTelemetryStore = defineStore("telemetry", () => {
 
   const onlineDeviceCount = computed(() => Object.values(devices.value).filter((device) => device.online).length);
   const deviceCount = computed(() => Object.keys(devices.value).length);
+  let isStreamDisconnectRequested = false;
+  let streamReconnectTimer: number | undefined;
 
   async function connect(topic = buildDefaultSubscriptionTopic(authStore.tenant?.id ?? defaultTenantId)): Promise<void> {
     subscriptionTopic.value = topic;
     void refreshHistory();
 
-    if (client.value) {
+    if (streamController.value) {
       return;
     }
 
-    if (!appEnvironment.mqttBrowserEnabled) {
+    const token = getAccessToken();
+    if (!token) {
       connectionState.value = "history";
-      errorMessage.value = null;
+      errorMessage.value = "Sesi login dibutuhkan untuk membuka realtime telemetry stream.";
       return;
     }
 
-    if (!appEnvironment.mqttWebSocketUrl) {
-      connectionState.value = "history";
-      errorMessage.value = null;
-      return;
-    }
-
-    if (!appEnvironment.mqttUsername || !appEnvironment.mqttPassword) {
-      connectionState.value = "history";
-      errorMessage.value = null;
-      return;
-    }
-
-    connectionState.value = "connecting";
-    errorMessage.value = null;
-
-    const options: IClientOptions = {
-      clean: true,
-      clientId: `pamilo-web-${crypto.randomUUID()}`,
-      connectTimeout: 10_000,
-      keepalive: 30,
-      password: appEnvironment.mqttPassword,
-      protocolVersion: 5,
-      reconnectPeriod: 5_000,
-      username: appEnvironment.mqttUsername
-    };
-
-    let mqttClient: MqttClient;
-    try {
-      const { default: mqtt } = await import("mqtt");
-      mqttClient = mqtt.connect(appEnvironment.mqttWebSocketUrl, options);
-    } catch (error) {
-      connectionState.value = "error";
-      errorMessage.value = error instanceof Error ? error.message : "Gagal membuka koneksi MQTT browser.";
-      return;
-    }
-
-    client.value = mqttClient;
-
-    mqttClient.on("connect", () => {
-      connectionState.value = "connected";
-      errorMessage.value = null;
-      mqttClient.subscribe(subscriptionTopic.value, { qos: 0 }, (error) => {
-        if (error) {
-          connectionState.value = "error";
-          errorMessage.value = error.message;
-        }
-      });
-    });
-
-    mqttClient.on("reconnect", () => {
-      connectionState.value = "reconnecting";
-    });
-
-    mqttClient.on("offline", () => {
-      connectionState.value = "offline";
-      markDevicesOffline();
-    });
-
-    mqttClient.on("close", () => {
-      if (connectionState.value !== "error") {
-        connectionState.value = "offline";
-      }
-    });
-
-    mqttClient.on("error", (error) => {
-      connectionState.value = "error";
-      errorMessage.value = isMqttAuthError(error)
-        ? "MQTT membutuhkan username/password. Gunakan broker credential di device atau backend telemetry stream."
-        : error.message;
-
-      if (isMqttAuthError(error)) {
-        mqttClient.options.reconnectPeriod = 0;
-        mqttClient.end(true);
-        client.value = null;
-      }
-    });
-
-    mqttClient.on("message", (topicName, payload) => {
-      ingestMqttMessage(topicName, payload.toString("utf8"));
-    });
+    isStreamDisconnectRequested = false;
+    openTelemetryStream(token);
   }
 
   function disconnect(): void {
-    client.value?.end(true);
-    client.value = null;
+    isStreamDisconnectRequested = true;
+
+    if (streamReconnectTimer) {
+      window.clearTimeout(streamReconnectTimer);
+      streamReconnectTimer = undefined;
+    }
+
+    streamController.value?.abort();
+    streamController.value = null;
     connectionState.value = "idle";
+  }
+
+  function openTelemetryStream(token: string): void {
+    const controller = new AbortController();
+    streamController.value = controller;
+    connectionState.value = "connecting";
+    errorMessage.value = null;
+
+    void readTelemetryStream(controller, token);
+  }
+
+  async function readTelemetryStream(controller: AbortController, token: string): Promise<void> {
+    try {
+      const response = await fetch(resolveApiUrl("/api/v1/telemetry/stream"), {
+        credentials: "include",
+        headers: {
+          "Accept": "text/event-stream",
+          "Authorization": `Bearer ${token}`
+        },
+        signal: controller.signal
+      });
+
+      if (response.status === 401) {
+        window.dispatchEvent(new CustomEvent("pamilo:auth-expired"));
+        throw new Error("Sesi login berakhir. Silakan login ulang.");
+      }
+
+      if (!response.ok || !response.body) {
+        throw new Error(`Realtime telemetry stream gagal dibuka (${response.status}).`);
+      }
+
+      connectionState.value = "connected";
+      errorMessage.value = null;
+      await consumeTelemetryStream(response.body, controller);
+    } catch (error) {
+      if (controller.signal.aborted && isStreamDisconnectRequested) {
+        return;
+      }
+
+      connectionState.value = "offline";
+      errorMessage.value = error instanceof Error ? error.message : "Realtime telemetry stream terputus.";
+      scheduleStreamReconnect();
+    } finally {
+      if (streamController.value === controller) {
+        streamController.value = null;
+      }
+    }
+  }
+
+  async function consumeTelemetryStream(body: ReadableStream<Uint8Array>, controller: AbortController): Promise<void> {
+    const decoder = new TextDecoder();
+    const reader = body.getReader();
+    let buffer = "";
+
+    try {
+      while (!controller.signal.aborted) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        buffer = processSseBuffer(buffer);
+      }
+
+      buffer += decoder.decode();
+      processSseBuffer(`${buffer}\n\n`);
+      throw new Error("Realtime telemetry stream ditutup oleh server.");
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  function processSseBuffer(buffer: string): string {
+    const chunks = buffer.split(/\r?\n\r?\n/);
+    const remainder = chunks.pop() ?? "";
+
+    for (const chunk of chunks) {
+      processSseChunk(chunk);
+    }
+
+    return remainder;
+  }
+
+  function processSseChunk(chunk: string): void {
+    const lines = chunk.split(/\r?\n/);
+    let eventName = "message";
+    const dataLines: string[] = [];
+
+    for (const line of lines) {
+      if (line.startsWith("event:")) {
+        eventName = line.slice("event:".length).trim();
+      } else if (line.startsWith("data:")) {
+        dataLines.push(line.slice("data:".length).trimStart());
+      }
+    }
+
+    if (eventName !== "telemetry" || dataLines.length === 0) {
+      return;
+    }
+
+    try {
+      const item = JSON.parse(dataLines.join("\n")) as TelemetryStreamItem;
+      ingestTelemetryPayload(item.topic, item.payload, {
+        deviceId: item.deviceUid,
+        observedAt: item.receivedAt,
+        online: true
+      });
+      connectionState.value = "connected";
+      errorMessage.value = null;
+    } catch {
+      connectionState.value = "error";
+      errorMessage.value = "Realtime telemetry stream mengirim payload yang tidak valid.";
+    }
+  }
+
+  function scheduleStreamReconnect(): void {
+    if (isStreamDisconnectRequested || streamReconnectTimer) {
+      return;
+    }
+
+    connectionState.value = "reconnecting";
+    streamReconnectTimer = window.setTimeout(() => {
+      streamReconnectTimer = undefined;
+      const token = getAccessToken();
+
+      if (!token) {
+        connectionState.value = "history";
+        errorMessage.value = "Sesi login dibutuhkan untuk membuka realtime telemetry stream.";
+        return;
+      }
+
+      openTelemetryStream(token);
+    }, 5_000);
   }
 
   async function refreshHistory(): Promise<void> {
@@ -206,34 +279,18 @@ export const useTelemetryStore = defineStore("telemetry", () => {
         });
       }
 
-      if (!client.value && connectionState.value !== "connected") {
+      if (!streamController.value && connectionState.value !== "connected") {
         connectionState.value = "history";
       }
 
       errorMessage.value = null;
     } catch (error) {
-      if (!client.value && connectionState.value !== "connected") {
+      if (!streamController.value && connectionState.value !== "connected") {
         connectionState.value = "error";
         errorMessage.value = error instanceof Error ? error.message : "Gagal mengambil telemetry history.";
       }
     } finally {
       isHistoryLoading.value = false;
-    }
-  }
-
-  function ingestMqttMessage(topicName: string, rawMessage: string): void {
-    try {
-      const payload = JSON.parse(rawMessage) as unknown;
-      ingestTelemetryPayload(topicName, payload, {
-        observedAt: new Date().toISOString(),
-        online: true
-      });
-
-      if (isRecord(payload)) {
-        void persistLiveTelemetryPayload(topicName, rawMessage, payload);
-      }
-    } catch {
-      errorMessage.value = "Received MQTT payload is not valid JSON.";
     }
   }
 
@@ -298,21 +355,6 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     };
   }
 
-  async function persistLiveTelemetryPayload(topicName: string, rawMessage: string, payload: Record<string, unknown>): Promise<void> {
-    if (!shouldPersistLivePayload(topicName, rawMessage)) {
-      return;
-    }
-
-    try {
-      await apiPost<{ inserted: boolean; ok: boolean }>("/api/v1/telemetry/ingest", {
-        payload,
-        topic: topicName
-      });
-    } catch {
-      // Backend MQTT ingestion remains the primary persistence path; this browser path is only a fallback.
-    }
-  }
-
   function latestMetricsForDevice(deviceId: string): DynamicMetric[] {
     return Object.values(devices.value[deviceId]?.metrics ?? {})
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
@@ -333,14 +375,12 @@ export const useTelemetryStore = defineStore("telemetry", () => {
   }
 
   return {
-    client,
     connectionState,
     deviceById,
     deviceCount,
     devices,
     disconnect,
     errorMessage,
-    ingestMqttMessage,
     ingestTelemetryPayload,
     isHistoryLoading,
     isConnected,
@@ -456,29 +496,6 @@ function isIncomingTelemetryOlder(previousTimestamp: string, nextTimestamp: stri
   return Number.isFinite(previousTime) && Number.isFinite(nextTime) && nextTime < previousTime;
 }
 
-function shouldPersistLivePayload(topicName: string, rawMessage: string): boolean {
-  const now = Date.now();
-  const cacheKey = `${topicName}:${rawMessage}`;
-  const previousPersistedAt = persistedPayloadCache.get(cacheKey);
-
-  for (const [key, persistedAt] of persistedPayloadCache) {
-    if (now - persistedAt > browserIngestDuplicateWindowMs) {
-      persistedPayloadCache.delete(key);
-    }
-  }
-
-  if (previousPersistedAt && now - previousPersistedAt <= browserIngestDuplicateWindowMs) {
-    return false;
-  }
-
-  persistedPayloadCache.set(cacheKey, now);
-  return true;
-}
-
 function buildDefaultSubscriptionTopic(tenantId: string): string {
   return `pamilo/v1/tenants/${tenantId}/devices/+/telemetry`;
-}
-
-function isMqttAuthError(error: Error): boolean {
-  return /bad username|not authorized|not authorised|not authorized|authentication/i.test(error.message);
 }

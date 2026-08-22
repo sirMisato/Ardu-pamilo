@@ -191,7 +191,7 @@ const topStats = computed(() => [
     detailClass: "text-amber-200"
   },
   {
-    label: "MQTT Status",
+    label: "Realtime Status",
     value: mqttStatusCard.value.value,
     detail: mqttStatusCard.value.detail,
     icon: Waves,
@@ -206,7 +206,7 @@ const telemetryNodeLabel = computed(() => {
   }
 
   if (telemetryStore.connectionState === "error" || telemetryStore.connectionState === "offline") {
-    return "MQTT perlu dicek";
+    return "Stream perlu dicek";
   }
 
   if (telemetryStore.deviceCount > 0) {
@@ -232,45 +232,45 @@ const mqttStatusCard = computed(() => {
   switch (telemetryStore.connectionState) {
     case "connected":
       return {
-        detail: `${telemetryStore.onlineDeviceCount.toLocaleString("id-ID")} live nodes`,
+        detail: `${telemetryStore.onlineDeviceCount.toLocaleString("id-ID")} live nodes via backend`,
         detailClass: "text-field-mint",
         iconClass: "bg-field-mint/10 text-field-mint",
         value: "Normal"
       };
     case "connecting":
       return {
-        detail: "Membuka koneksi MQTT",
+        detail: "Membuka stream backend",
         detailClass: "text-amber-200",
         iconClass: "bg-amber-300/10 text-amber-200",
         value: "Connecting"
       };
     case "reconnecting":
       return {
-        detail: "Mencoba reconnect broker",
+        detail: "Menyambung ulang stream",
         detailClass: "text-amber-200",
         iconClass: "bg-amber-300/10 text-amber-200",
         value: "Reconnect"
       };
     case "history":
       return {
-        detail: telemetryStore.deviceCount > 0 ? "Telemetry tersinkron" : "Belum ada data live",
+        detail: telemetryStore.deviceCount > 0 ? "Telemetry DB tersinkron" : "Belum ada data live",
         detailClass: telemetryStore.onlineDeviceCount > 0 ? "text-field-mint" : "text-amber-200",
         iconClass: telemetryStore.onlineDeviceCount > 0 ? "bg-field-mint/10 text-field-mint" : "bg-amber-300/10 text-amber-200",
         value: telemetryStore.onlineDeviceCount > 0 ? "Normal" : "Standby"
       };
     case "offline":
       return {
-        detail: "Koneksi broker terputus",
+        detail: "Stream backend terputus",
         detailClass: "text-rose-200",
         iconClass: "bg-rose-300/10 text-rose-200",
-        value: "Error MQTT"
+        value: "Offline"
       };
     case "error":
       return {
-        detail: telemetryStore.errorMessage ?? "Periksa credential atau ACL",
+        detail: telemetryStore.errorMessage ?? "Periksa API stream/backend ingestor",
         detailClass: "text-rose-200",
         iconClass: "bg-rose-300/10 text-rose-200",
-        value: "Error MQTT"
+        value: "Error"
       };
     case "idle":
     default:

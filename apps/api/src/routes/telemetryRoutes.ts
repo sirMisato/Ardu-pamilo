@@ -4,6 +4,7 @@ import { db } from "../db/client.js";
 import type { JsonValue } from "../db/schema.js";
 import { requireTenantContext, verifyTenant } from "../middleware/verifyTenant.js";
 import { ingestTelemetryMessage, parseTelemetryTopic } from "../services/mqttService.js";
+import { subscribeTelemetryEvents, type TelemetryStreamEvent } from "../services/telemetryEventBus.js";
 
 const historyQuerySchema = z.object({
   deviceId: z.string().trim().min(1).optional(),
@@ -149,6 +150,38 @@ export const telemetryRoutes: FastifyPluginAsync = async (app) => {
 
     return rows.map((row) => toTelemetryHistoryItem(row, undefined)).filter(Boolean);
   });
+
+  app.get("/telemetry/stream", async (request, reply) => {
+    const tenant = requireTenantContext(request);
+    const raw = reply.raw;
+
+    reply.hijack();
+    raw.writeHead(200, {
+      "Cache-Control": "no-cache, no-transform",
+      "Connection": "keep-alive",
+      "Content-Type": "text/event-stream",
+      "X-Accel-Buffering": "no"
+    });
+
+    sendSseEvent(raw, "ready", {
+      connectedAt: new Date().toISOString(),
+      tenantId: tenant.tenantId
+    });
+
+    const unsubscribe = subscribeTelemetryEvents(tenant.tenantId, (event) => {
+      sendSseEvent(raw, "telemetry", toTelemetryStreamItem(event));
+    });
+    const heartbeat = setInterval(() => {
+      raw.write(": keep-alive\n\n");
+    }, 25_000);
+    const cleanup = () => {
+      clearInterval(heartbeat);
+      unsubscribe();
+    };
+
+    request.raw.on("aborted", cleanup);
+    request.raw.on("close", cleanup);
+  });
 };
 
 function toTelemetryHistoryItem(row: TelemetryHistoryRow, metricKey: string | undefined) {
@@ -233,4 +266,19 @@ function serializeDate(value: Date | string): string {
   }
 
   return value;
+}
+
+function sendSseEvent(raw: NodeJS.WritableStream, event: string, payload: unknown): void {
+  raw.write(`event: ${event}\n`);
+  raw.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+
+function toTelemetryStreamItem(event: TelemetryStreamEvent) {
+  return {
+    deviceUid: event.deviceUid,
+    metricKeys: event.metricKeys,
+    payload: event.payload,
+    receivedAt: event.receivedAt,
+    topic: event.topic
+  };
 }

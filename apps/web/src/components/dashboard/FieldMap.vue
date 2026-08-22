@@ -84,15 +84,15 @@ const mapLayerOptions: Array<{ key: MapLayerKey; label: string; title: string }>
 const connectionLabel = computed(() => {
   const state = telemetryStore.connectionState;
   if (state === "connected") {
-    return "MQTT normal";
+    return "Realtime backend aktif";
   }
 
   if (state === "reconnecting") {
-    return "MQTT reconnecting";
+    return "Stream backend reconnecting";
   }
 
   if (state === "connecting") {
-    return "MQTT connecting";
+    return "Stream backend connecting";
   }
 
   if (state === "history") {
@@ -100,14 +100,14 @@ const connectionLabel = computed(() => {
   }
 
   if (state === "error") {
-    return telemetryStore.errorMessage ?? "MQTT error";
+    return telemetryStore.errorMessage ?? "Stream backend error";
   }
 
   if (state === "offline") {
-    return "MQTT offline";
+    return "Stream backend offline";
   }
 
-  return "MQTT standby";
+  return "Realtime standby";
 });
 
 const connectionToneClass = computed(() => {
