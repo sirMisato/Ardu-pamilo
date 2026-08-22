@@ -174,13 +174,19 @@ export const telemetryRoutes: FastifyPluginAsync = async (app) => {
     const heartbeat = setInterval(() => {
       raw.write(": keep-alive\n\n");
     }, 25_000);
+    let isCleanedUp = false;
     const cleanup = () => {
+      if (isCleanedUp) {
+        return;
+      }
+
+      isCleanedUp = true;
       clearInterval(heartbeat);
       unsubscribe();
     };
 
-    request.raw.on("aborted", cleanup);
-    request.raw.on("close", cleanup);
+    raw.on("close", cleanup);
+    raw.on("error", cleanup);
   });
 };
 
