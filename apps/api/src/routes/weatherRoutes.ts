@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
+import { sql } from "kysely";
 import { z } from "zod";
 import { db } from "../db/client.js";
 import type { JsonValue } from "../db/schema.js";
@@ -167,34 +168,71 @@ export const weatherRoutes: FastifyPluginAsync = async (app) => {
         "weather_history.wind_speed",
         "plots.name as plot_name"
       ])
-      .where("weather_history.tenant_id", "=", tenant.tenantId)
-      .orderBy("weather_history.observed_at", "desc")
-      .limit(limit)
-      .offset(offset);
+      .where("weather_history.tenant_id", "=", tenant.tenantId);
+    let summaryQuery = db
+      .selectFrom("weather_history")
+      .select([
+        sql<number | string>`count(*)`.as("total"),
+        sql<number | string | null>`avg(${sql.ref("weather_history.current_temperature_c")})`.as("average_temperature_c"),
+        sql<number | string | null>`sum(${sql.ref("weather_history.rainfall_mm")})`.as("total_rainfall_mm"),
+        sql<number | string | null>`sum(case when coalesce(${sql.ref("weather_history.rainfall_mm")}, 0) > 0 or lower(${sql.ref("weather_history.current_condition")}) like '%hujan%' then 1 else 0 end)`.as("rainy_records")
+      ])
+      .where("weather_history.tenant_id", "=", tenant.tenantId);
+    let latestQuery = db
+      .selectFrom("weather_history")
+      .select("weather_history.current_condition")
+      .where("weather_history.tenant_id", "=", tenant.tenantId);
 
     if (adm4Code) {
       query = query.where("weather_history.adm4_code", "=", adm4Code);
+      summaryQuery = summaryQuery.where("weather_history.adm4_code", "=", adm4Code);
+      latestQuery = latestQuery.where("weather_history.adm4_code", "=", adm4Code);
     }
 
     if (plotId) {
       query = query.where("weather_history.plot_id", "=", plotId);
+      summaryQuery = summaryQuery.where("weather_history.plot_id", "=", plotId);
+      latestQuery = latestQuery.where("weather_history.plot_id", "=", plotId);
     }
 
     if (start) {
       query = query.where("weather_history.observed_at", ">=", new Date(start));
+      summaryQuery = summaryQuery.where("weather_history.observed_at", ">=", new Date(start));
+      latestQuery = latestQuery.where("weather_history.observed_at", ">=", new Date(start));
     }
 
     if (end) {
       query = query.where("weather_history.observed_at", "<=", new Date(end));
+      summaryQuery = summaryQuery.where("weather_history.observed_at", "<=", new Date(end));
+      latestQuery = latestQuery.where("weather_history.observed_at", "<=", new Date(end));
     }
 
-    const rows = await query.execute();
+    const [rows, summary, latest] = await Promise.all([
+      query
+        .orderBy("weather_history.observed_at", "desc")
+        .limit(limit)
+        .offset(offset)
+        .execute(),
+      summaryQuery.executeTakeFirst(),
+      latestQuery
+        .orderBy("weather_history.observed_at", "desc")
+        .limit(1)
+        .executeTakeFirst()
+    ]);
+    const total = normalizeNumber(summary?.total ?? null) ?? rows.length;
 
     return {
       count: rows.length,
-      items: rows.map((row) => toWeatherHistoryDto(row as WeatherHistoryRow)).reverse(),
+      items: rows.map((row) => toWeatherHistoryDto(row as WeatherHistoryRow)),
       limit,
-      offset
+      offset,
+      summary: {
+        averageTemperatureC: normalizeNumber(summary?.average_temperature_c ?? null),
+        latestCondition: latest?.current_condition ?? "-",
+        rainyRecords: normalizeNumber(summary?.rainy_records ?? null) ?? 0,
+        totalRainfallMm: normalizeNumber(summary?.total_rainfall_mm ?? null)
+      },
+      total
     };
   });
 };

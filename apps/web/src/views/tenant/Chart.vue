@@ -56,7 +56,7 @@
         <div class="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
           <div>
             <h3 class="text-base font-semibold tracking-normal text-white">{{ card.label }}</h3>
-            <p class="mt-1 text-xs text-slate-400">{{ selectedIntervalLabel }} / {{ card.pointCount }} points</p>
+            <p class="mt-1 text-xs text-slate-400">{{ selectedIntervalLabel }} / {{ card.pointCount }} points{{ card.thresholdLabel ? ` / ${card.thresholdLabel}` : "" }}</p>
           </div>
           <span class="rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-slate-300">{{ chartRangeLabel }}</span>
         </div>
@@ -99,6 +99,7 @@ import { Line } from "vue-chartjs";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ApiClientError, apiGet } from "../../services/apiClient";
 import { useDeviceStore } from "../../stores/deviceStore";
+import { useMasterDataStore, type ThresholdKey, type ThresholdRange } from "../../stores/masterDataStore";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Legend, Title, Tooltip);
 
@@ -157,6 +158,7 @@ interface MetricChartCard {
   chartData: ChartData<"line", Array<number | null>, string>;
   chartOptions: ChartOptions<"line">;
   pointCount: number;
+  thresholdLabel: string | null;
 }
 
 interface MetricPoint {
@@ -164,12 +166,20 @@ interface MetricPoint {
   value: number | null;
 }
 
+interface MetricThreshold {
+  max: number | null;
+  min: number | null;
+  unit: string;
+}
+
 const chartHistoryWindowMs = 24 * 60 * 60 * 1000;
 const telemetryHistoryPageSize = 1000;
 const telemetryHistoryMaxRows = 100_000;
 
 const deviceStore = useDeviceStore();
+const masterDataStore = useMasterDataStore();
 const { devices } = storeToRefs(deviceStore);
+const { crops, plots } = storeToRefs(masterDataStore);
 const activeDeviceUid = ref("");
 const errorMessage = ref<string | null>(null);
 const historyWindow = ref<TelemetryHistoryWindow>(createTelemetryHistoryWindow());
@@ -243,6 +253,9 @@ const deviceOptions = computed<DeviceOption[]>(() => {
 });
 
 const selectedDeviceRows = computed(() => filteredHistoryItems.value.filter((item) => item.deviceUid === activeDeviceUid.value));
+const selectedRegisteredDevice = computed(() => devices.value.find((device) => device.deviceUid === activeDeviceUid.value) ?? null);
+const selectedPlot = computed(() => plots.value.find((plot) => plot.id === selectedRegisteredDevice.value?.plotId) ?? null);
+const selectedCrop = computed(() => crops.value.find((crop) => crop.id === selectedPlot.value?.cropId) ?? null);
 const selectedMetricKeys = computed(() => {
   return Array.from(new Set(selectedDeviceRows.value.flatMap((row) => row.metricKeys)))
     .filter((metricKey) => hasNumericValue(selectedDeviceRows.value, metricKey))
@@ -252,14 +265,16 @@ const selectedMetricKeys = computed(() => {
 const chartCards = computed<MetricChartCard[]>(() => selectedMetricKeys.value.map((metricKey, index) => {
   const points = sampleMetricPoints(selectedDeviceRows.value, metricKey);
   const color = colorForMetric(metricKey, index);
+  const threshold = thresholdForMetric(metricKey);
 
   return {
     id: `${activeDeviceUid.value}:${metricKey}`,
     label: formatMetricLabel(metricKey),
     color,
-    chartData: createChartData(points, color),
-    chartOptions: createChartOptions(metricKey, color),
-    pointCount: points.length
+    chartData: createChartData(points, color, threshold),
+    chartOptions: createChartOptions(metricKey, color, threshold),
+    pointCount: points.length,
+    thresholdLabel: formatThresholdLabel(threshold)
   };
 }));
 
@@ -297,7 +312,11 @@ watch(activeDeviceUid, () => {
 });
 
 async function initializeChart(): Promise<void> {
-  await deviceStore.fetchDevices();
+  await Promise.all([
+    deviceStore.fetchDevices(),
+    masterDataStore.fetchCrops(),
+    masterDataStore.fetchPlots()
+  ]);
   await refreshTelemetryHistory();
 }
 
@@ -421,28 +440,40 @@ function createTelemetryHistoryWindow(): TelemetryHistoryWindow {
   };
 }
 
-function createChartData(points: MetricPoint[], color: string): ChartData<"line", Array<number | null>, string> {
+function createChartData(points: MetricPoint[], color: string, threshold: MetricThreshold | null): ChartData<"line", Array<number | null>, string> {
+  const labels = points.map((point) => formatChartTime(point.timestamp));
+  const datasets: ChartData<"line", Array<number | null>, string>["datasets"] = [
+    {
+      backgroundColor: withAlpha(color, 0.14),
+      borderColor: color,
+      borderWidth: 2,
+      data: points.map((point) => point.value),
+      fill: true,
+      label: "Actual",
+      pointBackgroundColor: color,
+      pointBorderColor: "#07111f",
+      pointBorderWidth: 2,
+      pointRadius: 3,
+      spanGaps: true,
+      tension: 0.34
+    }
+  ];
+
+  if (threshold && threshold.min !== null) {
+    datasets.push(createThresholdDataset("Low", threshold.min, "#fbbf24", labels.length));
+  }
+
+  if (threshold && threshold.max !== null) {
+    datasets.push(createThresholdDataset("High", threshold.max, "#fb7185", labels.length));
+  }
+
   return {
-    labels: points.map((point) => formatChartTime(point.timestamp)),
-    datasets: [
-      {
-        backgroundColor: withAlpha(color, 0.14),
-        borderColor: color,
-        borderWidth: 2,
-        data: points.map((point) => point.value),
-        fill: true,
-        pointBackgroundColor: color,
-        pointBorderColor: "#07111f",
-        pointBorderWidth: 2,
-        pointRadius: 3,
-        spanGaps: true,
-        tension: 0.34
-      }
-    ]
+    labels,
+    datasets
   };
 }
 
-function createChartOptions(metricKey: string, color: string): ChartOptions<"line"> {
+function createChartOptions(metricKey: string, color: string, threshold: MetricThreshold | null): ChartOptions<"line"> {
   return {
     maintainAspectRatio: false,
     responsive: true,
@@ -452,7 +483,13 @@ function createChartOptions(metricKey: string, color: string): ChartOptions<"lin
     },
     plugins: {
       legend: {
-        display: false
+        display: threshold !== null,
+        labels: {
+          boxHeight: 3,
+          boxWidth: 24,
+          color: "#cbd5e1",
+          usePointStyle: false
+        }
       },
       tooltip: {
         backgroundColor: "#07111f",
@@ -461,10 +498,11 @@ function createChartOptions(metricKey: string, color: string): ChartOptions<"lin
         callbacks: {
           label: (context) => {
             const value = context.parsed.y;
-            return `${formatMetricLabel(metricKey)}: ${value === null ? "-" : formatValue(value)}`;
+            const label = context.dataset.label ?? formatMetricLabel(metricKey);
+            return `${label}: ${value === null ? "-" : formatValue(value)}`;
           }
         },
-        displayColors: false,
+        displayColors: true,
         titleColor: "#ecfff7",
         bodyColor: "#cbd5e1"
       }
@@ -497,8 +535,96 @@ function createChartOptions(metricKey: string, color: string): ChartOptions<"lin
   };
 }
 
+function createThresholdDataset(label: string, value: number, color: string, pointCount: number): ChartData<"line", Array<number | null>, string>["datasets"][number] {
+  return {
+    backgroundColor: "transparent",
+    borderColor: withAlpha(color, 0.92),
+    borderDash: [7, 5],
+    borderWidth: 1.5,
+    data: Array.from({ length: pointCount }, () => value),
+    fill: false,
+    label,
+    pointRadius: 0,
+    pointHitRadius: 0,
+    pointHoverRadius: 0,
+    tension: 0
+  };
+}
+
 function hasNumericValue(rows: TelemetryHistoryItem[], metricKey: string): boolean {
   return rows.some((row) => coerceNumericValue(readMetricValue(row.payload, metricKey)) !== null);
+}
+
+function thresholdForMetric(metricKey: string): MetricThreshold | null {
+  const thresholdKey = thresholdKeyForMetric(metricKey);
+  if (!thresholdKey) {
+    return null;
+  }
+
+  const range = selectedCrop.value?.thresholds[thresholdKey];
+  if (!range) {
+    return null;
+  }
+
+  const min = normalizeThresholdValue(range.min);
+  const max = normalizeThresholdValue(range.max);
+
+  if (min === null && max === null) {
+    return null;
+  }
+
+  return {
+    max,
+    min,
+    unit: range.unit
+  };
+}
+
+function thresholdKeyForMetric(metricKey: string): ThresholdKey | null {
+  const normalized = metricKey
+    .replace(/^metrics\./, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  const compact = normalized.replace(/_/g, "");
+
+  if (normalized === "ph" || compact === "ph") return "ph";
+  if (normalized === "n" || normalized === "nitrogen") return "nitrogen";
+  if (normalized === "p" || normalized === "phosphorus" || normalized === "phosphor") return "phosphorus";
+  if (normalized === "k" || normalized === "potassium") return "potassium";
+  if (normalized === "moisture" || normalized === "soil_moisture" || compact === "soilmoisture") return "moisture";
+
+  return null;
+}
+
+function normalizeThresholdValue(value: ThresholdRange["min"]): number | null {
+  if (value === null) {
+    return null;
+  }
+
+  const numericValue = Number(value);
+
+  return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+function formatThresholdLabel(threshold: MetricThreshold | null): string | null {
+  if (!threshold) {
+    return null;
+  }
+
+  const unit = threshold.unit && threshold.unit !== "range" ? ` ${threshold.unit}` : "";
+  const parts: string[] = [];
+
+  if (threshold.min !== null) {
+    parts.push(`Low ${formatValue(threshold.min)}${unit}`);
+  }
+
+  if (threshold.max !== null) {
+    parts.push(`High ${formatValue(threshold.max)}${unit}`);
+  }
+
+  return parts.join(" / ");
 }
 
 function readMetricValue(payload: TelemetryPayload, metricKey: string): unknown {

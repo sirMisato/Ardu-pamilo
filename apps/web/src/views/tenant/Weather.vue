@@ -159,7 +159,7 @@
           <button
             class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-field-mint/30 bg-field-mint/10 px-4 text-sm font-semibold text-field-mint transition hover:bg-field-mint/15"
             type="button"
-            :disabled="isHistoryLoading"
+            :disabled="isHistoryLoading || monthlyMonthError !== null"
             @click="loadWeatherHistory"
           >
             <RefreshCw class="h-4 w-4" :class="isHistoryLoading ? 'animate-spin' : ''" />
@@ -167,10 +167,37 @@
           </button>
         </div>
 
+        <form class="mt-5 flex flex-wrap items-end gap-3" @submit.prevent="applyMonthlyFilters">
+          <label class="min-w-[220px] flex-1 space-y-2 sm:flex-none">
+            <span class="text-xs font-medium text-slate-400">Bulan Report</span>
+            <input
+              v-model="monthlyFilters.month"
+              class="min-h-10 w-full rounded-lg border border-white/10 bg-[#07111f] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              type="month"
+            />
+          </label>
+          <button
+            class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-field-green px-4 text-sm font-semibold text-[#102016] transition hover:bg-field-mint disabled:opacity-60"
+            type="submit"
+            :disabled="isHistoryLoading || monthlyMonthError !== null"
+          >
+            Terapkan
+          </button>
+          <button
+            class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 text-sm font-semibold text-slate-300 transition hover:border-field-mint/30 hover:text-field-mint"
+            type="button"
+            :disabled="isHistoryLoading"
+            @click="resetMonthlyRangeToCurrentMonth"
+          >
+            Bulan Ini
+          </button>
+          <p v-if="monthlyMonthError" class="basis-full text-sm text-amber-200">{{ monthlyMonthError }}</p>
+        </form>
+
         <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <div class="rounded-lg border border-white/10 bg-white/5 p-4">
             <p class="text-xs text-slate-400">Records</p>
-            <p class="mt-2 text-xl font-semibold tracking-normal text-white">{{ weatherHistory.length }}</p>
+            <p class="mt-2 text-xl font-semibold tracking-normal text-white">{{ weatherHistoryTotal.toLocaleString("id-ID") }}</p>
           </div>
           <div class="rounded-lg border border-white/10 bg-white/5 p-4">
             <p class="text-xs text-slate-400">Avg Temp</p>
@@ -212,7 +239,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-white/10">
-              <tr v-for="item in recentWeatherHistory" :key="item.id" class="hover:bg-white/[0.03]">
+              <tr v-for="item in weatherHistory" :key="item.id" class="hover:bg-white/[0.03]">
                 <td class="px-4 py-4 text-slate-300">{{ formatDateTime(item.observedAt) }}</td>
                 <td class="px-4 py-4 text-slate-300">{{ formatWeatherHistoryLocation(item) }}</td>
                 <td class="px-4 py-4 font-semibold text-white">{{ item.condition }}</td>
@@ -229,8 +256,46 @@
         <div v-if="isHistoryLoading" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
           Memuat histori cuaca...
         </div>
-        <div v-else-if="weatherHistory.length === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
+        <div v-else-if="weatherHistoryTotal === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
           Belum ada histori cuaca untuk bulan ini.
+        </div>
+
+        <div v-else class="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 p-4 text-sm text-slate-300">
+          <p>
+            Menampilkan {{ monthlyPaginationStart }}-{{ monthlyPaginationEnd }} dari {{ weatherHistoryTotal.toLocaleString("id-ID") }} records
+          </p>
+          <div class="flex flex-wrap items-center gap-2">
+            <label class="flex items-center gap-2 text-xs text-slate-400">
+              Rows
+              <select
+                v-model.number="monthlyPageSize"
+                class="h-9 rounded-lg border border-white/10 bg-[#0b1626] px-2 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+                :disabled="isHistoryLoading"
+                @change="applyMonthlyFilters"
+              >
+                <option v-for="option in monthlyPageSizeOptions" :key="option" :value="option">{{ option }}</option>
+              </select>
+            </label>
+            <button
+              class="icon-button h-9 w-9"
+              type="button"
+              aria-label="Halaman sebelumnya"
+              :disabled="isHistoryLoading || monthlyActivePage <= 1"
+              @click="setMonthlyPage(monthlyActivePage - 1)"
+            >
+              <ChevronLeft class="h-4 w-4" />
+            </button>
+            <span class="min-w-24 text-center text-xs text-slate-400">Hal {{ monthlyActivePage }} / {{ monthlyTotalPages }}</span>
+            <button
+              class="icon-button h-9 w-9"
+              type="button"
+              aria-label="Halaman berikutnya"
+              :disabled="isHistoryLoading || monthlyActivePage >= monthlyTotalPages"
+              @click="setMonthlyPage(monthlyActivePage + 1)"
+            >
+              <ChevronRight class="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </section>
     </section>
@@ -404,6 +469,8 @@
 <script setup lang="ts">
 import {
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   CloudRain,
   CloudSun,
   Droplets,
@@ -456,11 +523,20 @@ interface WeatherHistoryItem {
   windSpeed: number | null;
 }
 
+interface WeatherHistorySummary {
+  averageTemperatureC: number | null;
+  latestCondition: string;
+  rainyRecords: number;
+  totalRainfallMm: number | null;
+}
+
 interface WeatherHistoryResponse {
   count: number;
   items: WeatherHistoryItem[];
   limit: number;
   offset: number;
+  summary?: WeatherHistorySummary;
+  total?: number;
 }
 
 interface WeatherHistoryPayload {
@@ -480,6 +556,15 @@ interface WeatherHistoryPayload {
 const activeTab = ref<WeatherTab>("forecast");
 const forecast = ref<BmkgForecastResult | null>(null);
 const weatherHistory = ref<WeatherHistoryItem[]>([]);
+const weatherHistoryTotal = ref(0);
+const weatherHistorySummary = ref<WeatherHistorySummary>(createEmptyWeatherHistorySummary());
+const initialMonthlyRange = currentMonthRange();
+const monthlyFilters = reactive({
+  month: formatMonthInput(initialMonthlyRange.start)
+});
+const monthlyPageSizeOptions = [10, 25, 50, 100];
+const monthlyPageSize = ref(10);
+const monthlyCurrentPage = ref(1);
 const isHistoryLoading = ref(false);
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
@@ -519,9 +604,20 @@ const locationLabel = computed(() => {
 
 const dailyForecast = computed(() => forecast.value?.daily.slice(0, 3) ?? []);
 const hourlyForecast = computed(() => forecast.value?.items.slice(0, 8) ?? []);
-const recentWeatherHistory = computed(() => [...weatherHistory.value]
-  .sort((left, right) => Date.parse(right.observedAt) - Date.parse(left.observedAt))
-  .slice(0, 30));
+const selectedMonthlyRange = computed(() => monthRangeFromInput(monthlyFilters.month));
+const monthlyMonthError = computed(() => {
+  const range = selectedMonthlyRange.value;
+
+  if (!range) {
+    return "Pilih bulan report.";
+  }
+
+  return null;
+});
+const monthlyTotalPages = computed(() => Math.max(1, Math.ceil(weatherHistoryTotal.value / monthlyPageSize.value)));
+const monthlyActivePage = computed(() => Math.min(monthlyCurrentPage.value, monthlyTotalPages.value));
+const monthlyPaginationStart = computed(() => weatherHistoryTotal.value === 0 ? 0 : (monthlyActivePage.value - 1) * monthlyPageSize.value + 1);
+const monthlyPaginationEnd = computed(() => Math.min((monthlyActivePage.value - 1) * monthlyPageSize.value + weatherHistory.value.length, weatherHistoryTotal.value));
 const isConfigFormOpen = ref(false);
 const editingConfigId = ref<string | null>(null);
 const configForm = reactive<WeatherConfigInput>({
@@ -584,27 +680,15 @@ const currentWeatherMetrics = computed(() => {
     }
   ];
 });
-const monthlySummary = computed(() => {
-  const temperatureValues = weatherHistory.value
-    .map((item) => item.temperatureC)
-    .filter((value): value is number => typeof value === "number");
-  const rainfallValues = weatherHistory.value
-    .map((item) => item.rainfallMm)
-    .filter((value): value is number => typeof value === "number");
-  const latest = recentWeatherHistory.value[0] ?? null;
-
-  return {
-    averageTemperatureC: average(temperatureValues),
-    latestCondition: latest?.condition ?? "-",
-    rainyRecords: weatherHistory.value.filter((item) => isRainyWeather(item)).length,
-    totalRainfallMm: rainfallValues.length > 0
-      ? roundMetric(rainfallValues.reduce((total, value) => total + value, 0))
-      : null
-  };
-});
+const monthlySummary = computed(() => weatherHistorySummary.value);
 const monthlyReportLabel = computed(() => {
-  const { end, start } = currentMonthRange();
-  return `${formatDateOnly(start)} - ${formatDateOnly(end)}`;
+  const range = selectedMonthlyRange.value;
+
+  if (!range) {
+    return "Bulan report belum dipilih";
+  }
+
+  return `${formatDateOnly(range.start)} - ${formatDateOnly(range.end)}`;
 });
 
 onMounted(async () => {
@@ -666,29 +750,72 @@ async function persistWeatherHistory(result: BmkgForecastResult): Promise<void> 
 
 async function loadWeatherHistory(): Promise<void> {
   if (!activeAdm4.value) {
-    weatherHistory.value = [];
+    clearWeatherHistory();
+    return;
+  }
+
+  if (monthlyMonthError.value || !selectedMonthlyRange.value) {
+    clearWeatherHistory();
+    errorMessage.value = monthlyMonthError.value;
     return;
   }
 
   isHistoryLoading.value = true;
 
   try {
-    const { end, start } = currentMonthRange();
+    const { end, start } = selectedMonthlyRange.value;
     const params = new URLSearchParams({
       adm4Code: activeAdm4.value,
       end: end.toISOString(),
-      limit: "1000",
+      limit: String(monthlyPageSize.value),
+      offset: String((monthlyCurrentPage.value - 1) * monthlyPageSize.value),
       start: start.toISOString()
     });
     const response = await apiGet<WeatherHistoryResponse>(`/api/v1/weather/history?${params.toString()}`);
 
     weatherHistory.value = response.items;
+    weatherHistoryTotal.value = response.total ?? response.count;
+    weatherHistorySummary.value = response.summary ?? createWeatherHistorySummary(response.items);
+    errorMessage.value = null;
+
+    if (monthlyCurrentPage.value > monthlyTotalPages.value) {
+      monthlyCurrentPage.value = monthlyTotalPages.value;
+      await loadWeatherHistory();
+    }
   } catch (error) {
     errorMessage.value = normalizeApiError(error);
-    weatherHistory.value = [];
+    clearWeatherHistory();
   } finally {
     isHistoryLoading.value = false;
   }
+}
+
+function applyMonthlyFilters(): void {
+  monthlyCurrentPage.value = 1;
+  void loadWeatherHistory();
+}
+
+function resetMonthlyRangeToCurrentMonth(): void {
+  const { start } = currentMonthRange();
+  monthlyFilters.month = formatMonthInput(start);
+  applyMonthlyFilters();
+}
+
+function setMonthlyPage(page: number): void {
+  const nextPage = Math.min(Math.max(page, 1), monthlyTotalPages.value);
+
+  if (nextPage === monthlyCurrentPage.value) {
+    return;
+  }
+
+  monthlyCurrentPage.value = nextPage;
+  void loadWeatherHistory();
+}
+
+function clearWeatherHistory(): void {
+  weatherHistory.value = [];
+  weatherHistoryTotal.value = 0;
+  weatherHistorySummary.value = createEmptyWeatherHistorySummary();
 }
 
 function buildWeatherHistoryPayload(result: BmkgForecastResult): WeatherHistoryPayload {
@@ -943,12 +1070,61 @@ function currentMonthRange(): { end: Date; start: Date } {
   return { end, start };
 }
 
-function average(values: number[]): number | null {
-  if (values.length === 0) {
+function createEmptyWeatherHistorySummary(): WeatherHistorySummary {
+  return {
+    averageTemperatureC: null,
+    latestCondition: "-",
+    rainyRecords: 0,
+    totalRainfallMm: null
+  };
+}
+
+function createWeatherHistorySummary(items: WeatherHistoryItem[]): WeatherHistorySummary {
+  const temperatureValues = items
+    .map((item) => item.temperatureC)
+    .filter((value): value is number => typeof value === "number");
+  const rainfallValues = items
+    .map((item) => item.rainfallMm)
+    .filter((value): value is number => typeof value === "number");
+  const latest = [...items].sort((left, right) => Date.parse(right.observedAt) - Date.parse(left.observedAt))[0] ?? null;
+
+  return {
+    averageTemperatureC: temperatureValues.length > 0
+      ? roundMetric(temperatureValues.reduce((total, value) => total + value, 0) / temperatureValues.length)
+      : null,
+    latestCondition: latest?.condition ?? "-",
+    rainyRecords: items.filter((item) => isRainyWeather(item)).length,
+    totalRainfallMm: rainfallValues.length > 0
+      ? roundMetric(rainfallValues.reduce((total, value) => total + value, 0))
+      : null
+  };
+}
+
+function monthRangeFromInput(value: string): { end: Date; start: Date } | null {
+  const match = /^(\d{4})-(\d{2})$/.exec(value);
+  if (!match) {
     return null;
   }
 
-  return roundMetric(values.reduce((total, value) => total + value, 0) / values.length);
+  const [, yearValue, monthValue] = match;
+  const year = Number(yearValue);
+  const month = Number(monthValue);
+
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    return null;
+  }
+
+  const start = new Date(year, month - 1, 1, 0, 0, 0, 0);
+  const end = new Date(year, month, 0, 23, 59, 59, 999);
+
+  return { end, start };
+}
+
+function formatMonthInput(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+
+  return `${year}-${month}`;
 }
 
 function roundMetric(value: number): number {
