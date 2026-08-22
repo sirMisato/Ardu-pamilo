@@ -5,6 +5,7 @@ import type { Database, JsonValue } from "../db/schema.js";
 import { emitTelemetryEvent } from "./telemetryEventBus.js";
 
 const telemetryTopicPattern = /^pamilo\/v1\/tenants\/([^/]+)\/devices\/([^/]+)\/telemetry$/;
+const defaultTelemetryTopic = "pamilo/v1/tenants/+/devices/+/telemetry";
 const duplicateTelemetryWindowMs = 3_000;
 
 export interface MqttTelemetryServiceOptions {
@@ -23,7 +24,7 @@ export interface MqttTelemetryService {
 }
 
 export function startMqttTelemetryService(options: MqttTelemetryServiceOptions): MqttTelemetryService {
-  const subscriptionTopic = options.telemetryTopic ?? "pamilo/v1/tenants/+/devices/+/telemetry";
+  const subscriptionTopics = resolveSubscriptionTopics(options.telemetryTopic);
   const clientOptions: IClientOptions = {
     clean: true,
     clientId: options.clientId,
@@ -36,14 +37,14 @@ export function startMqttTelemetryService(options: MqttTelemetryServiceOptions):
   const client = mqtt.connect(options.brokerUrl, clientOptions);
 
   client.on("connect", () => {
-    options.logger.info({ subscriptionTopic }, "MQTT connected, subscribing to telemetry wildcard.");
-    client.subscribe(subscriptionTopic, { qos: 1 }, (error) => {
+    options.logger.info({ subscriptionTopics }, "MQTT connected, subscribing to telemetry topics.");
+    client.subscribe(subscriptionTopics, { qos: 1 }, (error, granted) => {
       if (error) {
         options.logger.error({ error }, "Failed to subscribe to telemetry topic.");
         return;
       }
 
-      options.logger.info({ subscriptionTopic }, "MQTT telemetry subscription is active.");
+      options.logger.info({ granted, subscriptionTopics }, "MQTT telemetry subscription is active.");
     });
   });
 
@@ -70,6 +71,15 @@ export function startMqttTelemetryService(options: MqttTelemetryServiceOptions):
       client.end(false, {}, () => resolve());
     })
   };
+}
+
+function resolveSubscriptionTopics(configuredTopic: string | undefined): string[] {
+  const configuredTopics = (configuredTopic ?? defaultTelemetryTopic)
+    .split(",")
+    .map((topic) => topic.trim())
+    .filter((topic) => topic.length > 0);
+
+  return Array.from(new Set([...configuredTopics, defaultTelemetryTopic]));
 }
 
 export async function ingestTelemetryMessage(input: {
