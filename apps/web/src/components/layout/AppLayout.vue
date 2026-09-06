@@ -22,6 +22,7 @@
     </header>
 
     <div class="min-h-screen transition-[padding] duration-200" :class="sidebarCollapsed ? 'lg:pl-28' : 'lg:pl-80'">
+      <Topbar class="hidden lg:block" />
       <main class="px-4 pb-28 pt-2 sm:px-6 lg:px-8 lg:pb-8 lg:pt-4">
         <RouterView />
       </main>
@@ -36,6 +37,7 @@ import { Bell } from "@lucide/vue";
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import BottomNavigation from "./BottomNavigation.vue";
 import Sidebar from "./Sidebar.vue";
+import Topbar from "./Topbar.vue";
 import { useTelemetryStore } from "../../stores/telemetryStore";
 
 const sidebarCollapsed = ref(false);

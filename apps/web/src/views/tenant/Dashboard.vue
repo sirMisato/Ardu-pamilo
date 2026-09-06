@@ -84,7 +84,7 @@
         </div>
       </div>
 
-      <div class="overflow-hidden rounded-[2rem] border border-white/60 shadow-sm">
+      <div class="relative z-10 overflow-hidden rounded-[2rem] border border-white/60 shadow-sm">
         <FieldMap />
       </div>
     </section>

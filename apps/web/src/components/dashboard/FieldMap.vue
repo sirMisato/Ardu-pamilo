@@ -1,8 +1,37 @@
 <template>
-  <div class="relative h-[460px] min-h-[420px] overflow-hidden rounded-[2rem] bg-slate-100">
+  <div class="relative z-10 h-[460px] min-h-[420px] overflow-hidden rounded-[2rem] border border-white/60 bg-slate-100 shadow-sm">
     <div ref="mapElement" class="h-full w-full"></div>
 
-    <div class="absolute right-4 top-4 z-[500] flex rounded-2xl border border-white/80 bg-white/70 p-1 text-xs font-semibold text-slate-700 shadow-md backdrop-blur-md">
+    <div
+      v-if="activeDeviceId"
+      class="absolute right-4 top-4 z-[400] w-72 rounded-2xl border border-white/80 bg-white/85 p-4 text-slate-700 shadow-xl backdrop-blur-lg"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="truncate text-sm font-semibold text-slate-800">{{ activeDeviceId }}</p>
+          <p class="mt-1 truncate text-xs font-medium text-slate-500">{{ activeDeviceUpdatedLabel }}</p>
+        </div>
+        <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold" :class="activeDeviceStatusClass">
+          {{ activeDeviceStatusLabel }}
+        </span>
+      </div>
+
+      <div class="mt-4 grid gap-2">
+        <div
+          v-for="metric in activeDeviceMetrics"
+          :key="metric.key"
+          class="flex items-center justify-between gap-3 rounded-xl border border-white/80 bg-white/60 px-3 py-2"
+        >
+          <span class="truncate text-xs font-medium text-slate-500">{{ metric.label }}</span>
+          <strong class="shrink-0 text-xs font-semibold text-slate-800">{{ metric.displayValue }}</strong>
+        </div>
+        <p v-if="activeDeviceMetrics.length === 0" class="rounded-xl border border-dashed border-white/80 bg-white/50 px-3 py-2 text-xs font-medium text-slate-500">
+          Menunggu metrik sensor.
+        </p>
+      </div>
+    </div>
+
+    <div class="absolute bottom-4 right-4 z-[400] flex rounded-2xl border border-white/80 bg-white/60 p-1 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur-md">
       <button
         v-for="layer in mapLayerOptions"
         :key="layer.key"
@@ -26,7 +55,7 @@
       </button>
     </div>
 
-    <div class="pointer-events-none absolute left-4 top-4 z-[500] rounded-2xl border border-white/80 bg-white/70 px-3 py-2 text-xs font-semibold text-slate-700 shadow-md backdrop-blur-md">
+    <div class="pointer-events-none absolute left-4 top-4 z-[400] rounded-2xl border border-white/80 bg-white/60 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur-md">
       <div class="flex items-center gap-2">
         <span class="h-2 w-2 rounded-full" :class="connectionToneClass"></span>
         <span>{{ connectionLabel }}</span>
@@ -56,6 +85,18 @@ let marker: Marker | null = null;
 let polygon: Polygon | null = null;
 
 const activeDeviceId = computed(() => Object.keys(telemetryStore.devices)[0] ?? "");
+const activeDeviceMetrics = computed(() => activeDeviceId.value ? telemetryStore.latestMetricsForDevice(activeDeviceId.value).slice(0, 3) : []);
+const activeDeviceStatusLabel = computed(() => {
+  const device = activeDeviceId.value ? telemetryStore.deviceById(activeDeviceId.value) : null;
+  return device?.online ? "Online" : "Offline";
+});
+const activeDeviceStatusClass = computed(() => activeDeviceStatusLabel.value === "Online"
+  ? "bg-field-mint/10 text-teal-700"
+  : "bg-rose-100 text-rose-600");
+const activeDeviceUpdatedLabel = computed(() => {
+  const device = activeDeviceId.value ? telemetryStore.deviceById(activeDeviceId.value) : null;
+  return device?.lastSeenAt ? `Update ${formatTime(device.lastSeenAt)}` : "No telemetry yet";
+});
 const fieldTooltip = computed(() => tenantProfileStore.activeFieldLabel);
 const activeFieldPolygon = computed(() => extractPolygonPoints(tenantProfileStore.activeField?.polygonGeojson));
 const activePolygonCenter = computed(() => getPolygonCenter(activeFieldPolygon.value));
@@ -454,24 +495,27 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 :deep(.pamilo-sensor-popup .leaflet-popup-content-wrapper) {
   overflow: hidden;
   border: 1px solid rgb(255 255 255 / 80%);
-  border-radius: 24px;
-  background: rgb(255 255 255 / 82%);
+  border-radius: 16px;
+  background: rgb(255 255 255 / 85%);
   color: #334155;
-  box-shadow: 0 24px 70px rgb(15 23 42 / 14%);
+  box-shadow:
+    0 20px 25px -5px rgb(15 23 42 / 14%),
+    0 8px 10px -6px rgb(15 23 42 / 14%);
   backdrop-filter: blur(18px);
 }
 
 :deep(.pamilo-sensor-popup .leaflet-popup-content) {
-  width: 280px !important;
+  width: 18rem !important;
   margin: 0;
 }
 
 :deep(.pamilo-sensor-popup .leaflet-popup-tip) {
-  background: rgb(255 255 255 / 82%);
+  background: rgb(255 255 255 / 85%);
 }
 
 :deep(.sensor-popup) {
-  padding: 14px;
+  box-sizing: border-box;
+  padding: 16px;
 }
 
 :deep(.sensor-popup-header) {

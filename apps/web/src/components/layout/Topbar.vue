@@ -21,7 +21,7 @@
         <div ref="profileMenuElement" class="relative ml-1">
           <button
             type="button"
-            class="flex min-h-10 items-center gap-3 rounded-2xl border border-white/70 bg-white/60 px-2 py-1.5 text-left shadow-glass-soft transition hover:border-field-mint/50 hover:bg-field-mint/10 focus:outline-none focus:ring-2 focus:ring-field-mint/50 sm:px-3"
+            class="flex cursor-pointer items-center gap-3 rounded-full border border-white/60 bg-white/50 px-4 py-2 text-left text-slate-700 shadow-sm backdrop-blur-md transition-all hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-field-mint/40"
             aria-haspopup="menu"
             :aria-expanded="profileMenuOpen"
             @click.stop="toggleProfileMenu"
@@ -44,10 +44,10 @@
           >
             <div
               v-if="profileMenuOpen"
-              class="absolute right-0 mt-2 w-72 overflow-hidden rounded-3xl border border-white/70 bg-white/80 shadow-glass backdrop-blur-xl"
+              class="absolute right-0 z-[100] mt-3 w-56 rounded-2xl border border-white/80 bg-white/95 p-2 shadow-2xl backdrop-blur-xl"
               role="menu"
             >
-              <div class="border-b border-white/70 p-4">
+              <div class="border-b border-slate-200/70 px-2 pb-3 pt-2">
                 <div class="flex items-center gap-3">
                   <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-field-green text-sm font-bold text-[#102016]">{{ initials }}</div>
                   <div class="min-w-0">
@@ -55,12 +55,12 @@
                     <p class="truncate text-xs text-field-mint">{{ profileDetail }}</p>
                   </div>
                 </div>
-                <p class="mt-3 rounded-2xl bg-white/60 px-3 py-2 text-xs text-slate-600">{{ profileRoleLabel }}</p>
+                <p class="mt-3 rounded-xl bg-white/60 px-3 py-2 text-xs font-medium text-slate-600">{{ profileRoleLabel }}</p>
               </div>
-              <div class="p-2">
+              <div class="pt-2">
                 <button
                   v-if="canOpenProfileSettings"
-                  class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-field-mint/10 hover:text-teal-700"
+                  class="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-field-mint/10 hover:text-teal-700"
                   type="button"
                   role="menuitem"
                   @click="openProfileSettings"
@@ -69,7 +69,7 @@
                   Profil & Pengaturan
                 </button>
                 <button
-                  class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+                  class="flex w-full items-center gap-3 rounded-xl bg-transparent px-4 py-2.5 text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-50"
                   type="button"
                   role="menuitem"
                   @click="logout"
