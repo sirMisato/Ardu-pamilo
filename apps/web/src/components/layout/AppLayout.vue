@@ -1,41 +1,43 @@
 <template>
   <div class="min-h-screen text-slate-800">
     <Sidebar
-      class="fixed inset-y-0 left-0 z-40 hidden lg:flex"
+      class="fixed bottom-4 left-4 top-4 z-40 hidden overflow-hidden rounded-2xl border border-white/70 lg:flex"
       :class="sidebarCollapsed ? 'w-20' : 'w-72'"
       :collapsed="sidebarCollapsed"
       @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
     />
 
-    <Transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
-      <div v-if="sidebarOpen" class="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm lg:hidden" @click="sidebarOpen = false">
-        <Sidebar class="h-full w-72" mobile @navigate="sidebarOpen = false" @click.stop />
+    <header class="sticky top-0 z-40 flex min-h-16 items-center justify-between bg-transparent px-4 py-3 lg:hidden">
+      <div class="min-w-0">
+        <p class="truncate text-base font-semibold tracking-normal text-slate-800">PAMILO Smart Farming GIS</p>
       </div>
-    </Transition>
 
-    <div class="min-h-screen transition-[padding] duration-200" :class="sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'">
-      <Topbar @toggle-sidebar="sidebarOpen = true" />
-      <main class="px-4 pb-8 pt-4 sm:px-6 lg:px-8">
+      <button
+        class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-transparent text-slate-700 transition hover:text-teal-700 focus:outline-none focus:ring-2 focus:ring-field-mint/40"
+        type="button"
+        aria-label="Notifikasi"
+      >
+        <Bell class="h-5 w-5" />
+      </button>
+    </header>
+
+    <div class="min-h-screen transition-[padding] duration-200" :class="sidebarCollapsed ? 'lg:pl-28' : 'lg:pl-80'">
+      <main class="px-4 pb-28 pt-2 sm:px-6 lg:px-8 lg:pb-8 lg:pt-4">
         <RouterView />
       </main>
     </div>
+
+    <BottomNavigation />
   </div>
 </template>
 
 <script setup lang="ts">
+import { Bell } from "@lucide/vue";
 import { onBeforeUnmount, onMounted, ref } from "vue";
+import BottomNavigation from "./BottomNavigation.vue";
 import Sidebar from "./Sidebar.vue";
-import Topbar from "./Topbar.vue";
 import { useTelemetryStore } from "../../stores/telemetryStore";
 
-const sidebarOpen = ref(false);
 const sidebarCollapsed = ref(false);
 const telemetryStore = useTelemetryStore();
 let telemetryRefreshTimer: number | undefined;
