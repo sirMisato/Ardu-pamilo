@@ -9,17 +9,34 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        "broken-white": "#F8F9FA",
+        "pastel-green": "#86EFAC",
+        mint: {
+          DEFAULT: "#2DD4BF",
+          soft: "#A7F3D0",
+          deep: "#0F766E"
+        },
+        pamilo: {
+          background: "#F8F9FA",
+          surface: "#FFFFFF",
+          text: "#1E293B",
+          muted: "#475569",
+          green: "#86EFAC",
+          mint: "#2DD4BF"
+        },
         field: {
-          night: "#07111f",
-          deep: "#0b1626",
-          panel: "#101f32",
-          line: "#20364a",
-          mint: "#8ef0ca",
-          green: "#a7e8af"
+          night: "#F8F9FA",
+          deep: "#F1F5F9",
+          panel: "#FFFFFF",
+          line: "#D9F3E7",
+          mint: "#2DD4BF",
+          green: "#86EFAC"
         }
       },
       boxShadow: {
-        field: "0 24px 70px rgb(2 8 23 / 36%)"
+        glass: "0 24px 70px rgb(15 23 42 / 10%)",
+        "glass-soft": "0 14px 40px rgb(15 23 42 / 8%)",
+        field: "0 24px 70px rgb(15 23 42 / 10%)"
       }
     }
   },

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-[#07111f] text-slate-100">
+  <div class="min-h-screen text-slate-800">
     <Sidebar
       class="fixed inset-y-0 left-0 z-40 hidden lg:flex"
       :class="sidebarCollapsed ? 'w-20' : 'w-72'"
@@ -15,7 +15,7 @@
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="sidebarOpen" class="fixed inset-0 z-50 bg-slate-950/70 lg:hidden" @click="sidebarOpen = false">
+      <div v-if="sidebarOpen" class="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm lg:hidden" @click="sidebarOpen = false">
         <Sidebar class="h-full w-72" mobile @navigate="sidebarOpen = false" @click.stop />
       </div>
     </Transition>

@@ -1,13 +1,13 @@
 <template>
-  <header class="sticky top-0 z-30 border-b border-white/10 bg-[#07111f]/90 backdrop-blur">
+  <header class="sticky top-0 z-30 border-b border-white/70 bg-white/70 text-slate-800 shadow-glass-soft backdrop-blur-xl">
     <div class="flex min-h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
       <div class="flex min-w-0 items-center gap-3">
         <button class="icon-button lg:hidden" type="button" aria-label="Open navigation" @click="emit('toggleSidebar')">
           <Menu class="h-5 w-5" />
         </button>
         <div class="min-w-0">
-          <h1 class="truncate text-lg font-semibold tracking-normal text-white sm:text-xl">{{ title }}</h1>
-          <p class="hidden truncate text-sm text-slate-400 sm:block">{{ subtitle }}</p>
+          <h1 class="truncate text-lg font-semibold tracking-normal text-slate-800 sm:text-xl">{{ title }}</h1>
+          <p class="hidden truncate text-sm text-slate-500 sm:block">{{ subtitle }}</p>
         </div>
       </div>
 
@@ -21,17 +21,17 @@
         <div ref="profileMenuElement" class="relative ml-1">
           <button
             type="button"
-            class="flex min-h-10 items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-left transition hover:border-field-mint/50 hover:bg-field-mint/10 focus:outline-none focus:ring-2 focus:ring-field-mint/50 sm:px-3"
+            class="flex min-h-10 items-center gap-3 rounded-2xl border border-white/70 bg-white/60 px-2 py-1.5 text-left shadow-glass-soft transition hover:border-field-mint/50 hover:bg-field-mint/10 focus:outline-none focus:ring-2 focus:ring-field-mint/50 sm:px-3"
             aria-haspopup="menu"
             :aria-expanded="profileMenuOpen"
             @click.stop="toggleProfileMenu"
           >
-            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-field-green text-xs font-bold text-[#102016]">{{ initials }}</span>
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-field-green text-xs font-bold text-[#102016]">{{ initials }}</span>
             <span class="hidden min-w-0 md:block">
-              <span class="block truncate text-sm font-semibold text-white">{{ profileName }}</span>
+              <span class="block truncate text-sm font-semibold text-slate-800">{{ profileName }}</span>
               <span class="block truncate text-xs text-field-mint">{{ profileDetail }}</span>
             </span>
-            <ChevronDown class="hidden h-4 w-4 shrink-0 text-slate-400 sm:block" :class="profileMenuOpen ? 'rotate-180' : ''" />
+            <ChevronDown class="hidden h-4 w-4 shrink-0 text-slate-500 sm:block" :class="profileMenuOpen ? 'rotate-180' : ''" />
           </button>
 
           <Transition
@@ -44,23 +44,23 @@
           >
             <div
               v-if="profileMenuOpen"
-              class="absolute right-0 mt-2 w-72 overflow-hidden rounded-lg border border-white/10 bg-[#101f32] shadow-field"
+              class="absolute right-0 mt-2 w-72 overflow-hidden rounded-3xl border border-white/70 bg-white/80 shadow-glass backdrop-blur-xl"
               role="menu"
             >
-              <div class="border-b border-white/10 p-4">
+              <div class="border-b border-white/70 p-4">
                 <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-field-green text-sm font-bold text-[#102016]">{{ initials }}</div>
+                  <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-field-green text-sm font-bold text-[#102016]">{{ initials }}</div>
                   <div class="min-w-0">
-                    <p class="truncate text-sm font-semibold text-white">{{ profileName }}</p>
+                    <p class="truncate text-sm font-semibold text-slate-800">{{ profileName }}</p>
                     <p class="truncate text-xs text-field-mint">{{ profileDetail }}</p>
                   </div>
                 </div>
-                <p class="mt-3 rounded-lg bg-white/5 px-3 py-2 text-xs text-slate-300">{{ profileRoleLabel }}</p>
+                <p class="mt-3 rounded-2xl bg-white/60 px-3 py-2 text-xs text-slate-600">{{ profileRoleLabel }}</p>
               </div>
               <div class="p-2">
                 <button
                   v-if="canOpenProfileSettings"
-                  class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white"
+                  class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-field-mint/10 hover:text-teal-700"
                   type="button"
                   role="menuitem"
                   @click="openProfileSettings"
@@ -69,7 +69,7 @@
                   Profil & Pengaturan
                 </button>
                 <button
-                  class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-rose-100 transition hover:bg-rose-300/10"
+                  class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
                   type="button"
                   role="menuitem"
                   @click="logout"

@@ -1,20 +1,20 @@
 <template>
-  <aside class="flex flex-col border-r border-white/10 bg-[#0b1626] text-slate-100 transition-[width] duration-200">
+  <aside class="flex flex-col border-r border-white/70 bg-white/70 text-slate-700 shadow-glass backdrop-blur-xl transition-[width] duration-200">
     <div
-      class="relative flex h-20 items-center border-b border-white/10"
+      class="relative flex h-20 items-center border-b border-white/70"
       :class="collapsed ? 'justify-center px-2' : 'gap-3 px-5'"
     >
-      <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-field-green text-[#102016]">
+      <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-field-green text-[#102016] shadow-glass-soft">
         <Sprout class="h-6 w-6" />
       </div>
       <div v-if="!collapsed" class="min-w-0">
-        <p class="truncate text-base font-semibold tracking-normal">PAMILO</p>
+        <p class="truncate text-base font-semibold tracking-normal text-slate-800">PAMILO</p>
         <p class="truncate text-xs text-field-mint">Smart Farming GIS</p>
       </div>
       <button
         v-if="!mobile"
         type="button"
-        class="absolute -right-4 top-6 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-[#101f32] text-slate-300 shadow-field transition hover:border-field-mint/50 hover:bg-field-mint/10 hover:text-field-mint focus:outline-none focus:ring-2 focus:ring-field-mint/40"
+        class="absolute -right-4 top-6 inline-flex h-8 w-8 items-center justify-center rounded-2xl border border-white/70 bg-white/80 text-slate-600 shadow-glass-soft transition hover:border-field-mint/50 hover:bg-field-mint/10 hover:text-teal-700 focus:outline-none focus:ring-2 focus:ring-field-mint/40"
         :aria-label="collapsed ? 'Show sidebar' : 'Collapse sidebar'"
         :title="collapsed ? 'Show sidebar' : 'Collapse sidebar'"
         @click="emit('toggleCollapse')"
@@ -29,10 +29,10 @@
         v-for="item in navItems"
         :key="item.to"
         :to="item.to"
-        class="group flex min-h-11 items-center rounded-lg py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+        class="group flex min-h-11 items-center rounded-2xl py-2 text-sm font-medium text-slate-600 transition hover:bg-white/70 hover:text-teal-700"
         :class="[
           collapsed ? 'justify-center px-2' : 'gap-3 px-3',
-          isActive(item.to) ? 'bg-field-mint/10 text-field-mint ring-1 ring-field-mint/30' : ''
+          isActive(item.to) ? 'bg-field-mint/10 text-teal-700 ring-1 ring-field-mint/30' : ''
         ]"
         :title="collapsed ? item.label : undefined"
         @click="emit('navigate')"
