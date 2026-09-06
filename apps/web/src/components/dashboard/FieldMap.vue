@@ -1,10 +1,10 @@
 <template>
-  <div class="relative z-10 h-[460px] min-h-[420px] overflow-hidden rounded-[2rem] border border-white/60 bg-slate-100 shadow-sm">
-    <div ref="mapElement" class="h-full w-full"></div>
+  <div class="relative z-10 h-full w-full overflow-hidden rounded-[2rem] bg-slate-100">
+    <div ref="mapElement" class="z-0 h-full w-full"></div>
 
     <div
       v-if="activeDeviceId"
-      class="absolute right-4 top-4 z-[400] w-72 rounded-2xl border border-white/80 bg-white/85 p-4 text-slate-700 shadow-xl backdrop-blur-lg"
+      class="absolute right-4 top-4 z-[400] w-64 rounded-2xl border border-white/80 bg-white/80 p-4 text-slate-700 shadow-xl backdrop-blur-xl lg:right-6 lg:top-6 lg:w-72"
     >
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0">
