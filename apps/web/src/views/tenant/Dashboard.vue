@@ -1,135 +1,162 @@
 <template>
-  <div class="space-y-5">
-    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="Top level stats and weather">
-      <article v-for="stat in topStats" :key="stat.label" class="panel-surface p-5">
+  <div class="flex flex-col space-y-4 lg:grid lg:grid-cols-12 lg:gap-6 lg:space-y-0">
+    <aside class="order-1 flex flex-col space-y-4 lg:col-span-4 lg:col-start-9 lg:row-span-2 lg:space-y-6">
+      <article class="glass-panel bg-white/40 p-5 backdrop-blur-md">
         <div class="flex items-start justify-between gap-4">
-          <div>
-            <p class="text-sm font-medium text-slate-400">{{ stat.label }}</p>
-            <p class="mt-2 text-2xl font-semibold tracking-normal text-white">{{ stat.value }}</p>
+          <div class="min-w-0">
+            <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">BMKG Snapshot</p>
+            <h2 class="mt-1 truncate text-lg font-semibold tracking-normal text-slate-800">{{ tenantProfileStore.activeFieldLabel }}</h2>
           </div>
-          <div class="flex h-11 w-11 items-center justify-center rounded-lg" :class="stat.iconClass">
-            <component :is="stat.icon" class="h-5 w-5" />
-          </div>
-        </div>
-        <p class="mt-4 text-sm" :class="stat.detailClass">{{ stat.detail }}</p>
-      </article>
-    </section>
-
-    <section class="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]">
-      <article class="panel-surface overflow-hidden">
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 p-5">
-          <div>
-            <h2 class="text-lg font-semibold tracking-normal text-white">Field Map Monitoring</h2>
-            <p class="mt-1 text-sm text-slate-400">{{ tenantProfileStore.activeFieldLabel }}</p>
-          </div>
-          <div class="flex items-center gap-2 rounded-full border border-field-mint/25 bg-field-mint/10 px-3 py-1 text-sm text-field-mint">
-            <span class="h-2 w-2 rounded-full" :class="telemetryNodeToneClass"></span>
-            {{ telemetryNodeLabel }}
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/60 text-slate-700 shadow-glass-soft">
+            <CloudRain v-if="isRainy(dashboardForecast?.current.condition)" class="h-6 w-6 text-sky-500" />
+            <CloudSun v-else class="h-6 w-6 text-amber-400" />
           </div>
         </div>
 
-        <FieldMap />
+        <div class="mt-5 rounded-[1.5rem] border border-white/60 bg-white/50 p-4">
+          <p class="text-xs font-medium text-slate-500">ADM4 {{ tenantProfileStore.activeBmkgAdm4Code || "-" }}</p>
+          <p class="mt-2 text-3xl font-semibold tracking-normal text-slate-800">
+            {{ dashboardForecast ? formatTemperature(dashboardForecast.current.temperatureC) : "Loading" }}
+          </p>
+          <p class="mt-1 text-sm font-medium text-slate-600">{{ dashboardForecast?.current.condition ?? "Mengambil data BMKG" }}</p>
+        </div>
+
+        <div class="mt-4 grid gap-3">
+          <div v-for="day in dashboardDailyForecast" :key="day.date" class="rounded-[1.25rem] border border-white/60 bg-white/50 p-3">
+            <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <p class="truncate text-xs font-semibold text-slate-700">{{ day.dateLabel }}</p>
+                <p class="mt-1 truncate text-xs text-slate-500">{{ day.summary }}</p>
+              </div>
+              <strong class="shrink-0 text-sm font-semibold text-teal-700">{{ formatTemperature(day.averageTemperatureC) }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <p v-if="weatherError" class="mt-4 rounded-2xl bg-amber-100/70 px-3 py-2 text-xs font-medium text-amber-700">{{ weatherError }}</p>
       </article>
 
-      <article class="panel-surface p-5">
+      <article class="glass-panel bg-white/40 p-5 backdrop-blur-md">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <h2 class="text-lg font-semibold tracking-normal text-white">Crop Information Panel</h2>
-            <p class="mt-1 text-sm text-slate-400">{{ tenantProfileStore.activeField?.cropLabel ?? "Crop belum dipilih" }}</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">Detail Tanaman</p>
+            <h2 class="mt-1 text-lg font-semibold tracking-normal text-slate-800">{{ tenantProfileStore.activeField?.cropLabel ?? "Crop belum dipilih" }}</h2>
           </div>
-          <Sprout class="h-6 w-6 text-field-green" />
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-field-green/40 text-teal-700 shadow-glass-soft">
+            <Sprout class="h-6 w-6" />
+          </div>
         </div>
 
-        <dl class="mt-6 grid gap-4">
-          <div v-for="item in cropInfo" :key="item.label" class="flex items-center justify-between gap-4 border-b border-white/10 pb-3">
-            <dt class="text-sm text-slate-400">{{ item.label }}</dt>
-            <dd class="text-right text-sm font-semibold text-white">{{ item.value }}</dd>
+        <dl class="mt-5 grid gap-3">
+          <div v-for="item in cropInfo" :key="item.label" class="flex items-center justify-between gap-4 rounded-2xl bg-white/50 px-3 py-2.5">
+            <dt class="text-sm font-medium text-slate-500">{{ item.label }}</dt>
+            <dd class="text-right text-sm font-semibold text-slate-700">{{ item.value }}</dd>
           </div>
         </dl>
 
         <div class="mt-6">
           <div class="flex items-center justify-between text-sm">
-            <span class="font-medium text-slate-300">Growth Progress</span>
-            <span class="font-semibold text-field-mint">{{ growthProgressLabel }}</span>
+            <span class="font-medium text-slate-600">Growth Progress</span>
+            <span class="font-semibold text-teal-700">{{ growthProgressLabel }}</span>
           </div>
-          <div class="mt-3 h-3 rounded-full bg-white/10">
+          <div class="mt-3 h-4 overflow-hidden rounded-full bg-slate-200/70">
             <div class="h-full rounded-full bg-field-green transition-[width]" :style="{ width: growthProgressBarWidth }"></div>
           </div>
-          <div class="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-            <span class="rounded-lg py-2" :class="growthStageClass('vegetatif')">Vegetatif</span>
-            <span class="rounded-lg py-2" :class="growthStageClass('generatif')">Generatif</span>
-            <span class="rounded-lg py-2" :class="growthStageClass('panen')">Panen</span>
+          <div class="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-semibold">
+            <span class="rounded-full py-2" :class="growthStageClass('vegetatif')">Vegetatif</span>
+            <span class="rounded-full py-2" :class="growthStageClass('generatif')">Generatif</span>
+            <span class="rounded-full py-2" :class="growthStageClass('panen')">Panen</span>
           </div>
         </div>
+      </article>
+    </aside>
+
+    <section class="order-2 glass-panel overflow-hidden bg-white/40 p-3 backdrop-blur-md lg:col-span-8">
+      <div class="flex flex-wrap items-center justify-between gap-3 px-2 py-3 sm:px-3">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">Pemantauan Lahan</p>
+          <h2 class="mt-1 text-xl font-semibold tracking-normal text-slate-800">Field Map Monitoring</h2>
+          <p class="mt-1 text-sm text-slate-500">{{ tenantProfileStore.activeFieldLabel }}</p>
+        </div>
+        <div class="flex items-center gap-2 rounded-full border border-white/70 bg-white/50 px-3 py-2 text-sm font-semibold text-slate-700">
+          <span class="h-2.5 w-2.5 rounded-full" :class="telemetryNodeToneClass"></span>
+          {{ telemetryNodeLabel }}
+        </div>
+      </div>
+
+      <div class="overflow-hidden rounded-[2rem] border border-white/60 shadow-sm">
+        <FieldMap />
+      </div>
+    </section>
+
+    <section class="order-3 grid gap-3 sm:grid-cols-2 lg:col-span-8 xl:grid-cols-4" aria-label="Top level stats and weather">
+      <article v-for="stat in topStats" :key="stat.label" class="glass-panel bg-white/40 p-4 backdrop-blur-md">
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <p class="truncate text-sm font-medium text-slate-500">{{ stat.label }}</p>
+            <p class="mt-2 text-2xl font-semibold tracking-normal text-slate-800">{{ stat.value }}</p>
+          </div>
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl" :class="stat.iconClass">
+            <component :is="stat.icon" class="h-5 w-5" />
+          </div>
+        </div>
+        <p class="mt-4 truncate text-sm font-medium" :class="stat.detailClass">{{ stat.detail }}</p>
       </article>
     </section>
 
-    <section class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-      <article class="panel-surface p-5">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 class="text-lg font-semibold tracking-normal text-white">Latest Metric Set</h2>
-            <p class="mt-1 text-sm text-slate-400">Dynamic MQTT payload fields</p>
-          </div>
-          <span class="rounded-full bg-field-mint/10 px-3 py-1 text-xs font-semibold text-field-mint">
-            {{ latestMetricCards.length }} metrics
-          </span>
+    <section class="order-4 glass-panel bg-white/40 p-5 backdrop-blur-md lg:col-span-12">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">Sensor Realtime</p>
+          <h2 class="mt-1 text-xl font-semibold tracking-normal text-slate-800">Latest Metric Set</h2>
+          <p class="mt-1 text-sm text-slate-500">Dynamic MQTT payload fields</p>
         </div>
+        <span class="rounded-full bg-field-mint/10 px-3 py-1.5 text-xs font-semibold text-teal-700">
+          {{ latestMetricCards.length }} metrics
+        </span>
+      </div>
 
-        <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <article
-            v-for="metric in latestMetricCards"
-            :key="`${metric.source}-${metric.key}`"
-            class="rounded-lg border border-white/10 bg-white/5 p-4"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <p class="text-sm font-semibold text-white">{{ metric.label }}</p>
-                <p class="mt-2 text-2xl font-semibold tracking-normal" :class="metricToneClass(metric.key)">
-                  {{ metric.displayValue }}
-                </p>
-              </div>
-              <span class="rounded-full bg-white/10 px-2 py-1 text-xs text-slate-300">
-                {{ metric.unit || metric.valueType }}
+      <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <article
+          v-for="metric in latestMetricCards"
+          :key="`${metric.source}-${metric.key}`"
+          class="rounded-[1.5rem] border border-white/60 bg-white/50 p-4 shadow-sm"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="truncate text-sm font-semibold text-slate-700">{{ metric.label }}</p>
+              <p class="mt-1 truncate text-xs text-slate-500">{{ metric.source }}</p>
+            </div>
+            <span class="shrink-0 rounded-full bg-white/70 px-2.5 py-1 text-xs font-semibold text-slate-600">
+              {{ metric.unit || metric.valueType }}
+            </span>
+          </div>
+
+          <div class="mt-5">
+            <div class="flex items-end justify-between gap-3">
+              <p class="text-2xl font-semibold tracking-normal text-slate-700">{{ metric.displayValue }}</p>
+              <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="metricStatusClass(metric)">
+                {{ metricStatusLabel(metric) }}
               </span>
             </div>
-            <p class="mt-4 text-xs text-slate-400">{{ metric.source }}</p>
-          </article>
-        </div>
-      </article>
-
-      <article class="panel-surface p-5">
-        <div class="flex items-center justify-between">
-          <div>
-            <h2 class="text-lg font-semibold tracking-normal text-white">BMKG Snapshot</h2>
-            <p class="mt-1 text-sm text-slate-400">{{ tenantProfileStore.activeFieldLabel }}</p>
-          </div>
-          <CloudRain v-if="isRainy(dashboardForecast?.current.condition)" class="h-7 w-7 text-sky-200" />
-          <CloudSun v-else class="h-7 w-7 text-amber-200" />
-        </div>
-
-        <div class="mt-5 rounded-lg border border-field-mint/20 bg-field-mint/10 p-4">
-          <p class="text-xs text-field-mint">ADM4 {{ tenantProfileStore.activeBmkgAdm4Code || "-" }}</p>
-          <p class="mt-2 text-2xl font-semibold tracking-normal text-white">
-            {{ dashboardForecast ? formatTemperature(dashboardForecast.current.temperatureC) : "Loading" }}
-          </p>
-          <p class="mt-1 text-sm text-slate-300">{{ dashboardForecast?.current.condition ?? "Mengambil data BMKG" }}</p>
-        </div>
-
-        <div class="mt-4 grid gap-3">
-          <div v-for="day in dashboardDailyForecast" :key="day.date" class="rounded-lg border border-white/10 bg-white/5 p-3">
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <p class="text-xs font-semibold text-white">{{ day.dateLabel }}</p>
-                <p class="mt-1 text-xs text-slate-400">{{ day.summary }}</p>
-              </div>
-              <strong class="text-sm text-field-mint">{{ formatTemperature(day.averageTemperatureC) }}</strong>
+            <div class="mt-4 h-5 overflow-hidden rounded-full bg-slate-200/80">
+              <div
+                class="h-full rounded-full transition-[width]"
+                :class="metricProgressClass(metric)"
+                :style="{ width: `${metricProgressPercent(metric)}%` }"
+              ></div>
+            </div>
+            <div class="mt-2 flex items-center justify-between text-xs font-medium text-slate-500">
+              <span>0%</span>
+              <span>{{ metricProgressPercent(metric) }}%</span>
             </div>
           </div>
-        </div>
+        </article>
 
-        <p v-if="weatherError" class="mt-4 text-xs text-amber-100">{{ weatherError }}</p>
-      </article>
+        <div v-if="latestMetricCards.length === 0" class="rounded-[1.5rem] border border-dashed border-white/70 bg-white/40 p-5 text-sm font-medium text-slate-500 sm:col-span-2 xl:col-span-4">
+          Menunggu telemetry sensor terbaru.
+        </div>
+      </div>
     </section>
   </div>
 </template>
@@ -141,7 +168,7 @@ import FieldMap from "../../components/dashboard/FieldMap.vue";
 import { appEnvironment } from "../../config/environment";
 import { fetchBmkgForecast, type BmkgForecastResult } from "../../services/bmkgService";
 import { useTenantProfileStore } from "../../stores/tenantProfileStore";
-import { useTelemetryStore } from "../../stores/telemetryStore";
+import { type DynamicMetric, useTelemetryStore } from "../../stores/telemetryStore";
 
 const telemetryStore = useTelemetryStore();
 const tenantProfileStore = useTenantProfileStore();
@@ -171,24 +198,24 @@ const topStats = computed(() => [
     value: telemetryStore.deviceCount.toLocaleString("id-ID"),
     detail: `${telemetryStore.onlineDeviceCount.toLocaleString("id-ID")} online`,
     icon: Cpu,
-    iconClass: "bg-field-mint/10 text-field-mint",
-    detailClass: "text-field-mint"
+    iconClass: "bg-field-mint/20 text-teal-700",
+    detailClass: "text-teal-700"
   },
   {
     label: "Active Fields",
     value: tenantProfileStore.fields.length.toLocaleString("id-ID"),
     detail: activeAreaLabel.value,
     icon: Sprout,
-    iconClass: "bg-field-green/10 text-field-green",
-    detailClass: "text-field-green"
+    iconClass: "bg-field-green/30 text-emerald-700",
+    detailClass: "text-emerald-700"
   },
   {
     label: "Weather",
     value: dashboardForecast.value ? formatTemperature(dashboardForecast.value.current.temperatureC) : "BMKG",
     detail: dashboardForecast.value?.current.condition ?? bmkgHost.value,
     icon: CloudSun,
-    iconClass: "bg-amber-300/10 text-amber-200",
-    detailClass: "text-amber-200"
+    iconClass: "bg-amber-300/25 text-amber-700",
+    detailClass: "text-amber-700"
   },
   {
     label: "Realtime Status",
@@ -233,51 +260,51 @@ const mqttStatusCard = computed(() => {
     case "connected":
       return {
         detail: `${telemetryStore.onlineDeviceCount.toLocaleString("id-ID")} live nodes via backend`,
-        detailClass: "text-field-mint",
-        iconClass: "bg-field-mint/10 text-field-mint",
+        detailClass: "text-teal-700",
+        iconClass: "bg-field-mint/20 text-teal-700",
         value: "Normal"
       };
     case "connecting":
       return {
         detail: "Membuka stream backend",
-        detailClass: "text-amber-200",
-        iconClass: "bg-amber-300/10 text-amber-200",
+        detailClass: "text-amber-700",
+        iconClass: "bg-amber-300/25 text-amber-700",
         value: "Connecting"
       };
     case "reconnecting":
       return {
         detail: "Menyambung ulang stream",
-        detailClass: "text-amber-200",
-        iconClass: "bg-amber-300/10 text-amber-200",
+        detailClass: "text-amber-700",
+        iconClass: "bg-amber-300/25 text-amber-700",
         value: "Reconnect"
       };
     case "history":
       return {
         detail: telemetryStore.deviceCount > 0 ? "Telemetry DB tersinkron" : "Belum ada data live",
-        detailClass: telemetryStore.onlineDeviceCount > 0 ? "text-field-mint" : "text-amber-200",
-        iconClass: telemetryStore.onlineDeviceCount > 0 ? "bg-field-mint/10 text-field-mint" : "bg-amber-300/10 text-amber-200",
+        detailClass: telemetryStore.onlineDeviceCount > 0 ? "text-teal-700" : "text-amber-700",
+        iconClass: telemetryStore.onlineDeviceCount > 0 ? "bg-field-mint/20 text-teal-700" : "bg-amber-300/25 text-amber-700",
         value: telemetryStore.onlineDeviceCount > 0 ? "Normal" : "Standby"
       };
     case "offline":
       return {
         detail: "Stream backend terputus",
-        detailClass: "text-rose-200",
-        iconClass: "bg-rose-300/10 text-rose-200",
+        detailClass: "text-rose-700",
+        iconClass: "bg-rose-300/20 text-rose-700",
         value: "Offline"
       };
     case "error":
       return {
         detail: telemetryStore.errorMessage ?? "Periksa API stream/backend ingestor",
-        detailClass: "text-rose-200",
-        iconClass: "bg-rose-300/10 text-rose-200",
+        detailClass: "text-rose-700",
+        iconClass: "bg-rose-300/20 text-rose-700",
         value: "Error"
       };
     case "idle":
     default:
       return {
         detail: "Menunggu telemetry",
-        detailClass: "text-slate-400",
-        iconClass: "bg-slate-300/10 text-slate-300",
+        detailClass: "text-slate-500",
+        iconClass: "bg-slate-300/30 text-slate-600",
         value: "Standby"
       };
   }
@@ -355,22 +382,6 @@ async function refreshDashboardForecast(): Promise<void> {
     : null;
 }
 
-function metricToneClass(metricKey: string): string {
-  const palette = [
-    "text-field-mint",
-    "text-field-green",
-    "text-sky-200",
-    "text-amber-200",
-    "text-cyan-200",
-    "text-lime-200",
-    "text-violet-200",
-    "text-emerald-200"
-  ];
-  const hash = Array.from(metricKey).reduce((total, character) => total + character.charCodeAt(0), 0);
-
-  return palette[hash % palette.length] ?? "text-field-mint";
-}
-
 function formatTemperature(value: number | null): string {
   return value === null ? "-" : `${value} C`;
 }
@@ -382,13 +393,73 @@ function isRainy(condition?: string): boolean {
 function growthStageClass(stage: "generatif" | "panen" | "vegetatif"): string {
   if (activeGrowthStage.value === stage) {
     return stage === "vegetatif"
-      ? "bg-field-green/10 text-field-green"
+      ? "bg-field-green/20 text-emerald-700"
       : stage === "generatif"
-        ? "bg-field-mint/10 text-field-mint"
-        : "bg-amber-300/10 text-amber-200";
+        ? "bg-field-mint/10 text-teal-700"
+        : "bg-amber-300/20 text-amber-700";
   }
 
-  return "bg-white/5 text-slate-400";
+  return "bg-white/50 text-slate-500";
+}
+
+function metricProgressPercent(metric: DynamicMetric): number {
+  if (metric.valueType === "boolean") {
+    return metric.value === true ? 100 : 0;
+  }
+
+  if (metric.valueType !== "number" || typeof metric.value !== "number") {
+    return 0;
+  }
+
+  return Math.min(100, Math.max(0, Math.round(metric.value)));
+}
+
+function metricStatusLabel(metric: DynamicMetric): string {
+  const level = metricStatusLevel(metric);
+  if (level === "critical") {
+    return "Kritis";
+  }
+
+  return level === "warning" ? "Waspada" : "Normal";
+}
+
+function metricStatusClass(metric: DynamicMetric): string {
+  const level = metricStatusLevel(metric);
+  if (level === "critical") {
+    return "bg-rose-100 text-rose-700";
+  }
+
+  return level === "warning" ? "bg-amber-100 text-amber-700" : "bg-field-mint/10 text-teal-700";
+}
+
+function metricProgressClass(metric: DynamicMetric): string {
+  const level = metricStatusLevel(metric);
+  if (level === "critical") {
+    return "bg-rose-400";
+  }
+
+  return level === "warning" ? "bg-amber-300" : "bg-teal-400";
+}
+
+function metricStatusLevel(metric: DynamicMetric): "critical" | "normal" | "warning" {
+  const percent = metricProgressPercent(metric);
+  if (metric.valueType === "boolean") {
+    return metric.value === true ? "normal" : "critical";
+  }
+
+  if (metric.valueType !== "number") {
+    return "warning";
+  }
+
+  if (percent < 25 || percent > 85) {
+    return "critical";
+  }
+
+  if (percent < 40 || percent > 70) {
+    return "warning";
+  }
+
+  return "normal";
 }
 
 function calculateHst(value: string | null): number | null {
