@@ -1,14 +1,14 @@
 <template>
-  <div class="relative h-[460px] min-h-[420px] overflow-hidden bg-[#0a1728]">
+  <div class="relative h-[460px] min-h-[420px] overflow-hidden rounded-[2rem] bg-slate-100">
     <div ref="mapElement" class="h-full w-full"></div>
 
-    <div class="absolute right-4 top-4 z-[500] flex rounded-full border border-white/10 bg-[#07111f]/90 p-1 text-xs font-semibold text-slate-300 shadow-xl shadow-slate-950/25 backdrop-blur">
+    <div class="absolute right-4 top-4 z-[500] flex rounded-2xl border border-white/80 bg-white/70 p-1 text-xs font-semibold text-slate-700 shadow-md backdrop-blur-md">
       <button
         v-for="layer in mapLayerOptions"
         :key="layer.key"
         type="button"
         class="inline-flex items-center gap-1.5 rounded-full px-3 py-2 transition"
-        :class="activeMapLayer === layer.key ? 'bg-field-mint text-[#07111f]' : 'hover:bg-white/10 hover:text-white'"
+        :class="activeMapLayer === layer.key ? 'bg-emerald-300 text-slate-800 shadow-sm' : 'hover:bg-white/80 hover:text-teal-700'"
         :aria-pressed="activeMapLayer === layer.key"
         :title="layer.title"
         @click="setActiveMapLayer(layer.key)"
@@ -26,7 +26,7 @@
       </button>
     </div>
 
-    <div class="pointer-events-none absolute left-4 top-4 z-[500] rounded-lg border border-white/10 bg-[#07111f]/90 px-3 py-2 text-xs text-slate-300 backdrop-blur">
+    <div class="pointer-events-none absolute left-4 top-4 z-[500] rounded-2xl border border-white/80 bg-white/70 px-3 py-2 text-xs font-semibold text-slate-700 shadow-md backdrop-blur-md">
       <div class="flex items-center gap-2">
         <span class="h-2 w-2 rounded-full" :class="connectionToneClass"></span>
         <span>{{ connectionLabel }}</span>
@@ -395,19 +395,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 :deep(.leaflet-container) {
   width: 100%;
   height: 100%;
-  background: #0a1728;
-  color: #dbeafe;
+  background: #f8fafc;
+  color: #334155;
   font-family: inherit;
 }
 
 :deep(.leaflet-control-attribution) {
-  background: rgb(7 17 31 / 86%);
-  color: #cbd5e1;
+  border-radius: 12px 0 0;
+  background: rgb(255 255 255 / 80%);
+  color: #475569;
   font-size: 11px;
+  backdrop-filter: blur(12px);
 }
 
 :deep(.leaflet-control-attribution a) {
-  color: #8ef0ca;
+  color: #0f766e;
 }
 
 :deep(.pamilo-sensor-marker) {
@@ -420,9 +422,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   place-items: center;
   width: 36px;
   height: 36px;
-  border: 1px solid rgb(255 255 255 / 24%);
+  border: 1px solid rgb(255 255 255 / 80%);
   border-radius: 999px;
-  box-shadow: 0 16px 36px rgb(0 0 0 / 32%);
+  box-shadow: 0 12px 30px rgb(15 23 42 / 18%);
 }
 
 :deep(.pamilo-sensor-marker > span > span) {
@@ -451,11 +453,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 :deep(.pamilo-sensor-popup .leaflet-popup-content-wrapper) {
   overflow: hidden;
-  border: 1px solid rgb(142 240 202 / 18%);
-  border-radius: 8px;
-  background: #07111f;
-  color: #ecfff7;
-  box-shadow: 0 24px 70px rgb(2 8 23 / 42%);
+  border: 1px solid rgb(255 255 255 / 80%);
+  border-radius: 24px;
+  background: rgb(255 255 255 / 82%);
+  color: #334155;
+  box-shadow: 0 24px 70px rgb(15 23 42 / 14%);
+  backdrop-filter: blur(18px);
 }
 
 :deep(.pamilo-sensor-popup .leaflet-popup-content) {
@@ -464,7 +467,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 :deep(.pamilo-sensor-popup .leaflet-popup-tip) {
-  background: #07111f;
+  background: rgb(255 255 255 / 82%);
 }
 
 :deep(.sensor-popup) {
@@ -480,14 +483,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 :deep(.sensor-title) {
   margin: 0;
-  color: #fff;
+  color: #1e293b;
   font-size: 14px;
   font-weight: 700;
 }
 
 :deep(.sensor-subtitle) {
   margin: 3px 0 0;
-  color: #94a3b8;
+  color: #64748b;
   font-size: 12px;
 }
 
@@ -499,13 +502,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 :deep(.status-pill.online) {
-  background: rgb(142 240 202 / 12%);
-  color: #8ef0ca;
+  background: rgb(45 212 191 / 12%);
+  color: #0f766e;
 }
 
 :deep(.status-pill.offline) {
   background: rgb(251 113 133 / 12%);
-  color: #fda4af;
+  color: #be123c;
 }
 
 :deep(.metric-list) {
@@ -519,25 +522,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid rgb(255 255 255 / 10%);
-  border-radius: 8px;
-  background: rgb(255 255 255 / 5%);
+  border: 1px solid rgb(255 255 255 / 80%);
+  border-radius: 16px;
+  background: rgb(255 255 255 / 60%);
   padding: 8px 10px;
 }
 
 :deep(.metric-row span) {
-  color: #94a3b8;
+  color: #64748b;
   font-size: 12px;
 }
 
 :deep(.metric-row strong) {
-  color: #fff;
+  color: #1e293b;
   font-size: 13px;
 }
 
 :deep(.empty-metrics) {
   margin: 0;
-  color: #94a3b8;
+  color: #64748b;
   font-size: 12px;
 }
 
@@ -550,10 +553,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 :deep(.popup-actions button) {
   min-height: 34px;
   flex: 1;
-  border: 1px solid rgb(142 240 202 / 28%);
-  border-radius: 8px;
-  background: rgb(142 240 202 / 10%);
-  color: #8ef0ca;
+  border: 1px solid rgb(45 212 191 / 28%);
+  border-radius: 14px;
+  background: rgb(45 212 191 / 10%);
+  color: #0f766e;
   font-size: 12px;
   font-weight: 700;
 }
