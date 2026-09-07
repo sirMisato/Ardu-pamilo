@@ -298,7 +298,7 @@ function createPopupHtml(deviceId: string): string {
     : `<p class="rounded-xl border border-dashed border-white/80 bg-white/50 px-3 py-2 text-xs font-medium text-slate-500">Waiting for MQTT telemetry.</p>`;
 
   return `
-    <section class="bg-white/85 backdrop-blur-lg border border-white/80 shadow-xl rounded-2xl p-5 text-slate-700 min-w-[280px]">
+    <section class="z-[400] bg-white/85 backdrop-blur-lg border border-white/80 shadow-xl rounded-2xl p-5 text-slate-700 w-72">
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0">
           <p class="truncate text-sm font-semibold text-slate-800">${escapeHtml(deviceId)}</p>
