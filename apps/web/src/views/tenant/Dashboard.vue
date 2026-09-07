@@ -71,7 +71,7 @@
       </article>
     </aside>
 
-    <section class="order-2 w-full glass-panel overflow-hidden bg-white/60 p-3 backdrop-blur-lg lg:order-1 lg:col-span-8">
+    <section class="order-2 w-full glass-panel overflow-hidden bg-white/60 backdrop-blur-lg lg:order-1 lg:col-span-8">
       <div class="flex flex-wrap items-center justify-between gap-3 px-2 py-3 sm:px-3">
         <div>
           <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">Pemantauan Lahan</p>
@@ -84,7 +84,7 @@
         </div>
       </div>
 
-      <div class="relative w-full h-[450px] lg:h-[550px] rounded-[2rem] overflow-hidden border border-white/60 shadow-sm isolate z-0">
+      <div class="relative w-full h-[500px] lg:h-[650px] rounded-[2rem] overflow-hidden border border-white/60 shadow-sm isolate bg-slate-50">
         <FieldMap />
       </div>
     </section>
