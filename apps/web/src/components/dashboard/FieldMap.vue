@@ -1,35 +1,6 @@
 <template>
-  <div class="relative z-10 h-full w-full overflow-hidden rounded-[2rem] bg-slate-100">
-    <div ref="mapElement" class="z-0 h-full w-full"></div>
-
-    <div
-      v-if="activeDeviceId"
-      class="absolute right-4 top-4 z-[400] w-64 rounded-2xl border border-white/80 bg-white/80 p-4 text-slate-700 shadow-xl backdrop-blur-xl lg:right-6 lg:top-6 lg:w-72"
-    >
-      <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0">
-          <p class="truncate text-sm font-semibold text-slate-800">{{ activeDeviceId }}</p>
-          <p class="mt-1 truncate text-xs font-medium text-slate-500">{{ activeDeviceUpdatedLabel }}</p>
-        </div>
-        <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold" :class="activeDeviceStatusClass">
-          {{ activeDeviceStatusLabel }}
-        </span>
-      </div>
-
-      <div class="mt-4 grid gap-2">
-        <div
-          v-for="metric in activeDeviceMetrics"
-          :key="metric.key"
-          class="flex items-center justify-between gap-3 rounded-xl border border-white/80 bg-white/60 px-3 py-2"
-        >
-          <span class="truncate text-xs font-medium text-slate-500">{{ metric.label }}</span>
-          <strong class="shrink-0 text-xs font-semibold text-slate-800">{{ metric.displayValue }}</strong>
-        </div>
-        <p v-if="activeDeviceMetrics.length === 0" class="rounded-xl border border-dashed border-white/80 bg-white/50 px-3 py-2 text-xs font-medium text-slate-500">
-          Menunggu metrik sensor.
-        </p>
-      </div>
-    </div>
+  <div class="relative h-full w-full overflow-hidden rounded-[2rem] bg-slate-100">
+    <div ref="mapElement" class="relative z-0 h-full w-full"></div>
 
     <div class="absolute bottom-4 right-4 z-[400] flex rounded-2xl border border-white/80 bg-white/60 p-1 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur-md">
       <button
@@ -85,18 +56,6 @@ let marker: Marker | null = null;
 let polygon: Polygon | null = null;
 
 const activeDeviceId = computed(() => Object.keys(telemetryStore.devices)[0] ?? "");
-const activeDeviceMetrics = computed(() => activeDeviceId.value ? telemetryStore.latestMetricsForDevice(activeDeviceId.value).slice(0, 3) : []);
-const activeDeviceStatusLabel = computed(() => {
-  const device = activeDeviceId.value ? telemetryStore.deviceById(activeDeviceId.value) : null;
-  return device?.online ? "Online" : "Offline";
-});
-const activeDeviceStatusClass = computed(() => activeDeviceStatusLabel.value === "Online"
-  ? "bg-field-mint/10 text-teal-700"
-  : "bg-rose-100 text-rose-600");
-const activeDeviceUpdatedLabel = computed(() => {
-  const device = activeDeviceId.value ? telemetryStore.deviceById(activeDeviceId.value) : null;
-  return device?.lastSeenAt ? `Update ${formatTime(device.lastSeenAt)}` : "No telemetry yet";
-});
 const fieldTooltip = computed(() => tenantProfileStore.activeFieldLabel);
 const activeFieldPolygon = computed(() => extractPolygonPoints(tenantProfileStore.activeField?.polygonGeojson));
 const activePolygonCenter = computed(() => getPolygonCenter(activeFieldPolygon.value));
@@ -327,30 +286,30 @@ function createPopupHtml(deviceId: string): string {
   const device = telemetryStore.deviceById(deviceId);
   const metrics = telemetryStore.latestMetricsForDevice(deviceId);
   const statusText = device?.online ? "Online" : "Offline";
-  const statusClass = device?.online ? "online" : "offline";
+  const statusClass = device?.online ? "bg-field-mint/10 text-teal-700" : "bg-rose-100 text-rose-600";
   const lastSeen = device?.lastSeenAt ? `Update terakhir ${formatTime(device.lastSeenAt)}` : "No telemetry yet";
   const metricRows = metrics.length > 0
     ? metrics.map((metric) => `
-      <div class="metric-row">
-        <span>${escapeHtml(metric.label)}</span>
-        <strong>${escapeHtml(metric.displayValue)}</strong>
+      <div class="flex items-center justify-between gap-3 rounded-xl border border-white/80 bg-white/60 px-3 py-2">
+        <span class="truncate text-xs font-medium text-slate-500">${escapeHtml(metric.label)}</span>
+        <strong class="shrink-0 text-xs font-semibold text-slate-800">${escapeHtml(metric.displayValue)}</strong>
       </div>
     `).join("")
-    : `<p class="empty-metrics">Waiting for MQTT telemetry.</p>`;
+    : `<p class="rounded-xl border border-dashed border-white/80 bg-white/50 px-3 py-2 text-xs font-medium text-slate-500">Waiting for MQTT telemetry.</p>`;
 
   return `
-    <section class="sensor-popup">
-      <div class="sensor-popup-header">
-        <div>
-          <p class="sensor-title">${escapeHtml(deviceId)}</p>
-          <p class="sensor-subtitle">${escapeHtml(lastSeen)}</p>
+    <section class="bg-white/85 backdrop-blur-lg border border-white/80 shadow-xl rounded-2xl p-4 text-slate-700 w-64">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="truncate text-sm font-semibold text-slate-800">${escapeHtml(deviceId)}</p>
+          <p class="mt-1 truncate text-xs font-medium text-slate-500">${escapeHtml(lastSeen)}</p>
         </div>
-        <span class="status-pill ${statusClass}">${statusText}</span>
+        <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass}">${statusText}</span>
       </div>
-      <div class="metric-list">${metricRows}</div>
-      <div class="popup-actions">
-        <button type="button">Details</button>
-        <button type="button">Laporan</button>
+      <div class="mt-4 grid gap-2">${metricRows}</div>
+      <div class="mt-4 flex gap-2">
+        <button class="min-h-9 flex-1 rounded-xl border border-field-mint/30 bg-field-mint/10 text-xs font-semibold text-teal-700" type="button">Details</button>
+        <button class="min-h-9 flex-1 rounded-xl border border-field-mint/30 bg-field-mint/10 text-xs font-semibold text-teal-700" type="button">Laporan</button>
       </div>
     </section>
   `;
@@ -494,14 +453,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 :deep(.pamilo-sensor-popup .leaflet-popup-content-wrapper) {
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 80%);
-  border-radius: 16px;
-  background: rgb(255 255 255 / 85%);
-  color: #334155;
-  box-shadow:
-    0 20px 25px -5px rgb(15 23 42 / 14%),
-    0 8px 10px -6px rgb(15 23 42 / 14%);
-  backdrop-filter: blur(18px);
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
 }
 
 :deep(.pamilo-sensor-popup .leaflet-popup-content) {
@@ -510,98 +464,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 :deep(.pamilo-sensor-popup .leaflet-popup-tip) {
-  background: rgb(255 255 255 / 85%);
-}
-
-:deep(.sensor-popup) {
-  box-sizing: border-box;
-  padding: 16px;
-}
-
-:deep(.sensor-popup-header) {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-:deep(.sensor-title) {
-  margin: 0;
-  color: #1e293b;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-:deep(.sensor-subtitle) {
-  margin: 3px 0 0;
-  color: #64748b;
-  font-size: 12px;
-}
-
-:deep(.status-pill) {
-  border-radius: 999px;
-  padding: 4px 9px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-:deep(.status-pill.online) {
-  background: rgb(45 212 191 / 12%);
-  color: #0f766e;
-}
-
-:deep(.status-pill.offline) {
-  background: rgb(251 113 133 / 12%);
-  color: #be123c;
-}
-
-:deep(.metric-list) {
-  display: grid;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-:deep(.metric-row) {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border: 1px solid rgb(255 255 255 / 80%);
-  border-radius: 16px;
-  background: rgb(255 255 255 / 60%);
-  padding: 8px 10px;
-}
-
-:deep(.metric-row span) {
-  color: #64748b;
-  font-size: 12px;
-}
-
-:deep(.metric-row strong) {
-  color: #1e293b;
-  font-size: 13px;
-}
-
-:deep(.empty-metrics) {
-  margin: 0;
-  color: #64748b;
-  font-size: 12px;
-}
-
-:deep(.popup-actions) {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-:deep(.popup-actions button) {
-  min-height: 34px;
-  flex: 1;
-  border: 1px solid rgb(45 212 191 / 28%);
-  border-radius: 14px;
-  background: rgb(45 212 191 / 10%);
-  color: #0f766e;
-  font-size: 12px;
-  font-weight: 700;
+  background: transparent;
+  box-shadow: none;
 }
 </style>
