@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-5">
     <section class="rounded-[2rem] border border-white bg-white/70 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl">
-      <div class="grid gap-4 md:grid-cols-[minmax(240px,1fr)_auto] md:items-end">
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(260px,2fr)_minmax(150px,1fr)_auto] xl:items-end">
         <label class="space-y-2">
           <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
             <TabletSmartphone class="h-4 w-4 text-emerald-500" />
@@ -16,6 +16,20 @@
             <option v-for="device in deviceOptions" :key="device.deviceUid" :value="device.deviceUid">
               {{ device.label }}
             </option>
+          </select>
+        </label>
+
+        <label class="space-y-2">
+          <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
+            <Clock class="h-4 w-4 text-teal-500" />
+            Interval
+          </span>
+          <select
+            v-model="filters.intervalMinutes"
+            aria-label="Interval grafik"
+            class="min-h-12 w-full rounded-full border border-white bg-slate-50 px-4 text-sm font-medium text-slate-600 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+          >
+            <option v-for="option in intervalOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
           </select>
         </label>
 
@@ -52,16 +66,7 @@
           </div>
           <div class="flex flex-wrap items-center justify-end gap-2">
             <span class="rounded-full bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-600">{{ chartRangeLabel }}</span>
-            <label class="relative">
-              <span class="sr-only">Interval</span>
-              <select
-                v-model="filters.intervalMinutes"
-                class="min-h-9 appearance-none rounded-full border border-transparent bg-slate-50 px-4 py-1.5 pr-9 text-sm font-medium text-slate-600 outline-none transition focus:border-emerald-200 focus:ring-2 focus:ring-emerald-100"
-              >
-                <option v-for="option in intervalOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-              </select>
-              <Clock class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            </label>
+            <span class="rounded-full bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-600">{{ selectedIntervalLabel }}</span>
           </div>
         </div>
 
