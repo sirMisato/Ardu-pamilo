@@ -1,15 +1,15 @@
 <template>
   <div class="space-y-5">
-    <section class="panel-surface p-5">
+    <section class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
       <div class="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(220px,1.4fr)_repeat(3,minmax(150px,1fr))_auto] xl:items-end">
         <label class="space-y-2">
-          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <Leaf class="h-4 w-4 text-field-mint" />
+          <span class="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <Leaf class="h-4 w-4 text-teal-600" />
             Zona/Area
           </span>
           <select
             v-model="filters.plotId"
-            class="min-h-11 w-full rounded-lg border border-white/10 bg-[#07111f] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+            class="min-h-11 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
           >
             <option value="">Semua Zona</option>
             <option v-for="field in fieldOptions" :key="field.id" :value="field.id">
@@ -19,37 +19,37 @@
         </label>
 
         <label class="space-y-2">
-          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <CalendarDays class="h-4 w-4 text-field-green" />
+          <span class="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <CalendarDays class="h-4 w-4 text-emerald-600" />
             Start Date
           </span>
           <input
             v-model="filters.startDate"
-            class="min-h-11 w-full rounded-lg border border-white/10 bg-[#07111f] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+            class="min-h-11 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
             type="date"
           />
         </label>
 
         <label class="space-y-2">
-          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <CalendarDays class="h-4 w-4 text-sky-200" />
+          <span class="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <CalendarDays class="h-4 w-4 text-sky-600" />
             End Date
           </span>
           <input
             v-model="filters.endDate"
-            class="min-h-11 w-full rounded-lg border border-white/10 bg-[#07111f] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+            class="min-h-11 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
             type="date"
           />
         </label>
 
         <label class="space-y-2">
-          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <Database class="h-4 w-4 text-amber-200" />
+          <span class="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <Database class="h-4 w-4 text-amber-600" />
             Telemetry
           </span>
           <select
             v-model.number="filters.telemetryLimit"
-            class="min-h-11 w-full rounded-lg border border-white/10 bg-[#07111f] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+            class="min-h-11 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
           >
             <option :value="60">60 rows</option>
             <option :value="180">180 rows</option>
@@ -60,7 +60,7 @@
 
         <button
           type="button"
-          class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-field-green px-5 text-sm font-semibold text-[#102016] transition hover:bg-field-mint disabled:opacity-60"
+          class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-300 px-5 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 disabled:opacity-60"
           :disabled="isBusy"
           @click="generateRecommendation"
         >
@@ -69,17 +69,17 @@
         </button>
       </div>
 
-      <div v-if="errorMessage" class="mt-4 rounded-lg border border-amber-300/25 bg-amber-300/10 p-4 text-sm text-amber-100">
+      <div v-if="errorMessage" class="mt-4 rounded-xl border border-amber-200 bg-amber-100/70 p-4 text-sm text-amber-700">
         {{ errorMessage }}
       </div>
     </section>
 
     <section class="grid gap-5 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-      <article class="panel-surface p-5">
+      <article class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <h2 class="text-base font-semibold tracking-normal text-white">Konteks Cuaca</h2>
-            <p class="mt-1 text-sm text-slate-400">{{ weatherLocationLabel }}</p>
+            <h2 class="text-base font-semibold tracking-normal text-slate-800">Konteks Cuaca</h2>
+            <p class="mt-1 text-sm text-slate-500">{{ weatherLocationLabel }}</p>
           </div>
           <button
             class="icon-button"
@@ -93,57 +93,61 @@
         </div>
 
         <div class="mt-5 grid gap-3 sm:grid-cols-2">
-          <div class="rounded-lg border border-field-mint/20 bg-field-mint/10 p-4">
+          <div class="rounded-xl border border-teal-100 bg-teal-50/70 p-4">
             <div class="flex items-center justify-between gap-3">
-              <p class="text-xs text-field-mint">Saat Ini</p>
-              <CloudRain v-if="isRainy(forecast?.current.condition)" class="h-5 w-5 text-sky-200" />
-              <CloudSun v-else class="h-5 w-5 text-amber-200" />
+              <p class="text-xs font-medium text-teal-700">Saat Ini</p>
+              <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-teal-100 text-teal-600">
+                <CloudRain v-if="isRainy(forecast?.current.condition)" class="h-5 w-5" />
+                <CloudSun v-else class="h-5 w-5" />
+              </span>
             </div>
-            <p class="mt-2 text-xl font-semibold tracking-normal text-white">{{ forecast?.current.condition ?? "-" }}</p>
-            <p class="mt-1 text-sm text-slate-300">{{ formatTemperature(forecast?.current.temperatureC ?? null) }}</p>
+            <p class="mt-2 text-xl font-semibold tracking-normal text-slate-800">{{ forecast?.current.condition ?? "-" }}</p>
+            <p class="mt-1 text-sm text-slate-600">{{ formatTemperature(forecast?.current.temperatureC ?? null) }}</p>
           </div>
 
-          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-            <p class="text-xs text-slate-400">Rain Chance</p>
-            <p class="mt-2 text-xl font-semibold tracking-normal text-sky-200">{{ rainChanceLabel }}</p>
-            <p class="mt-1 text-sm text-slate-300">{{ humidityLabel }}</p>
+          <div class="rounded-xl border border-white/80 bg-white/50 p-4">
+            <p class="text-xs font-medium text-slate-500">Rain Chance</p>
+            <p class="mt-2 text-xl font-semibold tracking-normal text-sky-700">{{ rainChanceLabel }}</p>
+            <p class="mt-1 text-sm text-slate-600">{{ humidityLabel }}</p>
           </div>
         </div>
 
-        <div v-if="weatherError" class="mt-4 rounded-lg border border-amber-300/25 bg-amber-300/10 p-3 text-sm text-amber-100">
+        <div v-if="weatherError" class="mt-4 rounded-xl border border-amber-200 bg-amber-100/70 p-3 text-sm text-amber-700">
           {{ weatherError }}
         </div>
       </article>
 
-      <article class="panel-surface p-5">
+      <article class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <h2 class="text-base font-semibold tracking-normal text-white">Catatan Lapang</h2>
-            <p class="mt-1 text-sm text-slate-400">{{ selectedFieldLabel }}</p>
+            <h2 class="text-base font-semibold tracking-normal text-slate-800">Catatan Lapang</h2>
+            <p class="mt-1 text-sm text-slate-500">{{ selectedFieldLabel }}</p>
           </div>
-          <Bot class="h-6 w-6 text-field-mint" />
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-600">
+            <Bot class="h-5 w-5" />
+          </div>
         </div>
 
         <textarea
           v-model.trim="filters.farmerNotes"
-          class="mt-5 min-h-28 w-full rounded-lg border border-white/10 bg-[#07111f] px-4 py-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+          class="mt-5 min-h-28 w-full rounded-xl border border-emerald-200 bg-white/50 px-4 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-500 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
           maxlength="3000"
           placeholder="Gejala daun, serangan OPT, kondisi saluran irigasi, fase tanaman, target panen"
         ></textarea>
       </article>
     </section>
 
-    <section v-if="aiStore.isGenerating" class="panel-surface p-8 text-center">
-      <Loader2 class="mx-auto h-10 w-10 animate-spin text-field-mint" />
-      <p class="mt-4 text-sm text-slate-400">Menganalisis data lahan.</p>
+    <section v-if="aiStore.isGenerating" class="rounded-2xl border border-white/80 bg-white/60 p-8 text-center shadow-sm backdrop-blur-lg">
+      <Loader2 class="mx-auto h-10 w-10 animate-spin text-teal-600" />
+      <p class="mt-4 text-sm text-slate-600">Menganalisis data lahan.</p>
     </section>
 
     <section v-else-if="result" class="space-y-5">
-      <article class="panel-surface p-5">
+      <article class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div class="max-w-4xl">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="inline-flex items-center gap-2 rounded-full bg-field-mint/10 px-3 py-1 text-xs font-semibold text-field-mint">
+              <span class="inline-flex items-center gap-2 rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-700">
                 <Sparkles class="h-3.5 w-3.5" />
                 {{ formatProvider(result.provider) }} / {{ result.model }}
               </span>
@@ -151,107 +155,113 @@
                 Confidence {{ formatLevel(result.recommendation.confidence) }}
               </span>
             </div>
-            <h2 class="mt-4 text-xl font-semibold tracking-normal text-white">Ringkasan Rekomendasi</h2>
-            <p class="mt-3 text-sm leading-6 text-slate-300">{{ result.recommendation.executiveSummary }}</p>
+            <h2 class="mt-4 text-xl font-semibold tracking-normal text-slate-800">Ringkasan Rekomendasi</h2>
+            <p class="mt-3 text-sm leading-6 text-slate-700">{{ result.recommendation.executiveSummary }}</p>
           </div>
 
           <dl class="grid min-w-60 grid-cols-2 gap-3 text-sm">
-            <div class="rounded-lg border border-white/10 bg-white/5 p-3">
-              <dt class="text-xs text-slate-400">Telemetry</dt>
-              <dd class="mt-1 font-semibold text-white">{{ result.analysisWindow.telemetryRows }}</dd>
+            <div class="rounded-xl border border-white/80 bg-white/50 p-3">
+              <dt class="text-xs text-slate-500">Telemetry</dt>
+              <dd class="mt-1 font-semibold text-slate-800">{{ result.analysisWindow.telemetryRows }}</dd>
             </div>
-            <div class="rounded-lg border border-white/10 bg-white/5 p-3">
-              <dt class="text-xs text-slate-400">Metrics</dt>
-              <dd class="mt-1 font-semibold text-white">{{ result.context.metricCount }}</dd>
+            <div class="rounded-xl border border-white/80 bg-white/50 p-3">
+              <dt class="text-xs text-slate-500">Metrics</dt>
+              <dd class="mt-1 font-semibold text-slate-800">{{ result.context.metricCount }}</dd>
             </div>
-            <div class="rounded-lg border border-white/10 bg-white/5 p-3">
-              <dt class="text-xs text-slate-400">Device</dt>
-              <dd class="mt-1 font-semibold text-white">{{ result.context.deviceCount }}</dd>
+            <div class="rounded-xl border border-white/80 bg-white/50 p-3">
+              <dt class="text-xs text-slate-500">Device</dt>
+              <dd class="mt-1 font-semibold text-slate-800">{{ result.context.deviceCount }}</dd>
             </div>
-            <div class="rounded-lg border border-white/10 bg-white/5 p-3">
-              <dt class="text-xs text-slate-400">Generated</dt>
-              <dd class="mt-1 font-semibold text-white">{{ formatTimeOnly(result.generatedAt) }}</dd>
+            <div class="rounded-xl border border-white/80 bg-white/50 p-3">
+              <dt class="text-xs text-slate-500">Generated</dt>
+              <dd class="mt-1 font-semibold text-slate-800">{{ formatTimeOnly(result.generatedAt) }}</dd>
             </div>
           </dl>
         </div>
       </article>
 
-      <section v-if="result.recommendation.riskAlerts.length > 0" class="panel-surface p-5">
+      <section v-if="result.recommendation.riskAlerts.length > 0" class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
         <div class="flex items-center gap-3">
-          <AlertTriangle class="h-5 w-5 text-amber-200" />
-          <h2 class="text-base font-semibold tracking-normal text-white">Peringatan Risiko</h2>
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+            <AlertTriangle class="h-5 w-5" />
+          </div>
+          <h2 class="text-base font-semibold tracking-normal text-slate-800">Peringatan Risiko</h2>
         </div>
 
         <div class="mt-5 grid gap-3 lg:grid-cols-2">
-          <article v-for="alert in result.recommendation.riskAlerts" :key="`${alert.title}-${alert.severity}`" class="rounded-lg border border-white/10 bg-white/5 p-4">
+          <article v-for="alert in result.recommendation.riskAlerts" :key="`${alert.title}-${alert.severity}`" class="rounded-xl border border-white/80 bg-white/50 p-4">
             <div class="flex items-start justify-between gap-3">
-              <h3 class="text-sm font-semibold text-white">{{ alert.title }}</h3>
+              <h3 class="text-sm font-semibold text-slate-800">{{ alert.title }}</h3>
               <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="levelClass(alert.severity)">
                 {{ formatLevel(alert.severity) }}
               </span>
             </div>
-            <p class="mt-3 text-sm leading-6 text-slate-300">{{ alert.rationale }}</p>
-            <p class="mt-3 rounded-lg bg-[#07111f] p-3 text-sm text-field-mint">{{ alert.action }}</p>
+            <p class="mt-3 text-sm leading-6 text-slate-700">{{ alert.rationale }}</p>
+            <p class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-sm font-medium text-emerald-800">{{ alert.action }}</p>
           </article>
         </div>
       </section>
 
       <section class="grid gap-5 xl:grid-cols-2">
-        <article v-for="section in recommendationSections" :key="section.id" class="panel-surface p-5">
+        <article v-for="section in recommendationSections" :key="section.id" class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-              <div class="flex h-10 w-10 items-center justify-center rounded-lg" :class="section.iconClass">
+              <div class="flex h-10 w-10 items-center justify-center rounded-xl" :class="section.iconClass">
                 <component :is="section.icon" class="h-5 w-5" />
               </div>
-              <h2 class="text-base font-semibold tracking-normal text-white">{{ section.title }}</h2>
+              <h2 class="text-base font-semibold tracking-normal text-slate-800">{{ section.title }}</h2>
             </div>
-            <span class="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-300">{{ section.items.length }}</span>
+            <span class="rounded-full border border-white/80 bg-white/50 px-3 py-1 text-xs text-slate-600">{{ section.items.length }}</span>
           </div>
 
           <div v-if="section.items.length > 0" class="mt-5 space-y-4">
-            <article v-for="item in section.items" :key="`${section.id}-${item.title}`" class="rounded-lg border border-white/10 bg-white/5 p-4">
+            <article v-for="item in section.items" :key="`${section.id}-${item.title}`" class="rounded-xl border border-white/80 bg-white/50 p-4">
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h3 class="text-sm font-semibold text-white">{{ item.title }}</h3>
-                  <p class="mt-1 text-xs text-slate-400">{{ item.timing }}</p>
+                  <h3 class="text-sm font-semibold text-slate-800">{{ item.title }}</h3>
+                  <p class="mt-1 text-xs text-slate-500">{{ item.timing }}</p>
                 </div>
                 <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="levelClass(item.priority)">
                   {{ formatLevel(item.priority) }}
                 </span>
               </div>
-              <p class="mt-3 text-sm leading-6 text-slate-300">{{ item.rationale }}</p>
-              <ul class="mt-3 space-y-2 text-sm text-slate-200">
+              <p class="mt-3 text-sm leading-6 text-slate-700">{{ item.rationale }}</p>
+              <ul class="mt-3 space-y-2 text-sm text-slate-700">
                 <li v-for="action in item.actions" :key="action" class="flex gap-2">
-                  <CheckCircle2 class="mt-0.5 h-4 w-4 shrink-0 text-field-mint" />
+                  <CheckCircle2 class="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
                   <span>{{ action }}</span>
                 </li>
               </ul>
             </article>
           </div>
 
-          <div v-else class="mt-5 rounded-lg border border-white/10 bg-white/5 p-5 text-sm text-slate-400">
+          <div v-else class="mt-5 rounded-xl border border-white/80 bg-white/50 p-5 text-sm text-slate-600">
             Tidak ada rekomendasi pada kategori ini.
           </div>
         </article>
       </section>
 
-      <section v-if="result.recommendation.dataGaps.length > 0" class="panel-surface p-5">
+      <section v-if="result.recommendation.dataGaps.length > 0" class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
         <div class="flex items-center gap-3">
-          <Database class="h-5 w-5 text-sky-200" />
-          <h2 class="text-base font-semibold tracking-normal text-white">Data Gap</h2>
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-600">
+            <Database class="h-5 w-5" />
+          </div>
+          <h2 class="text-base font-semibold tracking-normal text-slate-800">Data Gap</h2>
         </div>
         <div class="mt-4 flex flex-wrap gap-2">
-          <span v-for="gap in result.recommendation.dataGaps" :key="gap" class="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-300">
+          <span v-for="gap in result.recommendation.dataGaps" :key="gap" class="rounded-full border border-emerald-200 bg-white/50 px-3 py-1.5 text-sm text-slate-700">
             {{ gap }}
           </span>
         </div>
       </section>
     </section>
 
-    <section v-else class="panel-surface p-8 text-center">
-      <Sparkles class="mx-auto h-10 w-10 text-field-mint" />
-      <h2 class="mt-4 text-lg font-semibold tracking-normal text-white">AI Rekomendasi</h2>
-      <p class="mx-auto mt-2 max-w-xl text-sm text-slate-400">
+    <section v-else class="rounded-2xl border border-white/80 bg-white/60 p-8 text-center shadow-sm backdrop-blur-lg">
+      <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-100 text-teal-600">
+        <Sparkles class="h-6 w-6" />
+      </span>
+      <h2 class="mt-4 text-lg font-semibold tracking-normal text-slate-800">AI Rekomendasi</h2>
+      <p class="mx-auto mt-2 max-w-xl text-sm text-slate-600">
         Data tanah, cuaca, histori lahan, dan telemetry siap dianalisis.
       </p>
     </section>
@@ -348,28 +358,28 @@ const recommendationSections = computed(() => {
   return [
     {
       icon: FlaskConical,
-      iconClass: "bg-field-mint/10 text-field-mint",
+      iconClass: "bg-teal-100 text-teal-600",
       id: "fertilizer",
       items: recommendation?.fertilizer ?? [],
       title: "Pemupukan"
     },
     {
       icon: ShieldCheck,
-      iconClass: "bg-amber-300/10 text-amber-200",
+      iconClass: "bg-amber-100 text-amber-600",
       id: "pest",
       items: recommendation?.pestManagement ?? [],
       title: "Penanganan OPT"
     },
     {
       icon: Droplets,
-      iconClass: "bg-sky-300/10 text-sky-200",
+      iconClass: "bg-sky-100 text-sky-600",
       id: "irrigation",
       items: recommendation?.irrigation ?? [],
       title: "Irigasi"
     },
     {
       icon: TrendingUp,
-      iconClass: "bg-field-green/10 text-field-green",
+      iconClass: "bg-emerald-100 text-emerald-600",
       id: "yield",
       items: recommendation?.yieldOptimization ?? [],
       title: "Optimalisasi Panen"
@@ -469,14 +479,14 @@ function buildWeatherContext(): AiRecommendationRequest["weatherContext"] {
 
 function levelClass(level: RecommendationLevel): string {
   if (level === "high") {
-    return "bg-rose-300/10 text-rose-100";
+    return "bg-rose-100 text-rose-700";
   }
 
   if (level === "medium") {
-    return "bg-amber-300/10 text-amber-100";
+    return "bg-amber-100 text-amber-700";
   }
 
-  return "bg-field-mint/10 text-field-mint";
+  return "bg-emerald-100 text-emerald-700";
 }
 
 function formatLevel(level: RecommendationLevel): string {
