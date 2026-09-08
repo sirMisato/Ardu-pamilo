@@ -1,58 +1,25 @@
 <template>
   <div class="flex flex-col space-y-4 lg:grid lg:grid-cols-12 lg:gap-6 lg:space-y-0">
-    <aside class="contents lg:order-2 lg:col-span-4 lg:flex lg:flex-col lg:space-y-6">
-      <article class="order-1 glass-panel bg-white/60 p-5 backdrop-blur-lg">
-        <div class="flex items-start justify-between gap-4">
-          <div class="min-w-0">
-            <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">BMKG Snapshot</p>
-            <h2 class="mt-1 truncate text-lg font-semibold tracking-normal text-slate-800">{{ tenantProfileStore.activeFieldLabel }}</h2>
-          </div>
-          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/70 text-slate-700 shadow-glass-soft">
-            <CloudRain v-if="isRainy(dashboardForecast?.current.condition)" class="h-6 w-6 text-sky-500" />
-            <CloudSun v-else class="h-6 w-6 text-amber-400" />
-          </div>
-        </div>
-
-        <div class="mt-5 rounded-[1.5rem] border border-white/80 bg-white/60 p-4">
-          <p class="text-xs font-medium text-slate-500">ADM4 {{ tenantProfileStore.activeBmkgAdm4Code || "-" }}</p>
-          <p class="mt-2 text-3xl font-semibold tracking-normal text-slate-800">
-            {{ dashboardForecast ? formatTemperature(dashboardForecast.current.temperatureC) : "Loading" }}
-          </p>
-          <p class="mt-1 text-sm font-medium text-slate-600">{{ dashboardForecast?.current.condition ?? "Mengambil data BMKG" }}</p>
-        </div>
-
-        <div class="mt-4 grid gap-3">
-          <div v-for="day in dashboardDailyForecast" :key="day.date" class="rounded-[1.25rem] border border-white/80 bg-white/60 p-3">
-            <div class="flex items-center justify-between gap-3">
-              <div class="min-w-0">
-                <p class="truncate text-xs font-semibold text-slate-700">{{ day.dateLabel }}</p>
-                <p class="mt-1 truncate text-xs text-slate-500">{{ day.summary }}</p>
-              </div>
-              <strong class="shrink-0 text-sm font-semibold text-teal-700">{{ formatTemperature(day.averageTemperatureC) }}</strong>
+    <aside class="order-3 flex h-full flex-col lg:order-2 lg:col-span-4">
+      <article class="flex flex-1 flex-col justify-between rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
+        <div>
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">Detail Tanaman</p>
+              <h2 class="mt-1 text-lg font-semibold tracking-normal text-slate-800">{{ tenantProfileStore.activeField?.cropLabel ?? "Crop belum dipilih" }}</h2>
+            </div>
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-field-green/40 text-teal-700 shadow-glass-soft">
+              <Sprout class="h-6 w-6" />
             </div>
           </div>
+
+          <dl class="mt-5 grid gap-3">
+            <div v-for="item in cropInfo" :key="item.label" class="flex items-center justify-between gap-4 rounded-2xl bg-white/60 px-3 py-2.5">
+              <dt class="text-sm font-medium text-slate-500">{{ item.label }}</dt>
+              <dd class="text-right text-sm font-semibold text-slate-700">{{ item.value }}</dd>
+            </div>
+          </dl>
         </div>
-
-        <p v-if="weatherError" class="mt-4 rounded-2xl bg-amber-100/70 px-3 py-2 text-xs font-medium text-amber-700">{{ weatherError }}</p>
-      </article>
-
-      <article class="order-3 glass-panel bg-white/60 p-5 backdrop-blur-lg">
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">Detail Tanaman</p>
-            <h2 class="mt-1 text-lg font-semibold tracking-normal text-slate-800">{{ tenantProfileStore.activeField?.cropLabel ?? "Crop belum dipilih" }}</h2>
-          </div>
-          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-field-green/40 text-teal-700 shadow-glass-soft">
-            <Sprout class="h-6 w-6" />
-          </div>
-        </div>
-
-        <dl class="mt-5 grid gap-3">
-          <div v-for="item in cropInfo" :key="item.label" class="flex items-center justify-between gap-4 rounded-2xl bg-white/60 px-3 py-2.5">
-            <dt class="text-sm font-medium text-slate-500">{{ item.label }}</dt>
-            <dd class="text-right text-sm font-semibold text-slate-700">{{ item.value }}</dd>
-          </div>
-        </dl>
 
         <div class="mt-6">
           <div class="flex items-center justify-between text-sm">
