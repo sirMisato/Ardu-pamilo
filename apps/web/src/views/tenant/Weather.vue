@@ -1,14 +1,14 @@
 <template>
   <div class="space-y-5">
-    <section class="panel-surface p-5">
+    <section class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 class="text-lg font-semibold tracking-normal text-white">Weather Station</h2>
-          <p class="mt-1 text-sm text-slate-400">{{ locationLabel }}</p>
+          <h2 class="text-lg font-semibold tracking-normal text-slate-800">Weather Station</h2>
+          <p class="mt-1 text-sm text-slate-500">{{ locationLabel }}</p>
         </div>
 
         <button
-          class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-field-mint/30 bg-field-mint/10 px-4 text-sm font-semibold text-field-mint transition hover:bg-field-mint/15 focus:outline-none focus:ring-2 focus:ring-field-mint/40"
+          class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-300 px-4 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200/70"
           type="button"
           @click="refreshForecast"
         >
@@ -17,12 +17,12 @@
         </button>
       </div>
 
-      <div class="mt-5 flex flex-wrap gap-2">
+      <div class="mb-6 mt-5 flex w-fit gap-2 rounded-full border border-white/60 bg-white/40 p-1 shadow-sm backdrop-blur-md">
         <button
           v-for="tab in visibleTabs"
           :key="tab.id"
-          class="min-h-10 rounded-lg px-4 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-field-mint/40"
-          :class="activeTab === tab.id ? 'bg-field-green text-[#102016]' : 'border border-white/10 bg-white/5 text-slate-300 hover:border-field-mint/30 hover:text-field-mint'"
+          class="rounded-full px-5 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-200/70"
+          :class="activeTab === tab.id ? 'bg-emerald-300 text-emerald-950 font-semibold shadow-sm' : 'text-slate-500 hover:bg-white/50 hover:text-slate-700'"
           type="button"
           @click="activeTab = tab.id"
         >
@@ -32,80 +32,85 @@
     </section>
 
     <section v-if="activeTab === 'forecast'" class="space-y-5">
-      <div v-if="errorMessage" class="rounded-lg border border-amber-300/25 bg-amber-300/10 p-4 text-sm text-amber-100">
+      <div v-if="errorMessage" class="rounded-2xl border border-amber-200 bg-amber-100/70 p-4 text-sm text-amber-700 shadow-sm backdrop-blur-md">
         {{ errorMessage }}
       </div>
 
       <section v-if="forecast" class="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.45fr)]">
-        <article class="panel-surface overflow-hidden">
-          <div class="border-b border-white/10 p-5">
-            <p class="text-sm font-medium text-slate-400">Prakiraan Cuaca Saat Ini</p>
+        <article class="rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg">
+          <div class="border-b border-white/60 pb-5">
+            <p class="text-sm font-medium text-slate-500">Prakiraan Cuaca Saat Ini</p>
             <div class="mt-4 flex items-center justify-between gap-4">
               <div>
-                <h3 class="text-3xl font-semibold tracking-normal text-white">{{ forecast.current.condition }}</h3>
-                <p class="mt-2 text-sm text-slate-400">{{ formatDateTime(forecast.current.localDateTime) }}</p>
+                <p class="text-5xl font-bold tracking-normal text-slate-800">{{ formatTemperature(forecast.current.temperatureC) }}</p>
+                <h3 class="mt-3 text-xl font-semibold tracking-normal text-slate-700">{{ forecast.current.condition }}</h3>
+                <p class="mt-2 text-sm text-slate-500">{{ formatDateTime(forecast.current.localDateTime) }}</p>
               </div>
-              <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-field-mint/20 bg-field-mint/10">
+              <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-600">
                 <img
                   v-if="forecast.current.iconUrl"
                   :alt="forecast.current.condition"
-                  class="h-14 w-14"
+                  class="h-10 w-10"
                   :src="forecast.current.iconUrl"
                 />
-                <CloudSun v-else class="h-10 w-10 text-amber-200" />
+                <CloudSun v-else class="h-7 w-7" />
               </div>
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-3 p-5">
-            <div v-for="metric in currentWeatherMetrics" :key="metric.label" class="rounded-lg border border-white/10 bg-white/5 p-4">
+          <div class="grid grid-cols-2 gap-3 py-5">
+            <div v-for="metric in currentWeatherMetrics" :key="metric.label" class="rounded-2xl border border-white/60 bg-white/50 p-4">
               <div class="flex items-center justify-between gap-3">
-                <p class="text-xs text-slate-400">{{ metric.label }}</p>
-                <component :is="metric.icon" class="h-4 w-4" :class="metric.iconClass" />
+                <p class="text-xs text-slate-500">{{ metric.label }}</p>
+                <span class="flex h-8 w-8 items-center justify-center rounded-full bg-teal-100 text-teal-600">
+                  <component :is="metric.icon" class="h-4 w-4" />
+                </span>
               </div>
-              <p class="mt-2 text-xl font-semibold tracking-normal text-white">{{ metric.value }}</p>
+              <p class="mt-2 text-xl font-semibold tracking-normal text-slate-800">{{ metric.value }}</p>
             </div>
           </div>
 
-          <div class="border-t border-white/10 px-5 py-4 text-xs text-slate-400">
+          <div class="border-t border-white/60 pt-4 text-xs text-slate-500">
             <span>{{ forecast.attribution }}</span>
-            <span class="mx-2 text-white/20">/</span>
+            <span class="mx-2 text-slate-500">/</span>
             <span>{{ forecast.isMock ? "Mock fallback aktif" : safeUrlHost(forecast.forecastUrl) }}</span>
           </div>
         </article>
 
-        <article class="panel-surface p-5">
+        <article class="rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 class="text-base font-semibold tracking-normal text-white">3-Day Forecast Grid</h3>
-              <p class="mt-1 text-sm text-slate-400">Ringkasan harian dari bucket prakiraan BMKG.</p>
+              <h3 class="text-base font-semibold tracking-normal text-slate-800">3-Day Forecast Grid</h3>
+              <p class="mt-1 text-sm text-slate-500">Ringkasan harian dari bucket prakiraan BMKG.</p>
             </div>
-            <p class="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-300">ADM4 {{ forecast.location.adm4 }}</p>
+            <p class="rounded-full border border-white/60 bg-white/50 px-3 py-1 text-xs text-slate-600">ADM4 {{ forecast.location.adm4 }}</p>
           </div>
 
-          <div class="mt-5 grid gap-3 md:grid-cols-3">
-            <article v-for="day in dailyForecast" :key="day.date" class="rounded-lg border border-white/10 bg-white/5 p-4">
+          <div class="mt-5 grid gap-3 divide-white/60 md:grid-cols-3 md:divide-x">
+            <article v-for="day in dailyForecast" :key="day.date" class="rounded-2xl border border-white/60 bg-white/50 p-4">
               <div class="flex items-start justify-between gap-3">
                 <div>
-                  <p class="text-sm font-semibold text-white">{{ day.dateLabel }}</p>
-                  <p class="mt-1 text-xs text-slate-400">{{ day.summary }}</p>
+                  <p class="text-sm font-semibold text-slate-800">{{ day.dateLabel }}</p>
+                  <p class="mt-1 text-xs text-slate-500">{{ day.summary }}</p>
                 </div>
-                <CloudRain v-if="day.rainChancePercent >= 40" class="h-5 w-5 text-sky-200" />
-                <SunMedium v-else class="h-5 w-5 text-amber-200" />
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-600">
+                  <CloudRain v-if="day.rainChancePercent >= 40" class="h-5 w-5" />
+                  <SunMedium v-else class="h-5 w-5" />
+                </span>
               </div>
 
-              <div class="mt-5 space-y-3 text-sm">
+              <div class="mt-5 space-y-3 divide-y divide-white/60 text-sm">
                 <div class="flex items-center justify-between gap-3">
-                  <span class="text-slate-400">Avg Temp</span>
-                  <strong class="text-white">{{ formatTemperature(day.averageTemperatureC) }}</strong>
+                  <span class="text-slate-500">Avg Temp</span>
+                  <strong class="text-slate-800">{{ formatTemperature(day.averageTemperatureC) }}</strong>
                 </div>
-                <div class="flex items-center justify-between gap-3">
-                  <span class="text-slate-400">Humidity</span>
-                  <strong class="text-white">{{ day.humidityRange }}</strong>
+                <div class="flex items-center justify-between gap-3 pt-3">
+                  <span class="text-slate-500">Humidity</span>
+                  <strong class="text-slate-800">{{ day.humidityRange }}</strong>
                 </div>
-                <div class="flex items-center justify-between gap-3">
-                  <span class="text-slate-400">Rain Chance</span>
-                  <strong class="text-field-mint">{{ day.rainChancePercent }}%</strong>
+                <div class="flex items-center justify-between gap-3 pt-3">
+                  <span class="text-slate-500">Rain Chance</span>
+                  <strong class="text-teal-700">{{ day.rainChancePercent }}%</strong>
                 </div>
               </div>
             </article>
@@ -113,51 +118,54 @@
         </article>
       </section>
 
-      <section v-if="forecast" class="panel-surface p-5">
+      <section v-if="forecast" class="rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 class="text-base font-semibold tracking-normal text-white">Hourly Forecast</h3>
-            <p class="mt-1 text-sm text-slate-400">Sampel prakiraan 3 jam BMKG untuk pemantauan lapangan.</p>
+            <h3 class="text-base font-semibold tracking-normal text-slate-800">Hourly Forecast</h3>
+            <p class="mt-1 text-sm text-slate-500">Sampel prakiraan 3 jam BMKG untuk pemantauan lapangan.</p>
           </div>
-          <p class="text-xs text-slate-400">Updated {{ formatDateTime(forecast.fetchedAt) }}</p>
+          <p class="text-xs text-slate-500">Updated {{ formatDateTime(forecast.fetchedAt) }}</p>
         </div>
 
-        <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <article v-for="item in hourlyForecast" :key="item.id" class="rounded-lg border border-white/10 bg-white/5 p-4">
+        <div class="mt-5 grid gap-3 divide-white/60 sm:grid-cols-2 xl:grid-cols-4 xl:divide-x">
+          <article v-for="item in hourlyForecast" :key="item.id" class="rounded-2xl border border-white/60 bg-white/50 p-4">
             <div class="flex items-start justify-between gap-3">
               <div>
-                <p class="text-xs text-slate-400">{{ formatTimeOnly(item.localDateTime) }}</p>
-                <p class="mt-2 text-sm font-semibold text-white">{{ item.condition }}</p>
+                <p class="text-xs text-slate-500">{{ formatTimeOnly(item.localDateTime) }}</p>
+                <p class="mt-2 text-sm font-semibold text-slate-800">{{ item.condition }}</p>
               </div>
-              <span class="rounded-full px-2 py-1 text-xs font-semibold" :class="weatherToneClass(item.condition)">
+              <span
+                class="rounded-full px-2 py-1 text-xs font-semibold"
+                :class="item.condition.toLowerCase().includes('hujan') ? 'bg-sky-100 text-sky-700' : item.condition.toLowerCase().includes('cerah') ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'"
+              >
                 {{ item.weatherCode ?? "-" }}
               </span>
             </div>
             <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
-              <span class="rounded-lg bg-white/5 p-2 text-slate-300">{{ formatTemperature(item.temperatureC) }}</span>
-              <span class="rounded-lg bg-white/5 p-2 text-slate-300">{{ formatHumidity(item.humidityPercent) }}</span>
-              <span class="rounded-lg bg-white/5 p-2 text-slate-300">{{ formatRain(item.rainfallMm) }}</span>
-              <span class="rounded-lg bg-white/5 p-2 text-slate-300">{{ formatWind(item.windSpeed, item.windDirection) }}</span>
+              <span class="rounded-xl border border-white/60 bg-white/50 p-2 text-slate-700">{{ formatTemperature(item.temperatureC) }}</span>
+              <span class="rounded-xl border border-white/60 bg-white/50 p-2 text-slate-700">{{ formatHumidity(item.humidityPercent) }}</span>
+              <span class="rounded-xl border border-white/60 bg-white/50 p-2 text-slate-700">{{ formatRain(item.rainfallMm) }}</span>
+              <span class="rounded-xl border border-white/60 bg-white/50 p-2 text-slate-700">{{ formatWind(item.windSpeed, item.windDirection) }}</span>
             </div>
           </article>
         </div>
       </section>
 
-      <section v-if="isLoading && !forecast" class="panel-surface p-8 text-center">
-        <Loader2 class="mx-auto h-10 w-10 animate-spin text-field-mint" />
-        <p class="mt-4 text-sm text-slate-400">Mengambil prakiraan cuaca BMKG.</p>
+      <section v-if="isLoading && !forecast" class="rounded-[2rem] border border-white/80 bg-white/60 p-8 text-center shadow-sm backdrop-blur-lg">
+        <Loader2 class="mx-auto h-10 w-10 animate-spin text-teal-600" />
+        <p class="mt-4 text-sm text-slate-600">Mengambil prakiraan cuaca BMKG.</p>
       </section>
     </section>
 
     <section v-else-if="activeTab === 'monthly'" class="space-y-5">
-      <section class="panel-surface p-5">
+      <section class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 class="text-lg font-semibold tracking-normal text-white">Report Bulanan</h2>
-            <p class="mt-1 text-sm text-slate-400">{{ monthlyReportLabel }}</p>
+            <h2 class="text-lg font-semibold tracking-normal text-slate-800">Report Bulanan</h2>
+            <p class="mt-1 text-sm text-slate-500">{{ monthlyReportLabel }}</p>
           </div>
           <button
-            class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-field-mint/30 bg-field-mint/10 px-4 text-sm font-semibold text-field-mint transition hover:bg-field-mint/15"
+            class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-300 px-4 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400"
             type="button"
             :disabled="isHistoryLoading || monthlyMonthError !== null"
             @click="loadWeatherHistory"
@@ -169,64 +177,64 @@
 
         <form class="mt-5 flex flex-wrap items-end gap-3" @submit.prevent="applyMonthlyFilters">
           <label class="min-w-[220px] flex-1 space-y-2 sm:flex-none">
-            <span class="text-xs font-medium text-slate-400">Bulan Report</span>
+            <span class="text-xs font-medium text-slate-500">Bulan Report</span>
             <input
               v-model="monthlyFilters.month"
-              class="min-h-10 w-full rounded-lg border border-white/10 bg-[#07111f] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              class="min-h-10 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
               type="month"
             />
           </label>
           <button
-            class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-field-green px-4 text-sm font-semibold text-[#102016] transition hover:bg-field-mint disabled:opacity-60"
+            class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-300 px-4 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 disabled:opacity-60"
             type="submit"
             :disabled="isHistoryLoading || monthlyMonthError !== null"
           >
             Terapkan
           </button>
           <button
-            class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 text-sm font-semibold text-slate-300 transition hover:border-field-mint/30 hover:text-field-mint"
+            class="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/80 bg-white/50 px-4 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-white/70 hover:text-teal-700"
             type="button"
             :disabled="isHistoryLoading"
             @click="resetMonthlyRangeToCurrentMonth"
           >
             Bulan Ini
           </button>
-          <p v-if="monthlyMonthError" class="basis-full text-sm text-amber-200">{{ monthlyMonthError }}</p>
+          <p v-if="monthlyMonthError" class="basis-full text-sm text-amber-700">{{ monthlyMonthError }}</p>
         </form>
 
         <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-            <p class="text-xs text-slate-400">Records</p>
-            <p class="mt-2 text-xl font-semibold tracking-normal text-white">{{ weatherHistoryTotal.toLocaleString("id-ID") }}</p>
+          <div class="rounded-2xl border border-white/60 bg-white/50 p-4">
+            <p class="text-xs text-slate-500">Records</p>
+            <p class="mt-2 text-xl font-semibold tracking-normal text-slate-800">{{ weatherHistoryTotal.toLocaleString("id-ID") }}</p>
           </div>
-          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-            <p class="text-xs text-slate-400">Avg Temp</p>
-            <p class="mt-2 text-xl font-semibold tracking-normal text-white">{{ formatTemperature(monthlySummary.averageTemperatureC) }}</p>
+          <div class="rounded-2xl border border-white/60 bg-white/50 p-4">
+            <p class="text-xs text-slate-500">Avg Temp</p>
+            <p class="mt-2 text-xl font-semibold tracking-normal text-slate-800">{{ formatTemperature(monthlySummary.averageTemperatureC) }}</p>
           </div>
-          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-            <p class="text-xs text-slate-400">Total Rain</p>
-            <p class="mt-2 text-xl font-semibold tracking-normal text-sky-200">{{ formatRain(monthlySummary.totalRainfallMm) }}</p>
+          <div class="rounded-2xl border border-white/60 bg-white/50 p-4">
+            <p class="text-xs text-slate-500">Total Rain</p>
+            <p class="mt-2 text-xl font-semibold tracking-normal text-sky-700">{{ formatRain(monthlySummary.totalRainfallMm) }}</p>
           </div>
-          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-            <p class="text-xs text-slate-400">Rain Records</p>
-            <p class="mt-2 text-xl font-semibold tracking-normal text-field-mint">{{ monthlySummary.rainyRecords }}</p>
+          <div class="rounded-2xl border border-white/60 bg-white/50 p-4">
+            <p class="text-xs text-slate-500">Rain Records</p>
+            <p class="mt-2 text-xl font-semibold tracking-normal text-teal-700">{{ monthlySummary.rainyRecords }}</p>
           </div>
-          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-            <p class="text-xs text-slate-400">Latest</p>
-            <p class="mt-2 truncate text-sm font-semibold text-white">{{ monthlySummary.latestCondition }}</p>
+          <div class="rounded-2xl border border-white/60 bg-white/50 p-4">
+            <p class="text-xs text-slate-500">Latest</p>
+            <p class="mt-2 truncate text-sm font-semibold text-slate-800">{{ monthlySummary.latestCondition }}</p>
           </div>
         </div>
       </section>
 
-      <section class="panel-surface overflow-hidden">
-        <div class="border-b border-white/10 p-5">
-          <h3 class="text-base font-semibold tracking-normal text-white">Histori Cuaca</h3>
-          <p class="mt-1 text-sm text-slate-400">ADM4 {{ activeAdm4 || "-" }}</p>
+      <section class="overflow-hidden rounded-2xl border border-white/80 bg-white/60 shadow-sm backdrop-blur-lg">
+        <div class="border-b border-white/60 p-5">
+          <h3 class="text-base font-semibold tracking-normal text-slate-800">Histori Cuaca</h3>
+          <p class="mt-1 text-sm text-slate-500">ADM4 {{ activeAdm4 || "-" }}</p>
         </div>
 
         <div class="overflow-x-auto">
           <table class="min-w-[980px] w-full text-left text-sm">
-            <thead class="border-b border-white/10 bg-white/5 text-xs uppercase tracking-wide text-slate-400">
+            <thead class="border-b border-white/60 bg-white/40 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th class="px-4 py-3 font-semibold">Timestamp</th>
                 <th class="px-4 py-3 font-semibold">Lokasi</th>
@@ -238,38 +246,38 @@
                 <th class="px-4 py-3 font-semibold">Source</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-white/10">
-              <tr v-for="item in weatherHistory" :key="item.id" class="hover:bg-white/[0.03]">
-                <td class="px-4 py-4 text-slate-300">{{ formatDateTime(item.observedAt) }}</td>
-                <td class="px-4 py-4 text-slate-300">{{ formatWeatherHistoryLocation(item) }}</td>
-                <td class="px-4 py-4 font-semibold text-white">{{ item.condition }}</td>
-                <td class="px-4 py-4 text-amber-100">{{ formatTemperature(item.temperatureC) }}</td>
-                <td class="px-4 py-4 text-sky-100">{{ formatHumidity(item.humidityPercent) }}</td>
-                <td class="px-4 py-4 text-field-mint">{{ formatRain(item.rainfallMm) }}</td>
-                <td class="px-4 py-4 text-slate-300">{{ formatWind(item.windSpeed, item.windDirection ?? "-") }}</td>
-                <td class="px-4 py-4 text-slate-400">{{ item.isMock ? "Fallback" : item.source }}</td>
+            <tbody class="divide-y divide-white/60">
+              <tr v-for="item in weatherHistory" :key="item.id" class="hover:bg-white/40">
+                <td class="px-4 py-4 text-slate-700">{{ formatDateTime(item.observedAt) }}</td>
+                <td class="px-4 py-4 text-slate-700">{{ formatWeatherHistoryLocation(item) }}</td>
+                <td class="px-4 py-4 font-semibold text-slate-800">{{ item.condition }}</td>
+                <td class="px-4 py-4 text-amber-700">{{ formatTemperature(item.temperatureC) }}</td>
+                <td class="px-4 py-4 text-sky-700">{{ formatHumidity(item.humidityPercent) }}</td>
+                <td class="px-4 py-4 text-teal-700">{{ formatRain(item.rainfallMm) }}</td>
+                <td class="px-4 py-4 text-slate-700">{{ formatWind(item.windSpeed, item.windDirection ?? "-") }}</td>
+                <td class="px-4 py-4 text-slate-500">{{ item.isMock ? "Fallback" : item.source }}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <div v-if="isHistoryLoading" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
+        <div v-if="isHistoryLoading" class="border-t border-white/60 p-8 text-center text-sm text-slate-500">
           Memuat histori cuaca...
         </div>
-        <div v-else-if="weatherHistoryTotal === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
+        <div v-else-if="weatherHistoryTotal === 0" class="border-t border-white/60 p-8 text-center text-sm text-slate-500">
           Belum ada histori cuaca untuk bulan ini.
         </div>
 
-        <div v-else class="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 p-4 text-sm text-slate-300">
+        <div v-else class="flex flex-wrap items-center justify-between gap-3 border-t border-white/60 p-4 text-sm text-slate-700">
           <p>
             Menampilkan {{ monthlyPaginationStart }}-{{ monthlyPaginationEnd }} dari {{ weatherHistoryTotal.toLocaleString("id-ID") }} records
           </p>
           <div class="flex flex-wrap items-center gap-2">
-            <label class="flex items-center gap-2 text-xs text-slate-400">
+            <label class="flex items-center gap-2 text-xs text-slate-500">
               Rows
               <select
                 v-model.number="monthlyPageSize"
-                class="h-9 rounded-lg border border-white/10 bg-[#0b1626] px-2 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+                class="h-9 rounded-xl border border-emerald-200 bg-white/50 px-2 text-sm text-slate-700 outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
                 :disabled="isHistoryLoading"
                 @change="applyMonthlyFilters"
               >
@@ -285,7 +293,7 @@
             >
               <ChevronLeft class="h-4 w-4" />
             </button>
-            <span class="min-w-24 text-center text-xs text-slate-400">Hal {{ monthlyActivePage }} / {{ monthlyTotalPages }}</span>
+            <span class="min-w-24 text-center text-xs text-slate-500">Hal {{ monthlyActivePage }} / {{ monthlyTotalPages }}</span>
             <button
               class="icon-button h-9 w-9"
               type="button"
@@ -300,11 +308,11 @@
       </section>
     </section>
 
-    <section v-else class="panel-surface p-6">
+    <section v-else class="rounded-2xl border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg">
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <h2 class="text-lg font-semibold tracking-normal text-white">Konfigurasi</h2>
+        <h2 class="text-lg font-semibold tracking-normal text-slate-800">Konfigurasi</h2>
         <button
-          class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-field-green px-4 text-sm font-semibold text-[#102016] transition hover:bg-field-mint"
+          class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-300 px-4 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400"
           type="button"
           @click="openCreateConfigForm"
         >
@@ -315,11 +323,11 @@
 
       <form
         v-if="isConfigFormOpen"
-        class="mt-5 rounded-lg border border-field-mint/20 bg-field-mint/10 p-4"
+        class="mt-5 rounded-2xl border border-white/80 bg-white/50 p-4 shadow-sm backdrop-blur-md"
         @submit.prevent="submitWeatherConfig"
       >
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <h3 class="text-base font-semibold text-white">{{ configFormTitle }}</h3>
+          <h3 class="text-base font-semibold text-slate-800">{{ configFormTitle }}</h3>
           <button class="icon-button" type="button" aria-label="Tutup form" @click="closeConfigForm">
             <X class="h-4 w-4" />
           </button>
@@ -327,20 +335,20 @@
 
         <div class="mt-4 grid gap-4 md:grid-cols-2">
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Nama</span>
+            <span class="text-sm font-medium text-slate-700">Nama</span>
             <input
               v-model.trim="configForm.name"
-              class="min-h-11 w-full rounded-lg border border-white/10 bg-[#07111f] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              class="min-h-11 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
               required
               type="text"
             />
           </label>
 
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Field</span>
+            <span class="text-sm font-medium text-slate-700">Field</span>
             <select
               v-model="configForm.fieldId"
-              class="min-h-11 w-full rounded-lg border border-white/10 bg-[#07111f] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              class="min-h-11 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
               required
               @change="syncConfigField"
             >
@@ -351,34 +359,34 @@
           </label>
 
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">ADM4 BMKG</span>
+            <span class="text-sm font-medium text-slate-700">ADM4 BMKG</span>
             <input
               v-model.trim="configForm.bmkgAdm4Code"
-              class="min-h-11 w-full rounded-lg border border-white/10 bg-[#07111f] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              class="min-h-11 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
               required
               type="text"
             />
           </label>
 
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Endpoint</span>
+            <span class="text-sm font-medium text-slate-700">Endpoint</span>
             <input
               v-model.trim="configForm.baseUrl"
-              class="min-h-11 w-full rounded-lg border border-white/10 bg-[#07111f] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              class="min-h-11 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
               required
               type="url"
             />
           </label>
 
           <label class="space-y-2 md:col-span-2">
-            <span class="text-sm font-medium text-slate-300">Catatan</span>
+            <span class="text-sm font-medium text-slate-700">Catatan</span>
             <textarea
               v-model.trim="configForm.notes"
-              class="min-h-20 w-full rounded-lg border border-white/10 bg-[#07111f] px-3 py-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              class="min-h-20 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
             ></textarea>
           </label>
 
-          <label class="inline-flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-3 text-sm font-medium text-slate-300">
+          <label class="inline-flex items-center gap-3 rounded-xl border border-white/80 bg-white/50 px-3 py-3 text-sm font-medium text-slate-700">
             <input v-model="configForm.isEnabled" class="h-4 w-4 accent-[#a7e8af]" type="checkbox" />
             Aktif
           </label>
@@ -386,14 +394,14 @@
 
         <div class="mt-5 flex flex-wrap justify-end gap-3">
           <button
-            class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 text-sm font-semibold text-slate-300 hover:border-field-mint/30 hover:text-field-mint"
+            class="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/80 bg-white/50 px-4 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-white/70 hover:text-teal-700"
             type="button"
             @click="closeConfigForm"
           >
             Batal
           </button>
           <button
-            class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-field-green px-4 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60"
+            class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-300 px-4 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 disabled:opacity-60"
             :disabled="!canSubmitConfig"
             type="submit"
           >
@@ -403,9 +411,9 @@
         </div>
       </form>
 
-      <div class="mt-5 overflow-x-auto rounded-lg border border-white/10">
+      <div class="mt-5 overflow-x-auto rounded-2xl border border-white/80 bg-white/50">
         <table class="min-w-[880px] w-full text-left text-sm">
-          <thead class="border-b border-white/10 bg-white/5 text-xs uppercase tracking-wide text-slate-400">
+          <thead class="border-b border-white/60 bg-white/40 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th class="px-4 py-3 font-semibold">Nama</th>
               <th class="px-4 py-3 font-semibold">Field</th>
@@ -415,23 +423,23 @@
               <th class="px-4 py-3 text-right font-semibold">Aksi</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-white/10">
-            <tr v-for="config in weatherConfigs" :key="config.id" class="hover:bg-white/[0.03]">
+          <tbody class="divide-y divide-white/60">
+            <tr v-for="config in weatherConfigs" :key="config.id" class="hover:bg-white/40">
               <td class="px-4 py-4">
-                <p class="font-semibold text-white">{{ config.name }}</p>
-                <p v-if="config.notes" class="mt-1 truncate text-xs text-slate-400">{{ config.notes }}</p>
+                <p class="font-semibold text-slate-800">{{ config.name }}</p>
+                <p v-if="config.notes" class="mt-1 truncate text-xs text-slate-500">{{ config.notes }}</p>
               </td>
-              <td class="px-4 py-4 text-slate-300">{{ config.fieldName }}</td>
-              <td class="px-4 py-4 font-semibold text-field-mint">{{ config.bmkgAdm4Code }}</td>
+              <td class="px-4 py-4 text-slate-700">{{ config.fieldName }}</td>
+              <td class="px-4 py-4 font-semibold text-teal-700">{{ config.bmkgAdm4Code }}</td>
               <td class="max-w-[260px] px-4 py-4">
-                <span class="block truncate text-slate-300">{{ config.baseUrl }}</span>
+                <span class="block truncate text-slate-700">{{ config.baseUrl }}</span>
               </td>
               <td class="px-4 py-4">
                 <span
                   class="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold"
-                  :class="config.id === weatherConfigStore.activeConfigId ? 'bg-field-mint/10 text-field-mint' : config.isEnabled ? 'bg-white/5 text-slate-300' : 'bg-slate-700/40 text-slate-500'"
+                  :class="config.id === weatherConfigStore.activeConfigId ? 'bg-emerald-100 text-emerald-700' : config.isEnabled ? 'bg-white/70 text-slate-700' : 'bg-slate-100 text-slate-500'"
                 >
-                  <span class="h-2 w-2 rounded-full" :class="config.isEnabled ? 'bg-field-mint' : 'bg-slate-500'"></span>
+                  <span class="h-2 w-2 rounded-full" :class="config.isEnabled ? 'bg-teal-500' : 'bg-slate-400'"></span>
                   {{ config.id === weatherConfigStore.activeConfigId ? "Aktif" : config.isEnabled ? "Enabled" : "Disabled" }}
                 </span>
               </td>
@@ -458,7 +466,7 @@
           </tbody>
         </table>
 
-        <div v-if="weatherConfigs.length === 0" class="p-8 text-center text-sm text-slate-400">
+        <div v-if="weatherConfigs.length === 0" class="p-8 text-center text-sm text-slate-500">
           Belum ada konfigurasi weather.
         </div>
       </div>
