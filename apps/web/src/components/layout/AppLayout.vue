@@ -22,8 +22,11 @@
     </header>
 
     <div class="min-h-screen transition-[padding] duration-200" :class="sidebarCollapsed ? 'lg:pl-28' : 'lg:pl-80'">
-      <Topbar class="hidden lg:block" />
-      <main class="px-4 pb-28 pt-2 sm:px-6 lg:px-8 lg:pb-8 lg:pt-4">
+      <Topbar
+        class="hidden lg:fixed lg:right-0 lg:top-0 lg:z-30 lg:block lg:transition-[left]"
+        :class="sidebarCollapsed ? 'lg:left-28' : 'lg:left-80'"
+      />
+      <main class="px-4 pb-28 pt-2 sm:px-6 lg:px-8 lg:pb-8 lg:pt-20">
         <RouterView />
       </main>
     </div>

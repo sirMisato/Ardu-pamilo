@@ -71,21 +71,36 @@
       </article>
     </aside>
 
-    <section class="order-2 w-full glass-panel overflow-hidden bg-white/60 backdrop-blur-lg lg:order-1 lg:col-span-8">
-      <div class="flex flex-wrap items-center justify-between gap-3 px-2 py-3 sm:px-3">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">Pemantauan Lahan</p>
-          <h2 class="mt-1 text-xl font-semibold tracking-normal text-slate-800">Field Map Monitoring</h2>
-          <p class="mt-1 text-sm text-slate-500">{{ tenantProfileStore.activeFieldLabel }}</p>
-        </div>
-        <div class="flex items-center gap-2 rounded-full border border-white/80 bg-white/70 px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-md">
-          <span class="h-2.5 w-2.5 rounded-full" :class="telemetryNodeToneClass"></span>
-          {{ telemetryNodeLabel }}
-        </div>
+    <section class="order-2 w-full lg:order-1 lg:col-span-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" aria-label="Ringkasan status dashboard">
+        <article v-for="stat in topStats" :key="stat.label" class="flex items-center justify-between gap-4 rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-md">
+          <div class="min-w-0">
+            <p class="truncate text-sm text-slate-500">{{ stat.label }}</p>
+            <p class="mt-2 text-2xl font-bold tracking-normal text-slate-800">{{ stat.value }}</p>
+            <p class="mt-3 truncate text-sm font-medium" :class="stat.detailClass">{{ stat.detail }}</p>
+          </div>
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl" :class="stat.iconClass">
+            <component :is="stat.icon" class="h-5 w-5" />
+          </div>
+        </article>
       </div>
 
-      <div class="relative w-full h-[450px] lg:h-[600px] rounded-[2rem] overflow-hidden border border-white/60 shadow-sm isolate bg-slate-50">
-        <FieldMap />
+      <div class="glass-panel overflow-hidden bg-white/60 backdrop-blur-lg">
+        <div class="flex flex-wrap items-center justify-between gap-3 px-2 py-3 sm:px-3">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">Pemantauan Lahan</p>
+            <h2 class="mt-1 text-xl font-semibold tracking-normal text-slate-800">Field Map Monitoring</h2>
+            <p class="mt-1 text-sm text-slate-500">{{ tenantProfileStore.activeFieldLabel }}</p>
+          </div>
+          <div class="flex items-center gap-2 rounded-full border border-white/80 bg-white/70 px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-md">
+            <span class="h-2.5 w-2.5 rounded-full" :class="telemetryNodeToneClass"></span>
+            {{ telemetryNodeLabel }}
+          </div>
+        </div>
+
+        <div class="relative w-full h-[450px] lg:h-[600px] rounded-[2rem] overflow-hidden border border-white/60 shadow-sm isolate bg-slate-50">
+          <FieldMap />
+        </div>
       </div>
     </section>
 
@@ -101,54 +116,36 @@
         </span>
       </div>
 
-      <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan status dashboard">
-        <article v-for="stat in topStats" :key="stat.label" class="rounded-[1.5rem] border border-white/80 bg-white/60 p-4 shadow-sm">
-          <div class="flex items-start justify-between gap-4">
-            <div class="min-w-0">
-              <p class="truncate text-sm font-medium text-slate-500">{{ stat.label }}</p>
-              <p class="mt-2 text-2xl font-semibold tracking-normal text-slate-800">{{ stat.value }}</p>
-            </div>
-            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl" :class="stat.iconClass">
-              <component :is="stat.icon" class="h-5 w-5" />
-            </div>
-          </div>
-          <p class="mt-4 truncate text-sm font-medium" :class="stat.detailClass">{{ stat.detail }}</p>
-        </article>
-      </div>
-
       <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <article
           v-for="metric in latestMetricCards"
           :key="`${metric.source}-${metric.key}`"
-          class="rounded-[1.5rem] border border-white/80 bg-white/60 p-4 shadow-sm"
+          class="rounded-[1.5rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-md"
         >
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <p class="truncate text-sm font-semibold text-slate-700">{{ metric.label }}</p>
-              <p class="mt-1 truncate text-xs text-slate-500">{{ metric.source }}</p>
+              <p class="mt-1 truncate text-xs text-slate-500">{{ metric.source }} / {{ metric.unit || metric.valueType }}</p>
             </div>
-            <span class="shrink-0 rounded-full bg-white/70 px-2.5 py-1 text-xs font-semibold text-slate-600">
-              {{ metric.unit || metric.valueType }}
+            <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold" :class="getMetricStatus(metric.key, metric.value, activeCropData).badgeClass">
+              {{ getMetricStatus(metric.key, metric.value, activeCropData).label }}
             </span>
           </div>
 
           <div class="mt-5">
             <div class="flex items-end justify-between gap-3">
               <p class="text-2xl font-semibold tracking-normal text-slate-700">{{ metric.displayValue }}</p>
-              <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="metricStatusClass(metric)">
-                {{ metricStatusLabel(metric) }}
-              </span>
             </div>
             <div class="mt-4 h-5 overflow-hidden rounded-full bg-slate-200/80">
               <div
                 class="h-full rounded-full transition-[width]"
-                :class="metricProgressClass(metric)"
+                :class="getMetricStatus(metric.key, metric.value, activeCropData).barColor"
                 :style="{ width: `${metricProgressPercent(metric)}%` }"
               ></div>
             </div>
             <div class="mt-2 flex items-center justify-between text-xs font-medium text-slate-500">
-              <span>0%</span>
-              <span>{{ metricProgressPercent(metric) }}%</span>
+              <span>Min: {{ metricThresholdLowLabel(metric) }}</span>
+              <span>Max: {{ metricThresholdHighLabel(metric) }}</span>
             </div>
           </div>
         </article>
@@ -167,13 +164,45 @@ import { computed, onMounted, ref, watch } from "vue";
 import FieldMap from "../../components/dashboard/FieldMap.vue";
 import { appEnvironment } from "../../config/environment";
 import { fetchBmkgForecast, type BmkgForecastResult } from "../../services/bmkgService";
+import { type ApiCrop, type ThresholdKey, type ThresholdRange, useMasterDataStore } from "../../stores/masterDataStore";
 import { useTenantProfileStore } from "../../stores/tenantProfileStore";
 import { type DynamicMetric, useTelemetryStore } from "../../stores/telemetryStore";
 
 const telemetryStore = useTelemetryStore();
 const tenantProfileStore = useTenantProfileStore();
+const masterDataStore = useMasterDataStore();
 const dashboardForecast = ref<BmkgForecastResult | null>(null);
 const weatherError = ref<string | null>(null);
+
+type MetricStatus = {
+  badgeClass: string;
+  barColor: string;
+  label: "Kritis" | "Normal" | "Waspada";
+};
+
+type MetricThreshold = {
+  max: number | null;
+  min: number | null;
+  unit: string;
+};
+
+const metricStatuses = {
+  critical: {
+    badgeClass: "text-rose-700 bg-rose-100",
+    barColor: "bg-rose-400",
+    label: "Kritis"
+  },
+  normal: {
+    badgeClass: "text-emerald-700 bg-emerald-100",
+    barColor: "bg-emerald-400",
+    label: "Normal"
+  },
+  warning: {
+    badgeClass: "text-amber-700 bg-amber-100",
+    barColor: "bg-amber-300",
+    label: "Waspada"
+  }
+} satisfies Record<"critical" | "normal" | "warning", MetricStatus>;
 
 const bmkgHost = computed(() => {
   try {
@@ -184,7 +213,10 @@ const bmkgHost = computed(() => {
 });
 
 onMounted(async () => {
-  await tenantProfileStore.fetchFields();
+  await Promise.all([
+    tenantProfileStore.fetchFields(),
+    masterDataStore.fetchCrops()
+  ]);
   void refreshDashboardForecast();
 });
 
@@ -328,6 +360,18 @@ const cropInfo = computed(() => [
 
 const latestMetricCards = computed(() => telemetryStore.latestMetrics.slice(0, 8));
 const dashboardDailyForecast = computed(() => dashboardForecast.value?.daily.slice(0, 3) ?? []);
+const activeCropData = computed<ApiCrop | null>(() => {
+  const activeField = tenantProfileStore.activeField;
+  if (!activeField) {
+    return null;
+  }
+
+  const cropLabel = activeField.cropLabel.trim().toLowerCase();
+
+  return masterDataStore.crops.find((crop) => crop.id === activeField.cropId)
+    ?? masterDataStore.crops.find((crop) => crop.name.trim().toLowerCase() === cropLabel)
+    ?? null;
+});
 const activeCropHst = computed(() => calculateHst(tenantProfileStore.activeField?.cropPlantingDate ?? null));
 const activeCropProgressPercent = computed(() => {
   const hst = activeCropHst.value;
@@ -402,64 +446,156 @@ function growthStageClass(stage: "generatif" | "panen" | "vegetatif"): string {
   return "bg-white/50 text-slate-500";
 }
 
+function getMetricStatus(metricKey: string, currentValue: DynamicMetric["value"], cropData: ApiCrop | null): MetricStatus {
+  if (typeof currentValue === "boolean") {
+    return currentValue ? metricStatuses.normal : metricStatuses.critical;
+  }
+
+  const numericValue = normalizeMetricValue(currentValue);
+  const threshold = thresholdForMetric(metricKey, cropData);
+
+  if (numericValue === null || !threshold) {
+    return metricStatuses.warning;
+  }
+
+  const isBelowLow = threshold.min !== null && numericValue < threshold.min;
+  const isAboveHigh = threshold.max !== null && numericValue > threshold.max;
+
+  if (isBelowLow || isAboveHigh) {
+    return metricStatuses.critical;
+  }
+
+  const isNearLow = threshold.min !== null && numericValue <= threshold.min + thresholdTolerance("min", threshold);
+  const isNearHigh = threshold.max !== null && numericValue >= threshold.max - thresholdTolerance("max", threshold);
+
+  return isNearLow || isNearHigh ? metricStatuses.warning : metricStatuses.normal;
+}
+
 function metricProgressPercent(metric: DynamicMetric): number {
   if (metric.valueType === "boolean") {
     return metric.value === true ? 100 : 0;
   }
 
-  if (metric.valueType !== "number" || typeof metric.value !== "number") {
+  const numericValue = normalizeMetricValue(metric.value);
+  if (numericValue === null) {
     return 0;
   }
 
-  return Math.min(100, Math.max(0, Math.round(metric.value)));
+  const threshold = thresholdForMetric(metric.key, activeCropData.value);
+  if (!threshold) {
+    return Math.min(100, Math.max(0, Math.round(numericValue)));
+  }
+
+  const logicalMax = metricProgressMax(threshold);
+  if (logicalMax !== null) {
+    if (logicalMax <= 0) {
+      return numericValue > 0 ? 100 : 0;
+    }
+
+    return Math.min(100, Math.max(0, Math.round((numericValue / logicalMax) * 100)));
+  }
+
+  return Math.min(100, Math.max(0, Math.round(numericValue)));
 }
 
-function metricStatusLabel(metric: DynamicMetric): string {
-  const level = metricStatusLevel(metric);
-  if (level === "critical") {
-    return "Kritis";
+function metricProgressMax(threshold: MetricThreshold): number | null {
+  if (threshold.max !== null) {
+    return threshold.max;
   }
 
-  return level === "warning" ? "Waspada" : "Normal";
+  if (threshold.min !== null) {
+    return threshold.min * 2;
+  }
+
+  return null;
 }
 
-function metricStatusClass(metric: DynamicMetric): string {
-  const level = metricStatusLevel(metric);
-  if (level === "critical") {
-    return "bg-rose-100 text-rose-700";
-  }
-
-  return level === "warning" ? "bg-amber-100 text-amber-700" : "bg-field-mint/10 text-teal-700";
+function metricThresholdLowLabel(metric: DynamicMetric): string {
+  const threshold = thresholdForMetric(metric.key, activeCropData.value);
+  return threshold?.min === null || threshold?.min === undefined ? "-" : formatThresholdValue(threshold.min, threshold.unit);
 }
 
-function metricProgressClass(metric: DynamicMetric): string {
-  const level = metricStatusLevel(metric);
-  if (level === "critical") {
-    return "bg-rose-400";
-  }
-
-  return level === "warning" ? "bg-amber-300" : "bg-emerald-400";
+function metricThresholdHighLabel(metric: DynamicMetric): string {
+  const threshold = thresholdForMetric(metric.key, activeCropData.value);
+  return threshold?.max === null || threshold?.max === undefined ? "-" : formatThresholdValue(threshold.max, threshold.unit);
 }
 
-function metricStatusLevel(metric: DynamicMetric): "critical" | "normal" | "warning" {
-  const percent = metricProgressPercent(metric);
-  if (metric.valueType === "boolean") {
-    return metric.value === true ? "normal" : "critical";
+function thresholdForMetric(metricKey: string, cropData: ApiCrop | null): MetricThreshold | null {
+  const thresholdKey = thresholdKeyForMetric(metricKey);
+  if (!thresholdKey || !cropData) {
+    return null;
   }
 
-  if (metric.valueType !== "number") {
-    return "warning";
+  const range = cropData.thresholds[thresholdKey];
+  if (!range) {
+    return null;
   }
 
-  if (percent < 25 || percent > 85) {
-    return "critical";
+  const min = normalizeThresholdValue(range.min);
+  const max = normalizeThresholdValue(range.max);
+  if (min === null && max === null) {
+    return null;
   }
 
-  if (percent < 40 || percent > 70) {
-    return "warning";
+  return {
+    max,
+    min,
+    unit: range.unit
+  };
+}
+
+function thresholdKeyForMetric(metricKey: string): ThresholdKey | null {
+  const normalized = metricKey
+    .replace(/^metrics\./, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  const compact = normalized.replace(/_/g, "");
+
+  if (normalized === "ph" || compact === "ph") return "ph";
+  if (normalized === "n" || normalized === "nitrogen") return "nitrogen";
+  if (normalized === "p" || normalized === "phosphorus" || normalized === "phosphor") return "phosphorus";
+  if (normalized === "k" || normalized === "potassium") return "potassium";
+  if (normalized === "moisture" || normalized === "soil_moisture" || compact === "soilmoisture") return "moisture";
+
+  return null;
+}
+
+function thresholdTolerance(boundary: "max" | "min", threshold: MetricThreshold): number {
+  if (threshold.min !== null && threshold.max !== null) {
+    return Math.abs(threshold.max - threshold.min) * 0.1;
   }
 
-  return "normal";
+  const value = boundary === "min" ? threshold.min : threshold.max;
+  if (value !== null) {
+    return Math.abs(value) * 0.1;
+  }
+
+  return 1;
+}
+
+function normalizeMetricValue(value: DynamicMetric["value"]): number | null {
+  const numericValue = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
+  return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+function normalizeThresholdValue(value: ThresholdRange["min"]): number | null {
+  if (value === null) {
+    return null;
+  }
+
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+function formatThresholdValue(value: number, unit: string): string {
+  const formattedValue = Number.isInteger(value) ? value.toLocaleString("id-ID") : value.toLocaleString("id-ID", { maximumFractionDigits: 2 });
+  if (!unit || unit === "range") {
+    return formattedValue;
+  }
+
+  return unit === "%" ? `${formattedValue}%` : `${formattedValue} ${unit}`;
 }
 
 function calculateHst(value: string | null): number | null {
