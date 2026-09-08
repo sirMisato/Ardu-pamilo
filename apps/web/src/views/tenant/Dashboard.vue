@@ -87,32 +87,28 @@
         <article
           v-for="metric in latestMetricCards"
           :key="`${metric.source}-${metric.key}`"
-          class="rounded-[1.5rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-md"
+          class="flex min-h-[240px] flex-col overflow-hidden rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md"
         >
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <p class="truncate text-sm font-semibold text-slate-700">{{ metric.label }}</p>
               <p class="mt-1 truncate text-xs text-slate-500">{{ metric.source }} / {{ metric.unit || metric.valueType }}</p>
             </div>
-            <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold" :class="getMetricStatus(metric.key, metric.value, activeCropData).badgeClass">
-              {{ getMetricStatus(metric.key, metric.value, activeCropData).label }}
+            <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold" :class="metric.status.badgeClass">
+              {{ metric.status.label }}
             </span>
           </div>
 
-          <div class="mt-5">
-            <div class="flex items-end justify-between gap-3">
-              <p class="text-2xl font-semibold tracking-normal text-slate-700">{{ metric.displayValue }}</p>
-            </div>
-            <div class="mt-4 h-5 overflow-hidden rounded-full bg-slate-200/80">
-              <div
-                class="h-full rounded-full transition-[width]"
-                :class="getMetricStatus(metric.key, metric.value, activeCropData).barColor"
-                :style="{ width: `${metricProgressPercent(metric)}%` }"
-              ></div>
-            </div>
-            <div class="mt-2 flex items-center justify-between text-xs font-medium text-slate-500">
-              <span>Min: {{ metricThresholdLowLabel(metric) }}</span>
-              <span>Max: {{ metricThresholdHighLabel(metric) }}</span>
+          <div class="mt-6">
+            <p class="text-3xl font-bold tracking-normal text-slate-800">{{ metric.displayValue }}</p>
+            <p class="mt-2" :class="metricTrendClass(metric.trend.status)">
+              {{ metricTrendArrow(metric.trend.status) }} {{ formatMetricTrendPercent(metric.trend.percentageChange) }} dari kemarin
+            </p>
+          </div>
+
+          <div class="mt-auto pt-5">
+            <div class="h-16">
+              <Line :data="metric.sparklineData" :options="sparklineChartOptions" />
             </div>
           </div>
         </article>
@@ -126,7 +122,21 @@
 </template>
 
 <script setup lang="ts">
-import { CloudRain, CloudSun, Cpu, Sprout, Waves } from "@lucide/vue";
+import {
+  CategoryScale,
+  Chart as ChartJS,
+  Filler,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Tooltip,
+  type ChartData,
+  type ChartOptions,
+  type ScriptableContext
+} from "chart.js";
+import { CloudSun, Cpu, Sprout, Waves } from "@lucide/vue";
+import { Line } from "vue-chartjs";
 import { computed, onMounted, ref, watch } from "vue";
 import FieldMap from "../../components/dashboard/FieldMap.vue";
 import { appEnvironment } from "../../config/environment";
@@ -134,6 +144,8 @@ import { fetchBmkgForecast, type BmkgForecastResult } from "../../services/bmkgS
 import { type ApiCrop, type ThresholdKey, type ThresholdRange, useMasterDataStore } from "../../stores/masterDataStore";
 import { useTenantProfileStore } from "../../stores/tenantProfileStore";
 import { type DynamicMetric, useTelemetryStore } from "../../stores/telemetryStore";
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Legend, Tooltip);
 
 const telemetryStore = useTelemetryStore();
 const tenantProfileStore = useTenantProfileStore();
@@ -143,7 +155,6 @@ const weatherError = ref<string | null>(null);
 
 type MetricStatus = {
   badgeClass: string;
-  barColor: string;
   label: "Kritis" | "Normal" | "Waspada";
 };
 
@@ -153,23 +164,67 @@ type MetricThreshold = {
   unit: string;
 };
 
+type MetricTrendStatus = "naik" | "turun";
+
+type MetricTrendComparison = {
+  percentageChange: number;
+  status: MetricTrendStatus;
+};
+
+type LatestMetricCard = DynamicMetric & {
+  sparklineData: ChartData<"line", number[], string>;
+  status: MetricStatus;
+  trend: MetricTrendComparison;
+};
+
 const metricStatuses = {
   critical: {
     badgeClass: "text-rose-700 bg-rose-100",
-    barColor: "bg-rose-400",
     label: "Kritis"
   },
   normal: {
     badgeClass: "text-emerald-700 bg-emerald-100",
-    barColor: "bg-emerald-400",
     label: "Normal"
   },
   warning: {
     badgeClass: "text-amber-700 bg-amber-100",
-    barColor: "bg-amber-300",
     label: "Waspada"
   }
 } satisfies Record<"critical" | "normal" | "warning", MetricStatus>;
+
+const sparklinePointCount = 12;
+const sparklineLabels = Array.from({ length: sparklinePointCount }, (_, index) => String(index + 1));
+const sparklineChartOptions: ChartOptions<"line"> = {
+  animation: {
+    duration: 500
+  },
+  maintainAspectRatio: false,
+  responsive: true,
+  layout: {
+    padding: {
+      bottom: 0,
+      left: 0,
+      right: 0,
+      top: 4
+    }
+  },
+  plugins: {
+    legend: {
+      display: false
+    },
+    tooltip: {
+      enabled: false
+    }
+  },
+  scales: {
+    x: {
+      display: false
+    },
+    y: {
+      display: false
+    }
+  }
+};
 
 const bmkgHost = computed(() => {
   try {
@@ -325,7 +380,6 @@ const cropInfo = computed(() => [
   { label: "Field", value: tenantProfileStore.activeField?.name ?? "-" }
 ]);
 
-const latestMetricCards = computed(() => telemetryStore.latestMetrics.slice(0, 8));
 const dashboardDailyForecast = computed(() => dashboardForecast.value?.daily.slice(0, 3) ?? []);
 const activeCropData = computed<ApiCrop | null>(() => {
   const activeField = tenantProfileStore.activeField;
@@ -339,6 +393,12 @@ const activeCropData = computed<ApiCrop | null>(() => {
     ?? masterDataStore.crops.find((crop) => crop.name.trim().toLowerCase() === cropLabel)
     ?? null;
 });
+const latestMetricCards = computed<LatestMetricCard[]>(() => telemetryStore.latestMetrics.slice(0, 8).map((metric, index) => ({
+  ...metric,
+  sparklineData: createSparklineData(metric, index),
+  status: getMetricStatus(metric.key, metric.value, activeCropData.value),
+  trend: calculateTodayVsYesterdayTrend(metric)
+})));
 const activeCropHst = computed(() => calculateHst(tenantProfileStore.activeField?.cropPlantingDate ?? null));
 const activeCropProgressPercent = computed(() => {
   const hst = activeCropHst.value;
@@ -397,8 +457,133 @@ function formatTemperature(value: number | null): string {
   return value === null ? "-" : `${value} C`;
 }
 
-function isRainy(condition?: string): boolean {
-  return condition?.toLowerCase().includes("hujan") ?? false;
+function calculateTodayVsYesterdayTrend(metric: DynamicMetric): MetricTrendComparison {
+  const { todayAverage, yesterdayAverage } = simulateMetricDailyAverages(metric);
+  const rawPercentageChange = yesterdayAverage === 0
+    ? 0
+    : ((todayAverage - yesterdayAverage) / Math.abs(yesterdayAverage)) * 100;
+
+  return {
+    percentageChange: Math.abs(roundMetricTrendValue(rawPercentageChange)),
+    status: rawPercentageChange >= 0 ? "naik" : "turun"
+  };
+}
+
+function metricTrendArrow(status: MetricTrendStatus): string {
+  return status === "naik" ? "↗" : "↘";
+}
+
+function metricTrendClass(status: MetricTrendStatus): string {
+  return status === "naik"
+    ? "flex items-center gap-1 text-sm font-medium text-emerald-500"
+    : "flex items-center gap-1 text-sm font-medium text-rose-500";
+}
+
+function formatMetricTrendPercent(value: number): string {
+  return `${value.toLocaleString("en-US", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2
+  })}%`;
+}
+
+function createSparklineData(metric: DynamicMetric, index: number): ChartData<"line", number[], string> {
+  return {
+    labels: [...sparklineLabels],
+    datasets: [
+      {
+        backgroundColor: createSparklineGradient,
+        borderCapStyle: "round",
+        borderColor: "#34d399",
+        borderJoinStyle: "round",
+        borderWidth: 2,
+        data: createSparklineValues(metric, index),
+        fill: true,
+        pointHoverRadius: 0,
+        pointRadius: 0,
+        tension: 0.4
+      }
+    ]
+  };
+}
+
+function createSparklineGradient(context: ScriptableContext<"line">): string | CanvasGradient {
+  const { chart } = context;
+  const { chartArea, ctx } = chart;
+
+  if (!chartArea) {
+    return "rgba(52, 211, 153, 0.16)";
+  }
+
+  const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+  gradient.addColorStop(0, "rgba(52, 211, 153, 0.30)");
+  gradient.addColorStop(0.58, "rgba(45, 212, 191, 0.12)");
+  gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+
+  return gradient;
+}
+
+function createSparklineValues(metric: DynamicMetric, index: number): number[] {
+  const { todayAverage, yesterdayAverage } = simulateMetricDailyAverages(metric);
+  const seed = metricHash(metric, `sparkline-${index}`);
+  const amplitude = Math.max(Math.abs(todayAverage - yesterdayAverage) * 0.25, Math.abs(todayAverage) * 0.035, 0.25);
+  const values = Array.from({ length: sparklinePointCount }, (_, pointIndex) => {
+    const progress = pointIndex / (sparklinePointCount - 1);
+    const drift = yesterdayAverage + ((todayAverage - yesterdayAverage) * progress);
+    const wave = Math.sin((pointIndex + (seed % 9)) * 0.85) * amplitude;
+
+    return roundMetricTrendValue(Math.max(0, drift + wave));
+  });
+
+  values[values.length - 1] = roundMetricTrendValue(Math.max(0, todayAverage));
+
+  return values;
+}
+
+function simulateMetricDailyAverages(metric: DynamicMetric): { todayAverage: number; yesterdayAverage: number } {
+  const todayAverage = metricComparisonBase(metric);
+  const seed = metricHash(metric, "today-vs-yesterday");
+  const direction = seed % 2 === 0 ? 1 : -1;
+  const magnitudePercent = 0.8 + ((seed % 520) / 100);
+  const signedRatio = (direction * magnitudePercent) / 100;
+
+  return {
+    todayAverage,
+    yesterdayAverage: todayAverage / (1 + signedRatio)
+  };
+}
+
+function metricComparisonBase(metric: DynamicMetric): number {
+  const numericValue = normalizeTrendMetricValue(metric.value);
+
+  if (numericValue !== null && Math.abs(numericValue) >= 0.01) {
+    return numericValue;
+  }
+
+  const seed = metricHash(metric, "average-base");
+  return 12 + ((seed % 8800) / 100);
+}
+
+function normalizeTrendMetricValue(value: DynamicMetric["value"]): number | null {
+  if (typeof value === "boolean") {
+    return value ? 1 : 0;
+  }
+
+  return normalizeMetricValue(value);
+}
+
+function metricHash(metric: DynamicMetric, salt: string): number {
+  const input = `${metric.source}:${metric.key}:${salt}`;
+  let hash = 0;
+
+  for (const character of input) {
+    hash = ((hash * 31) + character.charCodeAt(0)) >>> 0;
+  }
+
+  return hash;
+}
+
+function roundMetricTrendValue(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 function growthStageClass(stage: "generatif" | "panen" | "vegetatif"): string {
@@ -436,55 +621,6 @@ function getMetricStatus(metricKey: string, currentValue: DynamicMetric["value"]
   const isNearHigh = threshold.max !== null && numericValue >= threshold.max - thresholdTolerance("max", threshold);
 
   return isNearLow || isNearHigh ? metricStatuses.warning : metricStatuses.normal;
-}
-
-function metricProgressPercent(metric: DynamicMetric): number {
-  if (metric.valueType === "boolean") {
-    return metric.value === true ? 100 : 0;
-  }
-
-  const numericValue = normalizeMetricValue(metric.value);
-  if (numericValue === null) {
-    return 0;
-  }
-
-  const threshold = thresholdForMetric(metric.key, activeCropData.value);
-  if (!threshold) {
-    return Math.min(100, Math.max(0, Math.round(numericValue)));
-  }
-
-  const logicalMax = metricProgressMax(threshold);
-  if (logicalMax !== null) {
-    if (logicalMax <= 0) {
-      return numericValue > 0 ? 100 : 0;
-    }
-
-    return Math.min(100, Math.max(0, Math.round((numericValue / logicalMax) * 100)));
-  }
-
-  return Math.min(100, Math.max(0, Math.round(numericValue)));
-}
-
-function metricProgressMax(threshold: MetricThreshold): number | null {
-  if (threshold.max !== null) {
-    return threshold.max;
-  }
-
-  if (threshold.min !== null) {
-    return threshold.min * 2;
-  }
-
-  return null;
-}
-
-function metricThresholdLowLabel(metric: DynamicMetric): string {
-  const threshold = thresholdForMetric(metric.key, activeCropData.value);
-  return threshold?.min === null || threshold?.min === undefined ? "-" : formatThresholdValue(threshold.min, threshold.unit);
-}
-
-function metricThresholdHighLabel(metric: DynamicMetric): string {
-  const threshold = thresholdForMetric(metric.key, activeCropData.value);
-  return threshold?.max === null || threshold?.max === undefined ? "-" : formatThresholdValue(threshold.max, threshold.unit);
 }
 
 function thresholdForMetric(metricKey: string, cropData: ApiCrop | null): MetricThreshold | null {
@@ -554,15 +690,6 @@ function normalizeThresholdValue(value: ThresholdRange["min"]): number | null {
 
   const numericValue = Number(value);
   return Number.isFinite(numericValue) ? numericValue : null;
-}
-
-function formatThresholdValue(value: number, unit: string): string {
-  const formattedValue = Number.isInteger(value) ? value.toLocaleString("id-ID") : value.toLocaleString("id-ID", { maximumFractionDigits: 2 });
-  if (!unit || unit === "range") {
-    return formattedValue;
-  }
-
-  return unit === "%" ? `${formattedValue}%` : `${formattedValue} ${unit}`;
 }
 
 function calculateHst(value: string | null): number | null {

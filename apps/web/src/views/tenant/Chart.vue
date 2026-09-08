@@ -1,16 +1,16 @@
 <template>
   <div class="space-y-5">
-    <section class="panel-surface p-4">
-      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(260px,2fr)_minmax(150px,1fr)_auto] xl:items-end">
+    <section class="rounded-[2rem] border border-white bg-white/70 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl">
+      <div class="grid gap-4 md:grid-cols-[minmax(240px,1fr)_auto] md:items-end">
         <label class="space-y-2">
-          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <TabletSmartphone class="h-4 w-4 text-field-mint" />
+          <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
+            <TabletSmartphone class="h-4 w-4 text-emerald-500" />
             Nama Device
           </span>
           <select
             v-model="activeDeviceUid"
             aria-label="Nama Device"
-            class="min-h-12 w-full rounded-lg border border-white/10 bg-[#07111f] px-4 text-sm text-white outline-none transition focus:border-field-mint/70"
+            class="min-h-12 w-full rounded-full border border-white bg-slate-50 px-4 text-sm font-medium text-slate-600 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
           >
             <option v-if="deviceOptions.length === 0" value="">Belum ada device</option>
             <option v-for="device in deviceOptions" :key="device.deviceUid" :value="device.deviceUid">
@@ -19,22 +19,9 @@
           </select>
         </label>
 
-        <label class="space-y-2">
-          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <Clock class="h-4 w-4 text-amber-200" />
-            Interval
-          </span>
-          <select
-            v-model="filters.intervalMinutes"
-            class="min-h-12 w-full rounded-lg border border-white/10 bg-[#07111f] px-4 text-sm text-white outline-none transition focus:border-field-mint/70"
-          >
-            <option v-for="option in intervalOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
-        </label>
-
         <button
           type="button"
-          class="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-field-mint/25 bg-field-mint/10 px-5 text-sm font-semibold text-field-mint transition hover:bg-field-mint hover:text-[#07111f] disabled:cursor-not-allowed disabled:opacity-60"
+          class="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-emerald-100 px-5 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="isLoading"
           @click="refreshTelemetryHistory"
         >
@@ -43,36 +30,53 @@
         </button>
       </div>
 
-      <p v-if="errorMessage" class="mt-4 rounded-lg border border-amber-200/20 bg-amber-200/10 px-4 py-3 text-sm text-amber-100">
+      <p v-if="errorMessage" class="mt-4 rounded-2xl border border-amber-100 bg-amber-50/80 px-4 py-3 text-sm font-medium text-amber-700">
         {{ errorMessage }}
       </p>
-      <p v-if="infoMessage" class="mt-4 rounded-lg border border-field-mint/25 bg-field-mint/10 px-4 py-3 text-sm text-field-mint">
+      <p v-if="infoMessage" class="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm font-medium text-emerald-600">
         {{ infoMessage }}
       </p>
     </section>
 
     <section v-if="chartCards.length > 0" class="grid gap-5 xl:grid-cols-2">
-      <article v-for="card in chartCards" :key="card.id" class="panel-surface overflow-hidden">
-        <div class="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
-          <div>
-            <h3 class="text-base font-semibold tracking-normal text-white">{{ card.label }}</h3>
-            <p class="mt-1 text-xs text-slate-400">{{ selectedIntervalLabel }} / {{ card.pointCount }} points{{ card.thresholdLabel ? ` / ${card.thresholdLabel}` : "" }}</p>
+      <article
+        v-for="card in chartCards"
+        :key="card.id"
+        class="rounded-[2rem] border border-white bg-white/70 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl"
+      >
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div class="min-w-0">
+            <p class="truncate text-sm font-medium text-slate-400">{{ card.pointCount }} points{{ card.thresholdLabel ? ` / ${card.thresholdLabel}` : "" }}</p>
+            <h3 class="mt-2 truncate text-xl font-bold tracking-normal text-slate-800">{{ card.label }}</h3>
+            <p class="mt-3 text-3xl font-bold tracking-normal text-slate-800">{{ card.currentValueLabel }}</p>
           </div>
-          <span class="rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-slate-300">{{ chartRangeLabel }}</span>
+          <div class="flex flex-wrap items-center justify-end gap-2">
+            <span class="rounded-full bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-600">{{ chartRangeLabel }}</span>
+            <label class="relative">
+              <span class="sr-only">Interval</span>
+              <select
+                v-model="filters.intervalMinutes"
+                class="min-h-9 appearance-none rounded-full border border-transparent bg-slate-50 px-4 py-1.5 pr-9 text-sm font-medium text-slate-600 outline-none transition focus:border-emerald-200 focus:ring-2 focus:ring-emerald-100"
+              >
+                <option v-for="option in intervalOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
+              <Clock class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            </label>
+          </div>
         </div>
 
-        <div class="h-[310px] p-4">
+        <div class="mt-6 h-[310px]">
           <Line :data="card.chartData" :options="card.chartOptions" />
         </div>
       </article>
     </section>
 
-    <section v-else class="panel-surface p-8 text-center">
-      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-field-mint/25 bg-field-mint/10">
-        <span class="h-5 w-5 rounded-full bg-field-mint shadow-[0_0_24px_rgba(142,240,202,0.45)]"></span>
+    <section v-else class="rounded-[2rem] border border-white bg-white/70 p-8 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl">
+      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50">
+        <span class="h-5 w-5 rounded-full bg-emerald-400 shadow-[0_0_24px_rgba(16,185,129,0.28)]"></span>
       </div>
-      <h2 class="mt-4 text-lg font-semibold tracking-normal text-white">Belum ada parameter numerik</h2>
-      <p class="mx-auto mt-2 max-w-xl text-sm text-slate-400">
+      <h2 class="mt-4 text-lg font-bold tracking-normal text-slate-800">Belum ada parameter numerik</h2>
+      <p class="mx-auto mt-2 max-w-xl text-sm font-medium text-slate-400">
         Menunggu parameter numerik dari device terpilih.
       </p>
     </section>
@@ -88,10 +92,10 @@ import {
   LinearScale,
   LineElement,
   PointElement,
-  Title,
   Tooltip,
   type ChartData,
-  type ChartOptions
+  type ChartOptions,
+  type ScriptableContext
 } from "chart.js";
 import { Clock, RefreshCw, TabletSmartphone } from "@lucide/vue";
 import { storeToRefs } from "pinia";
@@ -101,7 +105,7 @@ import { ApiClientError, apiGet } from "../../services/apiClient";
 import { useDeviceStore } from "../../stores/deviceStore";
 import { useMasterDataStore, type ThresholdKey, type ThresholdRange } from "../../stores/masterDataStore";
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Legend, Title, Tooltip);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Legend, Tooltip);
 
 type TelemetryPayload = Record<string, unknown>;
 type ChartInterval = "15" | "60";
@@ -157,6 +161,7 @@ interface MetricChartCard {
   color: string;
   chartData: ChartData<"line", Array<number | null>, string>;
   chartOptions: ChartOptions<"line">;
+  currentValueLabel: string;
   pointCount: number;
   thresholdLabel: string | null;
 }
@@ -197,6 +202,17 @@ const intervalOptions: Array<{ label: string; value: ChartInterval }> = [
   { label: "Per 15 menit", value: "15" },
   { label: "Per jam", value: "60" }
 ];
+const chartXAxisGrid = {
+  display: false,
+  drawBorder: false,
+  drawTicks: false
+};
+const chartYAxisGrid = {
+  borderDash: [5, 5],
+  color: "rgba(226, 232, 240, 0.6)",
+  drawBorder: false,
+  drawTicks: false
+};
 
 const orderedHistoryItems = computed(() => [...historyItems.value].sort((left, right) => {
   return new Date(left.receivedAt).getTime() - new Date(right.receivedAt).getTime();
@@ -273,6 +289,7 @@ const chartCards = computed<MetricChartCard[]>(() => selectedMetricKeys.value.ma
     color,
     chartData: createChartData(points, color, threshold),
     chartOptions: createChartOptions(metricKey, color, threshold),
+    currentValueLabel: formatCurrentMetricValue(points),
     pointCount: points.length,
     thresholdLabel: formatThresholdLabel(threshold)
   };
@@ -444,27 +461,30 @@ function createChartData(points: MetricPoint[], color: string, threshold: Metric
   const labels = points.map((point) => formatChartTime(point.timestamp));
   const datasets: ChartData<"line", Array<number | null>, string>["datasets"] = [
     {
-      backgroundColor: withAlpha(color, 0.14),
+      backgroundColor: (context) => createMetricChartGradient(context, color),
+      borderCapStyle: "round",
       borderColor: color,
-      borderWidth: 2,
+      borderJoinStyle: "round",
+      borderWidth: 3,
       data: points.map((point) => point.value),
       fill: true,
       label: "Actual",
-      pointBackgroundColor: color,
-      pointBorderColor: "#07111f",
-      pointBorderWidth: 2,
-      pointRadius: 3,
+      pointHoverBackgroundColor: "#ffffff",
+      pointHoverBorderColor: color,
+      pointHoverBorderWidth: 3,
+      pointHoverRadius: 6,
+      pointRadius: 0,
       spanGaps: true,
-      tension: 0.34
+      tension: 0.4
     }
   ];
 
   if (threshold && threshold.min !== null) {
-    datasets.push(createThresholdDataset("Low", threshold.min, "#fbbf24", labels.length));
+    datasets.push(createThresholdDataset("Low", threshold.min, "#f59e0b", labels.length));
   }
 
   if (threshold && threshold.max !== null) {
-    datasets.push(createThresholdDataset("High", threshold.max, "#fb7185", labels.length));
+    datasets.push(createThresholdDataset("High", threshold.max, "#f43f5e", labels.length));
   }
 
   return {
@@ -487,14 +507,18 @@ function createChartOptions(metricKey: string, color: string, threshold: MetricT
         labels: {
           boxHeight: 3,
           boxWidth: 24,
-          color: "#cbd5e1",
+          color: "#94a3b8",
+          font: {
+            weight: 500
+          },
           usePointStyle: false
         }
       },
       tooltip: {
-        backgroundColor: "#07111f",
-        borderColor: withAlpha(color, 0.45),
+        backgroundColor: "#ffffff",
+        borderColor: withAlpha(color, 0.24),
         borderWidth: 1,
+        bodyColor: "#475569",
         callbacks: {
           label: (context) => {
             const value = context.parsed.y;
@@ -503,44 +527,67 @@ function createChartOptions(metricKey: string, color: string, threshold: MetricT
           }
         },
         displayColors: true,
-        titleColor: "#ecfff7",
-        bodyColor: "#cbd5e1"
+        padding: 12,
+        titleColor: "#0f172a"
       }
     },
     scales: {
       x: {
         border: {
-          color: "rgba(255, 255, 255, 0.12)"
+          display: false
         },
-        grid: {
-          color: "rgba(255, 255, 255, 0.06)"
-        },
+        grid: chartXAxisGrid,
         ticks: {
           color: "#94a3b8",
+          font: {
+            weight: 500
+          },
           maxRotation: 0
         }
       },
       y: {
         border: {
-          color: "rgba(255, 255, 255, 0.12)"
+          display: false
         },
-        grid: {
-          color: "rgba(142, 240, 202, 0.07)"
-        },
+        grid: chartYAxisGrid,
         ticks: {
-          color: "#94a3b8"
+          color: "#94a3b8",
+          font: {
+            weight: 500
+          }
         }
       }
     }
   };
 }
 
+function formatCurrentMetricValue(points: MetricPoint[]): string {
+  const latestPoint = [...points].reverse().find((point) => point.value !== null);
+  return latestPoint?.value === null || latestPoint?.value === undefined ? "-" : formatValue(latestPoint.value);
+}
+
+function createMetricChartGradient(context: ScriptableContext<"line">, color: string): string | CanvasGradient {
+  const { chart } = context;
+  const { chartArea, ctx } = chart;
+
+  if (!chartArea) {
+    return withAlpha(color, 0.12);
+  }
+
+  const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+  gradient.addColorStop(0, withAlpha(color, 0.2));
+  gradient.addColorStop(0.62, withAlpha(color, 0.08));
+  gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+
+  return gradient;
+}
+
 function createThresholdDataset(label: string, value: number, color: string, pointCount: number): ChartData<"line", Array<number | null>, string>["datasets"][number] {
   return {
     backgroundColor: "transparent",
-    borderColor: withAlpha(color, 0.92),
+    borderColor: withAlpha(color, 0.7),
     borderDash: [7, 5],
-    borderWidth: 1.5,
+    borderWidth: 1.25,
     data: Array.from({ length: pointCount }, () => value),
     fill: false,
     label,
@@ -718,10 +765,10 @@ function isSameLocalDate(leftTime: number, rightTime: number): boolean {
 }
 
 function colorForMetric(key: string, index: number): string {
-  const palette = ["#8ef0ca", "#a7e8af", "#7dd3fc", "#fde68a", "#67e8f9", "#bef264", "#c4b5fd", "#6ee7b7"];
+  const palette = ["#10b981", "#14b8a6"];
   const hash = Array.from(key).reduce((total, character) => total + character.charCodeAt(0), index);
 
-  return palette[hash % palette.length] ?? "#8ef0ca";
+  return palette[hash % palette.length] ?? "#10b981";
 }
 
 function withAlpha(hexColor: string, alpha: number): string {
