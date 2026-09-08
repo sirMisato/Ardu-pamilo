@@ -1,39 +1,39 @@
 <template>
   <div class="space-y-5">
-    <section class="panel-surface p-5">
+    <section class="mb-6 rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
       <div class="grid gap-4 lg:grid-cols-2 xl:grid-cols-[repeat(5,minmax(0,1fr))_auto] xl:items-end">
         <label class="space-y-2">
-          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <CalendarDays class="h-4 w-4 text-field-mint" />
+          <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
+            <CalendarDays class="h-4 w-4 text-emerald-500" />
             Start Date
           </span>
           <input
             v-model="filters.startDate"
-            class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+            class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
             type="date"
           />
         </label>
 
         <label class="space-y-2">
-          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <CalendarDays class="h-4 w-4 text-field-green" />
+          <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
+            <CalendarDays class="h-4 w-4 text-teal-500" />
             End Date
           </span>
           <input
             v-model="filters.endDate"
-            class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+            class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
             type="date"
           />
         </label>
 
         <label class="space-y-2">
-          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <Filter class="h-4 w-4 text-sky-200" />
+          <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
+            <Filter class="h-4 w-4 text-sky-500" />
             Device
           </span>
           <select
             v-model="filters.deviceId"
-            class="min-h-11 w-full rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+            class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
             :disabled="filters.dataset === 'weather'"
           >
             <option value="all">Semua Device</option>
@@ -42,13 +42,13 @@
         </label>
 
         <label class="space-y-2">
-          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <TableProperties class="h-4 w-4 text-violet-200" />
+          <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
+            <TableProperties class="h-4 w-4 text-violet-500" />
             Dataset
           </span>
           <select
             v-model="filters.dataset"
-            class="min-h-11 w-full rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+            class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
           >
             <option value="telemetry">Telemetry</option>
             <option value="alerts">Alerts</option>
@@ -57,21 +57,21 @@
         </label>
 
         <label class="space-y-2">
-          <span class="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <Clock class="h-4 w-4 text-amber-200" />
+          <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
+            <Clock class="h-4 w-4 text-amber-500" />
             Interval
           </span>
           <select
             v-model="filters.intervalMinutes"
-            class="min-h-11 w-full rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+            class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
           >
             <option v-for="option in samplingOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
           </select>
         </label>
 
-        <div class="flex gap-3">
+        <div class="flex flex-wrap gap-3">
           <button
-            class="inline-flex min-h-11 items-center gap-2 rounded-lg border border-field-mint/30 bg-field-mint/10 px-4 text-sm font-semibold text-field-mint hover:bg-field-mint/15 disabled:cursor-not-allowed disabled:opacity-60"
+            class="flex min-h-11 items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-5 py-2 text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             type="button"
             :disabled="isLoading"
             @click="refreshReportData"
@@ -80,7 +80,7 @@
             Refresh
           </button>
           <button
-            class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-field-green px-4 text-sm font-semibold text-[#102016] hover:bg-field-mint"
+            class="flex min-h-11 items-center gap-2 rounded-full bg-emerald-300 px-5 py-2 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400"
             type="button"
             @click="exportReport('CSV')"
           >
@@ -88,7 +88,7 @@
             CSV
           </button>
           <button
-            class="inline-flex min-h-11 items-center gap-2 rounded-lg border border-field-mint/30 bg-field-mint/10 px-4 text-sm font-semibold text-field-mint hover:bg-field-mint/15"
+            class="flex min-h-11 items-center gap-2 rounded-full bg-emerald-300 px-5 py-2 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400"
             type="button"
             @click="exportReport('PDF')"
           >
@@ -98,58 +98,61 @@
         </div>
       </div>
 
-      <div v-if="exportMessage" class="mt-4 rounded-lg border border-field-mint/25 bg-field-mint/10 p-4 text-sm text-field-mint">
+      <div v-if="exportMessage" class="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4 text-sm font-medium text-emerald-700">
         {{ exportMessage }}
       </div>
-      <div v-if="errorMessage" class="mt-4 rounded-lg border border-amber-300/25 bg-amber-300/10 p-4 text-sm text-amber-100">
+      <div v-if="errorMessage" class="mt-4 rounded-2xl border border-amber-100 bg-amber-50/80 p-4 text-sm font-medium text-amber-700">
         {{ errorMessage }}
       </div>
     </section>
 
-    <section class="panel-surface overflow-hidden">
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 p-5">
+    <section class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg">
+      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 class="text-base font-semibold tracking-normal text-white">Data Logs</h2>
-          <p class="mt-1 text-sm text-slate-400">{{ reportPreviewLabel }}</p>
+          <h2 class="text-base font-bold tracking-normal text-slate-800">Data Logs</h2>
+          <p class="mt-1 text-sm font-medium text-slate-400">{{ reportPreviewLabel }}</p>
         </div>
-        <FileText class="h-6 w-6 text-field-mint" />
+        <FileText class="h-6 w-6 text-emerald-500" />
       </div>
 
-      <div v-if="filters.dataset === 'telemetry'" class="overflow-x-auto">
-        <table class="min-w-[1680px] w-full border-separate border-spacing-0 text-left text-sm">
-          <thead class="bg-white/5 text-xs text-slate-400">
+      <div v-if="filters.dataset === 'telemetry'" class="overflow-x-auto rounded-2xl">
+        <table class="min-w-[1680px] w-full text-left text-sm">
+          <thead class="bg-white/40 text-xs font-bold uppercase tracking-wider text-slate-500">
             <tr>
-              <th rowspan="3" class="border-b border-r border-white/10 px-5 py-4 align-middle font-semibold uppercase tracking-wide">Timestamp</th>
-              <th rowspan="3" class="border-b border-r border-white/10 px-5 py-4 align-middle font-semibold uppercase tracking-wide">Device</th>
-              <th rowspan="3" class="border-b border-r border-white/10 px-5 py-4 align-middle font-semibold uppercase tracking-wide">Plot/Area</th>
-              <th :colspan="metricColumns.length * 2" class="border-b border-white/10 px-5 py-3 text-center font-semibold uppercase tracking-wide">Metric</th>
+              <th rowspan="3" class="border-b border-white/60 px-5 py-4 align-middle font-bold">Timestamp</th>
+              <th rowspan="3" class="border-b border-white/60 px-5 py-4 align-middle font-bold">Device</th>
+              <th rowspan="3" class="border-b border-white/60 px-5 py-4 align-middle font-bold">Plot/Area</th>
+              <th :colspan="metricColumns.length * 2" class="border-b border-white/60 px-5 py-3 text-center font-bold">Metric</th>
             </tr>
             <tr>
               <th
                 v-for="metric in metricColumns"
                 :key="`${metric.key}-group`"
                 colspan="2"
-                class="border-b border-r border-white/10 px-4 py-3 text-center font-semibold tracking-normal text-slate-300"
+                class="border-b border-white/60 px-4 py-3 text-center font-bold tracking-wider text-slate-500"
               >
                 {{ metricHeaderLabel(metric) }}
               </th>
             </tr>
             <tr>
               <template v-for="metric in metricColumns" :key="metric.key">
-                <th class="border-b border-r border-white/10 px-4 py-3 text-center font-semibold uppercase tracking-wide">Value</th>
-                <th class="border-b border-r border-white/10 px-4 py-3 text-center font-semibold uppercase tracking-wide">Status</th>
+                <th class="border-b border-white/60 px-4 py-3 text-center font-bold">Value</th>
+                <th class="border-b border-white/60 px-4 py-3 text-center font-bold">Status</th>
               </template>
             </tr>
           </thead>
-          <tbody class="divide-y divide-white/10">
-            <tr v-for="row in paginatedTelemetryRows" :key="row.id" class="hover:bg-white/[0.03]">
-              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ formatDateTime(row.timestamp) }}</td>
-              <td class="border-r border-white/10 px-5 py-4 font-semibold text-white">{{ row.deviceId }}</td>
-              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ row.plot }}</td>
+          <tbody>
+            <tr v-for="row in paginatedTelemetryRows" :key="row.id" class="border-b border-white/60 transition-colors hover:bg-white/40">
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ formatDateTime(row.timestamp) }}</td>
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ row.deviceId }}</td>
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ row.plot }}</td>
               <template v-for="metric in metricColumns" :key="`${row.id}-${metric.key}`">
-                <td class="border-r border-white/10 px-4 py-4 text-center text-field-mint">{{ row.metrics[metric.key].value }}</td>
-                <td class="border-r border-white/10 px-4 py-4 text-center">
-                  <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="metricStatusClass(row.metrics[metric.key].status)">
+                <td class="px-4 py-4 text-center text-sm font-medium text-slate-700">{{ row.metrics[metric.key].value }}</td>
+                <td class="px-4 py-4 text-center">
+                  <span
+                    class="rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide"
+                    :class="metricStatusClass(row.metrics[metric.key].status)"
+                  >
                     {{ formatMetricStatus(row.metrics[metric.key].status) }}
                   </span>
                 </td>
@@ -159,92 +162,95 @@
         </table>
       </div>
 
-      <div v-else-if="filters.dataset === 'weather'" class="overflow-x-auto">
-        <table class="min-w-[1180px] w-full border-separate border-spacing-0 text-left text-sm">
-          <thead class="bg-white/5 text-xs uppercase tracking-wide text-slate-400">
+      <div v-else-if="filters.dataset === 'weather'" class="overflow-x-auto rounded-2xl">
+        <table class="min-w-[1180px] w-full text-left text-sm">
+          <thead class="bg-white/40 text-xs font-bold uppercase tracking-wider text-slate-500">
             <tr>
-              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Timestamp</th>
-              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Lokasi</th>
-              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">ADM4</th>
-              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Kondisi</th>
-              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Temp</th>
-              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Humidity</th>
-              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Rainfall</th>
-              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Rain Chance</th>
-              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Wind</th>
-              <th class="border-b border-white/10 px-5 py-4 font-semibold">Source</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Timestamp</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Lokasi</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">ADM4</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Kondisi</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Temp</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Humidity</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Rainfall</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Rain Chance</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Wind</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Source</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-white/10">
-            <tr v-for="row in paginatedWeatherRows" :key="row.id" class="hover:bg-white/[0.03]">
-              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ formatDateTime(row.timestamp) }}</td>
-              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ row.location }}</td>
-              <td class="border-r border-white/10 px-5 py-4 font-semibold text-field-mint">{{ row.adm4Code }}</td>
-              <td class="border-r border-white/10 px-5 py-4 font-semibold text-white">{{ row.condition }}</td>
-              <td class="border-r border-white/10 px-5 py-4 text-amber-100">{{ formatTemperature(row.temperatureC) }}</td>
-              <td class="border-r border-white/10 px-5 py-4 text-sky-100">{{ formatHumidity(row.humidityPercent) }}</td>
-              <td class="border-r border-white/10 px-5 py-4 text-field-mint">{{ formatRain(row.rainfallMm) }}</td>
-              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ formatPercent(row.rainChancePercent) }}</td>
-              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ row.wind }}</td>
-              <td class="px-5 py-4 text-slate-400">{{ row.source }}</td>
+          <tbody>
+            <tr v-for="row in paginatedWeatherRows" :key="row.id" class="border-b border-white/60 transition-colors hover:bg-white/40">
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ formatDateTime(row.timestamp) }}</td>
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ row.location }}</td>
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ row.adm4Code }}</td>
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ row.condition }}</td>
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ formatTemperature(row.temperatureC) }}</td>
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ formatHumidity(row.humidityPercent) }}</td>
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ formatRain(row.rainfallMm) }}</td>
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ formatPercent(row.rainChancePercent) }}</td>
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ row.wind }}</td>
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ row.source }}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-[1120px] w-full border-separate border-spacing-0 text-left text-sm">
-          <thead class="bg-white/5 text-xs uppercase tracking-wide text-slate-400">
+      <div v-else class="overflow-x-auto rounded-2xl">
+        <table class="min-w-[1120px] w-full text-left text-sm">
+          <thead class="bg-white/40 text-xs font-bold uppercase tracking-wider text-slate-500">
             <tr>
-              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Timestamp</th>
-              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Severity</th>
-              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Source</th>
-              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Subject</th>
-              <th class="border-b border-r border-white/10 px-5 py-4 font-semibold">Alert</th>
-              <th class="border-b border-white/10 px-5 py-4 font-semibold">Detail</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Timestamp</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Severity</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Source</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Subject</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Alert</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Detail</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-white/10">
-            <tr v-for="row in paginatedAlertRows" :key="row.id" class="hover:bg-white/[0.03]">
-              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ formatDateTime(row.timestamp) }}</td>
-              <td class="border-r border-white/10 px-5 py-4">
-                <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="alertSeverityClass(row.severity)">
+          <tbody>
+            <tr v-for="row in paginatedAlertRows" :key="row.id" class="border-b border-white/60 transition-colors hover:bg-white/40">
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ formatDateTime(row.timestamp) }}</td>
+              <td class="px-5 py-4">
+                <span
+                  class="rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide"
+                  :class="alertSeverityClass(row.severity)"
+                >
                   {{ formatAlertSeverity(row.severity) }}
                 </span>
               </td>
-              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ row.source }}</td>
-              <td class="border-r border-white/10 px-5 py-4 text-slate-300">{{ row.subject }}</td>
-              <td class="border-r border-white/10 px-5 py-4 font-semibold text-white">{{ row.title }}</td>
-              <td class="px-5 py-4 text-slate-300">{{ row.message }}</td>
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ row.source }}</td>
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ row.subject }}</td>
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ row.title }}</td>
+              <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ row.message }}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div v-if="isLoading" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
+      <div v-if="isLoading" class="border-t border-white/60 p-8 text-center text-sm font-medium text-slate-400">
         Memuat data report...
       </div>
 
-      <div v-else-if="sampledRows.length === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
+      <div v-else-if="sampledRows.length === 0" class="border-t border-white/60 p-8 text-center text-sm font-medium text-slate-400">
         Tidak ada data pada filter ini.
       </div>
 
-      <div v-else class="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 p-4 text-sm text-slate-300">
+      <div v-else class="flex flex-wrap items-center justify-between gap-3 border-t border-white/60 pt-4 text-sm font-medium text-slate-700">
         <p>
           Menampilkan {{ paginationStart }}-{{ paginationEnd }} dari {{ sampledRows.length.toLocaleString("id-ID") }} records
         </p>
         <div class="flex flex-wrap items-center gap-2">
-          <label class="flex items-center gap-2 text-xs text-slate-400">
+          <label class="flex items-center gap-2 text-xs font-medium text-slate-400">
             Rows
             <select
               v-model.number="pageSize"
-              class="h-9 rounded-lg border border-white/10 bg-[#0b1626] px-2 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              class="h-9 rounded-xl border border-slate-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
             >
               <option v-for="option in pageSizeOptions" :key="option" :value="option">{{ option }}</option>
             </select>
           </label>
           <button
-            class="icon-button h-9 w-9"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             type="button"
             aria-label="Halaman sebelumnya"
             :disabled="activePage <= 1"
@@ -252,9 +258,9 @@
           >
             <ChevronLeft class="h-4 w-4" />
           </button>
-          <span class="min-w-24 text-center text-xs text-slate-400">Hal {{ activePage }} / {{ totalPages }}</span>
+          <span class="min-w-24 text-center text-xs font-medium text-slate-400">Hal {{ activePage }} / {{ totalPages }}</span>
           <button
-            class="icon-button h-9 w-9"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             type="button"
             aria-label="Halaman berikutnya"
             :disabled="activePage >= totalPages"
@@ -1034,14 +1040,14 @@ function metricHeaderLabel(metric: ReportMetricColumn): string {
 
 function metricStatusClass(status: ReportMetricStatus): string {
   if (status === "normal") {
-    return "bg-field-mint/10 text-field-mint";
+    return "bg-emerald-100 text-emerald-700";
   }
 
   if (status === "attention") {
-    return "bg-amber-300/10 text-amber-100";
+    return "bg-amber-100 text-amber-700";
   }
 
-  return "bg-white/5 text-slate-500";
+  return "bg-slate-100 text-slate-500";
 }
 
 function formatMetricStatus(status: ReportMetricStatus): string {
@@ -1050,14 +1056,14 @@ function formatMetricStatus(status: ReportMetricStatus): string {
 
 function alertSeverityClass(severity: AlertSeverity): string {
   if (severity === "high") {
-    return "bg-rose-300/10 text-rose-100";
+    return "bg-rose-100 text-rose-700";
   }
 
   if (severity === "medium") {
-    return "bg-amber-300/10 text-amber-100";
+    return "bg-amber-100 text-amber-700";
   }
 
-  return "bg-field-mint/10 text-field-mint";
+  return "bg-emerald-100 text-emerald-700";
 }
 
 function formatAlertSeverity(severity: AlertSeverity): string {
