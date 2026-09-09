@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-3">
-    <div class="relative h-[360px] overflow-hidden rounded-lg border border-white/10 bg-[#07111f]">
+    <div class="relative h-[300px] overflow-hidden rounded-xl border border-slate-200 bg-slate-50 md:h-[500px]">
       <div ref="mapElement" class="h-full w-full"></div>
 
       <div class="absolute right-3 top-3 z-[500] flex flex-wrap gap-2 rounded-full border border-white/10 bg-[#07111f]/90 p-1 text-xs font-semibold text-slate-300 shadow-xl shadow-slate-950/25 backdrop-blur">

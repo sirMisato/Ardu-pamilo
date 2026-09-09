@@ -162,7 +162,7 @@
     </section>
 
     <section v-else-if="activeTab === 'areas'" class="overflow-hidden rounded-2xl border border-white/80 bg-white/60 shadow-sm backdrop-blur-md">
-      <div class="overflow-x-auto">
+      <div class="w-full overflow-x-auto whitespace-nowrap">
         <table class="min-w-[920px] w-full text-left text-sm">
           <thead class="border-b border-slate-200/80 bg-white/50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
@@ -208,7 +208,7 @@
         <p class="mt-1 text-sm text-slate-600">Ringkasan batas per crop dari API tenant.</p>
       </div>
 
-      <div class="overflow-x-auto">
+      <div class="w-full overflow-x-auto whitespace-nowrap">
         <table class="min-w-[920px] w-full text-left text-sm">
           <thead class="border-b border-slate-200/80 bg-white/50 text-xs uppercase tracking-wide text-slate-500">
             <tr>

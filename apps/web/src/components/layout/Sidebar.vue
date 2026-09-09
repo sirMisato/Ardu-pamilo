@@ -1,20 +1,20 @@
 <template>
-  <aside class="flex flex-col border-r border-white/70 bg-white/70 text-slate-700 shadow-glass backdrop-blur-xl transition-[width] duration-200">
+  <aside class="hidden flex-col border-r border-white/80 bg-white/60 text-slate-700 shadow-sm backdrop-blur-xl transition-[width] duration-200 md:flex">
     <div
-      class="relative flex h-20 items-center border-b border-white/70"
+      class="relative flex h-20 items-center border-b border-white/80"
       :class="collapsed ? 'justify-center px-2' : 'gap-3 px-5'"
     >
-      <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-field-green text-[#102016] shadow-glass-soft">
+      <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-300 text-emerald-950 shadow-sm">
         <Sprout class="h-6 w-6" />
       </div>
       <div v-if="!collapsed" class="min-w-0">
-        <p class="truncate text-base font-semibold tracking-normal text-slate-800">PAMILO</p>
-        <p class="truncate text-xs text-field-mint">Smart Farming GIS</p>
+        <p class="truncate text-base font-bold tracking-normal text-slate-800">PAMILO</p>
+        <p class="truncate text-xs font-medium text-slate-500">Smart Farming GIS</p>
       </div>
       <button
         v-if="!mobile"
         type="button"
-        class="absolute -right-4 top-6 inline-flex h-8 w-8 items-center justify-center rounded-2xl border border-white/70 bg-white/80 text-slate-600 shadow-glass-soft transition hover:border-field-mint/50 hover:bg-field-mint/10 hover:text-teal-700 focus:outline-none focus:ring-2 focus:ring-field-mint/40"
+        class="absolute -right-4 top-6 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/80 bg-white/70 text-slate-600 shadow-sm transition-all hover:bg-white/90 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
         :aria-label="collapsed ? 'Show sidebar' : 'Collapse sidebar'"
         :title="collapsed ? 'Show sidebar' : 'Collapse sidebar'"
         @click="emit('toggleCollapse')"
@@ -29,10 +29,10 @@
         v-for="item in navItems"
         :key="item.to"
         :to="item.to"
-        class="group flex min-h-11 items-center rounded-2xl py-2 text-sm font-medium text-slate-600 transition hover:bg-white/70 hover:text-teal-700"
+        class="group flex min-h-11 items-center rounded-xl py-2 text-sm transition-all"
         :class="[
           collapsed ? 'justify-center px-2' : 'gap-3 px-3',
-          isActive(item.to) ? 'bg-field-mint/10 text-teal-700 ring-1 ring-field-mint/30' : ''
+          isActive(item.to) ? 'bg-emerald-100 font-semibold text-emerald-700' : 'font-medium text-slate-500 hover:bg-white/60 hover:text-slate-700'
         ]"
         :title="collapsed ? item.label : undefined"
         @click="emit('navigate')"
@@ -53,7 +53,6 @@ import {
   Database,
   FileText,
   Gauge,
-  MapPinned,
   PanelLeftClose,
   PanelLeftOpen,
   Router,
@@ -92,8 +91,7 @@ const allNavItems = [
   { to: "/devices", label: "Perangkat", icon: TabletSmartphone },
   { to: "/master-data", label: "Master Data", icon: Database },
   { to: "/tenant-users", label: "User Tenant", icon: UsersRound },
-  { to: "/settings", label: "Pengaturan", icon: Settings },
-  { to: "/superadmin/dashboard", label: "Super Admin", icon: MapPinned }
+  { to: "/settings", label: "Pengaturan", icon: Settings }
 ];
 const navItems = computed(() => authStore.isReadOnlyTenant
   ? allNavItems.filter((item) => canReadOnlyTenantAccessPath(item.to))

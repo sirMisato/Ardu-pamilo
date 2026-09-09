@@ -76,6 +76,12 @@
   }
 }
 
+@layer utilities {
+  .pb-safe {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
+}
+
 @supports not ((-webkit-backdrop-filter: blur(0)) or (backdrop-filter: blur(0))) {
   .glass-panel,
   .panel-surface,

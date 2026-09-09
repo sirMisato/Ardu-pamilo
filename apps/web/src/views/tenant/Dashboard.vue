@@ -65,7 +65,7 @@
           </div>
         </div>
 
-        <div class="relative w-full h-[450px] lg:h-[600px] rounded-[2rem] overflow-hidden border border-white/60 shadow-sm isolate bg-slate-50">
+        <div class="relative h-[300px] w-full overflow-hidden rounded-[2rem] border border-white/60 bg-slate-50 shadow-sm isolate md:h-[500px]">
           <FieldMap />
         </div>
       </div>

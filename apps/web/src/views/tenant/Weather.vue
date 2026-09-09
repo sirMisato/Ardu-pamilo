@@ -232,7 +232,7 @@
           <p class="mt-1 text-sm text-slate-500">ADM4 {{ activeAdm4 || "-" }}</p>
         </div>
 
-        <div class="overflow-x-auto">
+        <div class="w-full overflow-x-auto whitespace-nowrap">
           <table class="min-w-[980px] w-full text-left text-sm">
             <thead class="border-b border-white/60 bg-white/40 text-xs uppercase tracking-wide text-slate-500">
               <tr>
@@ -411,7 +411,7 @@
         </div>
       </form>
 
-      <div class="mt-5 overflow-x-auto rounded-2xl border border-white/80 bg-white/50">
+      <div class="mt-5 w-full overflow-x-auto whitespace-nowrap rounded-2xl border border-white/80 bg-white/50">
         <table class="min-w-[880px] w-full text-left text-sm">
           <thead class="border-b border-white/60 bg-white/40 text-xs uppercase tracking-wide text-slate-500">
             <tr>

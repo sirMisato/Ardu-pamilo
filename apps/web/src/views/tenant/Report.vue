@@ -115,7 +115,7 @@
         <FileText class="h-6 w-6 text-emerald-500" />
       </div>
 
-      <div v-if="filters.dataset === 'telemetry'" class="overflow-x-auto rounded-2xl">
+      <div v-if="filters.dataset === 'telemetry'" class="w-full overflow-x-auto whitespace-nowrap rounded-2xl">
         <table class="min-w-[1680px] w-full text-left text-sm">
           <thead class="bg-white/40 text-xs font-bold uppercase tracking-wider text-slate-500">
             <tr>
@@ -162,7 +162,7 @@
         </table>
       </div>
 
-      <div v-else-if="filters.dataset === 'weather'" class="overflow-x-auto rounded-2xl">
+      <div v-else-if="filters.dataset === 'weather'" class="w-full overflow-x-auto whitespace-nowrap rounded-2xl">
         <table class="min-w-[1180px] w-full text-left text-sm">
           <thead class="bg-white/40 text-xs font-bold uppercase tracking-wider text-slate-500">
             <tr>
@@ -195,7 +195,7 @@
         </table>
       </div>
 
-      <div v-else class="overflow-x-auto rounded-2xl">
+      <div v-else class="w-full overflow-x-auto whitespace-nowrap rounded-2xl">
         <table class="min-w-[1120px] w-full text-left text-sm">
           <thead class="bg-white/40 text-xs font-bold uppercase tracking-wider text-slate-500">
             <tr>

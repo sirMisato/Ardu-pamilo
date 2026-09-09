@@ -1,35 +1,35 @@
 <template>
-  <header class="sticky top-0 z-30 border-b border-white/70 bg-white/70 text-slate-800 shadow-glass-soft backdrop-blur-xl">
+  <header class="sticky top-0 z-50 border-b border-white/80 bg-white/60 text-slate-800 shadow-sm backdrop-blur-md">
     <div class="flex min-h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
       <div class="flex min-w-0 items-center gap-3">
-        <button class="icon-button lg:hidden" type="button" aria-label="Open navigation" @click="emit('toggleSidebar')">
+        <button class="rounded-full bg-white/50 p-2 text-slate-600 shadow-sm transition-all hover:bg-white/80 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 lg:hidden" type="button" aria-label="Open navigation" @click="emit('toggleSidebar')">
           <Menu class="h-5 w-5" />
         </button>
         <div class="min-w-0">
-          <h1 class="truncate text-lg font-semibold tracking-normal text-slate-800 sm:text-xl">{{ title }}</h1>
+          <h1 class="truncate text-lg font-bold tracking-normal text-slate-800 sm:text-xl">{{ title }}</h1>
           <p class="hidden truncate text-sm text-slate-500 sm:block">{{ subtitle }}</p>
         </div>
       </div>
 
       <div class="flex items-center gap-2">
-        <button class="icon-button hidden sm:inline-flex" type="button" aria-label="Search">
+        <button class="hidden rounded-full bg-white/50 p-2 text-slate-600 shadow-sm transition-all hover:bg-white/80 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 sm:inline-flex" type="button" aria-label="Search">
           <Search class="h-5 w-5" />
         </button>
-        <button class="icon-button" type="button" aria-label="Notifications">
+        <button class="rounded-full bg-white/50 p-2 text-slate-600 shadow-sm transition-all hover:bg-white/80 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40" type="button" aria-label="Notifications">
           <Bell class="h-5 w-5" />
         </button>
         <div ref="profileMenuElement" class="relative ml-1">
           <button
             type="button"
-            class="flex cursor-pointer items-center gap-3 rounded-full border border-white/60 bg-white/50 px-4 py-2 text-left text-slate-700 shadow-sm backdrop-blur-md transition-all hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-field-mint/40"
+            class="flex cursor-pointer items-center gap-3 rounded-full border border-white/60 bg-white/50 px-4 py-2 text-left text-slate-700 shadow-sm backdrop-blur-md transition-all hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
             aria-haspopup="menu"
             :aria-expanded="profileMenuOpen"
             @click.stop="toggleProfileMenu"
           >
-            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-field-green text-xs font-bold text-[#102016]">{{ initials }}</span>
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-300 text-xs font-bold text-emerald-950">{{ initials }}</span>
             <span class="hidden min-w-0 md:block">
-              <span class="block truncate text-sm font-semibold text-slate-800">{{ profileName }}</span>
-              <span class="block truncate text-xs text-field-mint">{{ profileDetail }}</span>
+              <span class="block truncate text-sm font-bold text-slate-700">{{ profileName }}</span>
+              <span class="block truncate text-xs text-slate-500">{{ profileDetail }}</span>
             </span>
             <ChevronDown class="hidden h-4 w-4 shrink-0 text-slate-500 sm:block" :class="profileMenuOpen ? 'rotate-180' : ''" />
           </button>
@@ -49,23 +49,23 @@
             >
               <div class="border-b border-slate-200/70 px-2 pb-3 pt-2">
                 <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-field-green text-sm font-bold text-[#102016]">{{ initials }}</div>
+                  <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-300 text-sm font-bold text-emerald-950">{{ initials }}</div>
                   <div class="min-w-0">
-                    <p class="truncate text-sm font-semibold text-slate-800">{{ profileName }}</p>
-                    <p class="truncate text-xs text-field-mint">{{ profileDetail }}</p>
+                    <p class="truncate text-sm font-bold text-slate-700">{{ profileName }}</p>
+                    <p class="truncate text-xs text-slate-500">{{ profileDetail }}</p>
                   </div>
                 </div>
-                <p class="mt-3 rounded-xl bg-white/60 px-3 py-2 text-xs font-medium text-slate-600">{{ profileRoleLabel }}</p>
+                <p class="mt-3 rounded-xl bg-white/60 px-3 py-2 text-xs font-medium text-slate-500">{{ profileRoleLabel }}</p>
               </div>
               <div class="pt-2">
                 <button
                   v-if="canOpenProfileSettings"
-                  class="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-field-mint/10 hover:text-teal-700"
+                  class="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition-all hover:bg-emerald-100 hover:text-emerald-700"
                   type="button"
                   role="menuitem"
                   @click="openProfileSettings"
                 >
-                  <Settings class="h-4 w-4 text-field-mint" />
+                  <Settings class="h-4 w-4 text-emerald-700" />
                   Profil & Pengaturan
                 </button>
                 <button

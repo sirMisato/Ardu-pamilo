@@ -1,5 +1,5 @@
 <template>
-  <section class="glass-panel p-5 sm:p-6">
+  <section class="glass-panel p-4 md:p-6 lg:p-8">
     <header v-if="title || icon" class="mb-5 flex items-center gap-3">
       <div
         v-if="icon"

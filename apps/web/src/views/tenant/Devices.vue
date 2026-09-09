@@ -78,7 +78,7 @@
     </section>
 
     <section class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg">
-      <div class="overflow-x-auto rounded-2xl">
+      <div class="w-full overflow-x-auto whitespace-nowrap rounded-2xl">
         <table class="min-w-[900px] w-full text-left text-sm">
           <thead class="bg-white/40 text-xs font-bold uppercase tracking-wider text-slate-500">
             <tr>

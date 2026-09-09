@@ -1,32 +1,18 @@
 <template>
   <div class="min-h-screen text-slate-800">
     <Sidebar
-      class="fixed bottom-4 left-4 top-4 z-40 hidden overflow-hidden rounded-2xl border border-white/70 lg:flex"
+      class="fixed inset-y-0 left-0 z-40 overflow-hidden"
       :class="sidebarCollapsed ? 'w-20' : 'w-72'"
       :collapsed="sidebarCollapsed"
       @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
     />
 
-    <header class="sticky top-0 z-40 flex min-h-16 items-center justify-between bg-transparent px-4 py-3 lg:hidden">
-      <div class="min-w-0">
-        <p class="truncate text-base font-semibold tracking-normal text-slate-800">PAMILO Smart Farming GIS</p>
-      </div>
-
-      <button
-        class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-transparent text-slate-700 transition hover:text-teal-700 focus:outline-none focus:ring-2 focus:ring-field-mint/40"
-        type="button"
-        aria-label="Notifikasi"
-      >
-        <Bell class="h-5 w-5" />
-      </button>
-    </header>
-
-    <div class="min-h-screen transition-[padding] duration-200" :class="sidebarCollapsed ? 'lg:pl-28' : 'lg:pl-80'">
+    <div class="min-h-screen transition-[padding] duration-200" :class="sidebarCollapsed ? 'md:pl-20' : 'md:pl-72'">
       <Topbar
-        class="hidden lg:fixed lg:right-0 lg:top-0 lg:z-30 lg:block lg:transition-[left]"
-        :class="sidebarCollapsed ? 'lg:left-28' : 'lg:left-80'"
+        class="md:fixed md:right-0 md:top-0 md:z-50 md:block md:transition-[left]"
+        :class="sidebarCollapsed ? 'md:left-20' : 'md:left-72'"
       />
-      <main class="px-4 pb-28 pt-2 sm:px-6 lg:px-8 lg:pb-8 lg:pt-20">
+      <main class="px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 md:px-6 md:pb-8 md:pt-20 lg:px-8">
         <RouterView />
       </main>
     </div>
@@ -36,7 +22,6 @@
 </template>
 
 <script setup lang="ts">
-import { Bell } from "@lucide/vue";
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import BottomNavigation from "./BottomNavigation.vue";
 import Sidebar from "./Sidebar.vue";
