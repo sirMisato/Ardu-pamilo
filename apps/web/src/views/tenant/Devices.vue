@@ -1,45 +1,51 @@
 <template>
   <div class="space-y-5">
     <section class="grid gap-4 md:grid-cols-3">
-      <article class="panel-surface p-5">
+      <article class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
         <div class="flex items-center justify-between gap-3">
           <div>
             <p class="text-sm font-medium text-slate-400">Total Perangkat</p>
-            <p class="mt-2 text-3xl font-semibold tracking-normal text-white">{{ devices.length }}</p>
+            <p class="mt-2 text-3xl font-bold tracking-normal text-slate-800">{{ devices.length }}</p>
           </div>
-          <Cpu class="h-9 w-9 text-field-mint" />
+          <span class="flex h-12 w-12 items-center justify-center rounded-full bg-teal-50 p-2.5 text-teal-600">
+            <Cpu class="h-6 w-6" />
+          </span>
         </div>
       </article>
 
-      <article class="panel-surface p-5">
+      <article class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
         <div class="flex items-center justify-between gap-3">
           <div>
             <p class="text-sm font-medium text-slate-400">Online</p>
-            <p class="mt-2 text-3xl font-semibold tracking-normal text-white">{{ onlineDeviceCount }}</p>
+            <p class="mt-2 text-3xl font-bold tracking-normal text-slate-800">{{ onlineDeviceCount }}</p>
           </div>
-          <Wifi class="h-9 w-9 text-field-green" />
+          <span class="flex h-12 w-12 items-center justify-center rounded-full bg-teal-50 p-2.5 text-teal-600">
+            <Wifi class="h-6 w-6" />
+          </span>
         </div>
       </article>
 
-      <article class="panel-surface p-5">
+      <article class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
         <div class="flex items-center justify-between gap-3">
           <div>
             <p class="text-sm font-medium text-slate-400">Plot Aktif</p>
-            <p class="mt-2 text-3xl font-semibold tracking-normal text-white">{{ activePlotCount }}</p>
+            <p class="mt-2 text-3xl font-bold tracking-normal text-slate-800">{{ activePlotCount }}</p>
           </div>
-          <MapPin class="h-9 w-9 text-sky-200" />
+          <span class="flex h-12 w-12 items-center justify-center rounded-full bg-teal-50 p-2.5 text-teal-600">
+            <MapPin class="h-6 w-6" />
+          </span>
         </div>
       </article>
     </section>
 
-    <section class="panel-surface p-5">
+    <section class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div class="flex flex-1 flex-col gap-3 sm:flex-row">
-          <label class="relative flex-1">
-            <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+        <div class="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+          <label class="relative w-full max-w-md">
+            <Search class="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               v-model.trim="searchQuery"
-              class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 pl-10 pr-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              class="min-h-11 w-full rounded-full border border-white/80 bg-white/50 py-2.5 pl-12 pr-5 text-sm text-slate-700 shadow-sm outline-none backdrop-blur-sm transition-all placeholder:text-slate-400 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-400"
               placeholder="Cari device ID, plot, atau profile"
               type="search"
             />
@@ -47,7 +53,7 @@
 
           <select
             v-model="statusFilter"
-            class="min-h-11 rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none transition focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+            class="min-h-11 rounded-full border border-white/80 bg-white/50 px-5 py-2.5 text-sm font-medium text-slate-700 shadow-sm outline-none backdrop-blur-sm transition-all focus:border-emerald-300 focus:ring-2 focus:ring-emerald-400"
           >
             <option value="all">Semua Status</option>
             <option value="online">Online</option>
@@ -57,7 +63,7 @@
         </div>
 
         <button
-          class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-field-green px-5 text-sm font-semibold text-[#102016] transition hover:bg-field-mint focus:outline-none focus:ring-2 focus:ring-field-mint/40"
+          class="flex min-h-11 items-center justify-center gap-2 rounded-full bg-emerald-300 px-6 py-2.5 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200/80"
           type="button"
           @click="openAddModal"
         >
@@ -66,64 +72,72 @@
         </button>
       </div>
 
-      <div v-if="errorMessage" class="mt-4 rounded-lg border border-amber-300/25 bg-amber-300/10 p-4 text-sm text-amber-100">
+      <div v-if="errorMessage" class="mt-4 rounded-2xl border border-amber-100 bg-amber-50/80 p-4 text-sm font-medium text-amber-700">
         {{ errorMessage }}
       </div>
     </section>
 
-    <section class="panel-surface overflow-hidden">
-      <div class="overflow-x-auto">
+    <section class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg">
+      <div class="overflow-x-auto rounded-2xl">
         <table class="min-w-[900px] w-full text-left text-sm">
-          <thead class="border-b border-white/10 bg-white/5 text-xs uppercase tracking-wide text-slate-400">
+          <thead class="bg-white/40 text-xs font-bold uppercase tracking-wider text-slate-500">
             <tr>
-              <th class="px-5 py-4 font-semibold">Device ID</th>
-              <th class="px-5 py-4 font-semibold">Status</th>
-              <th class="px-5 py-4 font-semibold">Assigned Plot/Area</th>
-              <th class="px-5 py-4 font-semibold">Sensor Profile</th>
-              <th class="px-5 py-4 font-semibold">Last Seen</th>
-              <th class="px-5 py-4 font-semibold">Battery</th>
-              <th class="px-5 py-4 text-right font-semibold">Aksi</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Device ID</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Status</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Assigned Plot/Area</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Sensor Profile</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Last Seen</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">Battery</th>
+              <th class="border-b border-white/60 px-5 py-4 text-right font-bold">Aksi</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-white/10">
-            <tr v-for="device in filteredDevices" :key="device.id" class="transition hover:bg-white/[0.03]">
+          <tbody>
+            <tr v-for="device in filteredDevices" :key="device.id" class="border-b border-white/60 transition-colors hover:bg-white/40">
               <td class="px-5 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-field-mint/10 text-field-mint">
+                  <div class="flex h-10 w-10 items-center justify-center rounded-full bg-teal-50 text-teal-600">
                     <Cpu class="h-5 w-5" />
                   </div>
                   <div class="min-w-0">
-                    <p class="truncate font-semibold text-white">{{ device.deviceUid }}</p>
-                    <p class="truncate text-xs text-slate-400">{{ device.telemetryTopic }}</p>
+                    <p class="truncate font-medium text-slate-700">{{ device.deviceUid }}</p>
+                    <p class="truncate text-xs font-medium text-slate-400">{{ device.telemetryTopic }}</p>
                   </div>
                 </div>
               </td>
               <td class="px-5 py-4">
-                <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold" :class="statusBadgeClass(device.status)">
+                <span
+                  class="inline-flex items-center gap-2 rounded-full px-3 py-0.5 text-xs font-semibold"
+                  :class="statusBadgeClass(device.status)"
+                >
                   <component :is="statusIcon(device.status)" class="h-3.5 w-3.5" />
                   {{ statusLabel(device.status) }}
                 </span>
               </td>
-              <td class="px-5 py-4 text-slate-300">{{ device.plotName ?? device.plotId }}</td>
-              <td class="px-5 py-4 text-slate-300">{{ sensorProfile(device.metadata) }}</td>
+              <td class="px-5 py-4 font-medium text-slate-700">{{ device.plotName ?? device.plotId }}</td>
+              <td class="px-5 py-4 font-medium text-slate-700">{{ sensorProfile(device.metadata) }}</td>
               <td class="px-5 py-4">
-                <div class="flex items-center gap-2 text-slate-300">
-                  <Clock3 class="h-4 w-4 text-slate-500" />
+                <div class="flex items-center gap-2 font-medium text-slate-700">
+                  <Clock3 class="h-4 w-4 text-slate-400" />
                   {{ device.lastSeenAt ? formatDateTime(device.lastSeenAt) : "-" }}
                 </div>
               </td>
               <td class="px-5 py-4">
                 <div class="flex items-center gap-3">
-                  <BatteryMedium class="h-4 w-4 text-field-green" />
-                  <div class="h-2 w-24 rounded-full bg-white/10">
-                    <div class="h-full rounded-full bg-field-green" :style="{ width: `${batteryPercent(device.metadata)}%` }"></div>
+                  <BatteryMedium class="h-4 w-4 text-teal-600" />
+                  <div class="h-2 w-24 rounded-full bg-slate-200/70">
+                    <div class="h-full rounded-full bg-emerald-300" :style="{ width: `${batteryPercent(device.metadata)}%` }"></div>
                   </div>
-                  <span class="text-xs text-slate-400">{{ batteryPercent(device.metadata) }}%</span>
+                  <span class="text-xs font-medium text-slate-400">{{ batteryPercent(device.metadata) }}%</span>
                 </div>
               </td>
               <td class="px-5 py-4">
                 <div class="flex justify-end gap-2">
-                  <button class="icon-button" type="button" :aria-label="`Hapus ${device.deviceUid}`" @click="removeDevice(device.id)">
+                  <button
+                    class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rose-100 bg-white/80 text-rose-500 shadow-sm transition-all hover:bg-rose-50"
+                    type="button"
+                    :aria-label="`Hapus ${device.deviceUid}`"
+                    @click="removeDevice(device.id)"
+                  >
                     <Trash2 class="h-4 w-4" />
                   </button>
                 </div>
@@ -133,23 +147,28 @@
         </table>
       </div>
 
-      <div v-if="isLoading" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
+      <div v-if="isLoading" class="border-t border-white/60 p-8 text-center text-sm font-medium text-slate-400">
         Memuat perangkat dari API.
       </div>
 
-      <div v-else-if="filteredDevices.length === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
+      <div v-else-if="filteredDevices.length === 0" class="border-t border-white/60 p-8 text-center text-sm font-medium text-slate-400">
         Tidak ada perangkat sesuai filter.
       </div>
     </section>
 
-    <div v-if="isAddModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/75 p-4 backdrop-blur-sm">
-      <form class="w-full max-w-lg rounded-lg border border-field-mint/20 bg-[#101f32] p-5 shadow-field" @submit.prevent="submitDevice">
+    <div v-if="isAddModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 p-4 backdrop-blur-sm">
+      <form class="w-full max-w-md rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-2xl backdrop-blur-xl" @submit.prevent="submitDevice">
         <div class="flex items-center justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold tracking-normal text-white">Tambah Perangkat</h2>
-            <p class="mt-1 text-sm text-slate-400">Registrasi node ESP32 baru lewat API tenant.</p>
+            <h2 class="text-lg font-bold tracking-normal text-slate-800">Tambah Perangkat</h2>
+            <p class="mt-1 text-sm font-medium text-slate-400">Registrasi node ESP32 baru lewat API tenant.</p>
           </div>
-          <button class="icon-button" type="button" aria-label="Tutup modal" @click="closeAddModal">
+          <button
+            class="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-all hover:bg-slate-100"
+            type="button"
+            aria-label="Tutup modal"
+            @click="closeAddModal"
+          >
             <X class="h-4 w-4" />
           </button>
         </div>
@@ -157,10 +176,10 @@
         <div class="mt-5 grid gap-4">
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="space-y-2">
-              <span class="text-sm font-medium text-slate-300">Device UID</span>
+              <span class="text-sm font-semibold text-slate-700">Device UID</span>
               <input
                 v-model.trim="deviceForm.deviceUid"
-                class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+                class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
                 placeholder="SensorNode04"
                 required
                 type="text"
@@ -168,10 +187,10 @@
             </label>
 
             <label class="space-y-2">
-              <span class="text-sm font-medium text-slate-300">Display Name</span>
+              <span class="text-sm font-semibold text-slate-700">Display Name</span>
               <input
                 v-model.trim="deviceForm.displayName"
-                class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+                class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
                 placeholder="Soil Node Blok C"
                 required
                 type="text"
@@ -180,10 +199,10 @@
           </div>
 
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Plot ID</span>
+            <span class="text-sm font-semibold text-slate-700">Plot ID</span>
             <select
               v-model.trim="deviceForm.plotId"
-              class="min-h-11 w-full rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
             >
               <option value="">Field Utama otomatis</option>
               <option v-for="plot in plots" :key="plot.id" :value="plot.id">
@@ -194,10 +213,10 @@
 
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="space-y-2">
-              <span class="text-sm font-medium text-slate-300">Sensor Profile</span>
+              <span class="text-sm font-semibold text-slate-700">Sensor Profile</span>
               <select
                 v-model="deviceForm.sensorProfile"
-                class="min-h-11 w-full rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+                class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
               >
                 <option>Soil NPK + pH</option>
                 <option>Weather Station</option>
@@ -207,10 +226,10 @@
             </label>
 
             <label class="space-y-2">
-              <span class="text-sm font-medium text-slate-300">Initial Status</span>
+              <span class="text-sm font-semibold text-slate-700">Initial Status</span>
               <select
                 v-model="deviceForm.status"
-                class="min-h-11 w-full rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+                class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
               >
                 <option value="online">Online</option>
                 <option value="offline">Offline</option>
@@ -220,24 +239,24 @@
           </div>
 
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Telemetry Topic</span>
+            <span class="text-sm font-semibold text-slate-700">Telemetry Topic</span>
             <input
               v-model.trim="deviceForm.telemetryTopic"
-              class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
               placeholder="pamilo/v1/tenants/demo-tenant/devices/SensorNode04/telemetry"
               required
               type="text"
             />
-            <p class="text-xs text-slate-500">Topic otomatis mengikuti Tenant ID dan Device UID.</p>
+            <p class="text-xs font-medium text-slate-400">Topic otomatis mengikuti Tenant ID dan Device UID.</p>
           </label>
         </div>
 
         <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <button class="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-slate-300 hover:bg-white/5" type="button" @click="closeAddModal">
+          <button class="min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 transition-all hover:bg-slate-100" type="button" @click="closeAddModal">
             Batal
           </button>
           <button
-            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-field-green px-5 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60"
+            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-300 px-5 py-2 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 disabled:opacity-60"
             :disabled="isSaving"
             type="submit"
           >
@@ -404,14 +423,14 @@ function statusLabel(status: DeviceStatus): string {
 
 function statusBadgeClass(status: DeviceStatus): string {
   if (status === "online") {
-    return "bg-field-mint/10 text-field-mint";
+    return "bg-emerald-100 text-emerald-700";
   }
 
   if (status === "maintenance") {
-    return "bg-amber-300/10 text-amber-100";
+    return "bg-amber-100 text-amber-700";
   }
 
-  return "bg-rose-300/10 text-rose-200";
+  return "bg-rose-100 text-rose-700";
 }
 
 function formatDateTime(value: string): string {
