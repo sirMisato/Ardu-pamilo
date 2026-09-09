@@ -1,13 +1,13 @@
 <template>
-  <div class="space-y-5">
-    <section class="panel-surface p-5">
+  <div class="space-y-5 text-slate-700">
+    <section class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 class="text-lg font-semibold tracking-normal text-white">Master Data Agronomi</h2>
-          <p class="mt-1 text-sm text-slate-400">Crop type, zona area, dan threshold tenant dari API.</p>
+          <h2 class="text-lg font-semibold tracking-normal text-slate-700">Master Data Agronomi</h2>
+          <p class="mt-1 text-sm text-slate-600">Crop type, zona area, dan threshold tenant dari API.</p>
         </div>
         <button
-          class="inline-flex min-h-10 items-center gap-2 rounded-full bg-field-green px-4 text-sm font-semibold text-[#102016] hover:bg-field-mint"
+          class="inline-flex min-h-10 items-center gap-2 rounded-full bg-emerald-300 px-4 text-sm font-semibold text-emerald-950 shadow-sm transition hover:bg-emerald-400"
           type="button"
           @click="activeTab === 'areas' ? openAreaModal() : openCropModal()"
         >
@@ -16,12 +16,12 @@
         </button>
       </div>
 
-      <div class="mt-5 flex flex-wrap gap-2">
+      <div class="mt-5 mb-6 flex w-fit flex-wrap gap-2 rounded-full border border-white/60 bg-white/40 p-1 shadow-sm backdrop-blur-md">
         <button
           v-for="tab in tabs"
           :key="tab.id"
-          class="inline-flex min-h-10 items-center gap-2 rounded-lg px-4 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-field-mint/40"
-          :class="activeTab === tab.id ? 'bg-field-green text-[#102016]' : 'border border-white/10 bg-white/5 text-slate-300 hover:border-field-mint/30 hover:text-field-mint'"
+          class="inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+          :class="activeTab === tab.id ? 'bg-emerald-300 text-emerald-950 shadow-sm' : 'text-slate-500 hover:bg-white/50 hover:text-slate-700'"
           type="button"
           @click="activeTab = tab.id"
         >
@@ -30,61 +30,66 @@
         </button>
       </div>
 
-      <div v-if="errorMessage" class="mt-4 rounded-lg border border-amber-300/25 bg-amber-300/10 p-4 text-sm text-amber-100">
+      <div v-if="errorMessage" class="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-700">
         {{ errorMessage }}
       </div>
     </section>
 
     <section v-if="activeTab === 'crops'" class="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)]">
-      <div class="grid gap-3">
-        <article
-          v-for="crop in crops"
-          :key="crop.id"
-          class="panel-surface p-4 text-left transition hover:border-field-mint/35"
-          :class="selectedCropId === crop.id ? 'border-field-mint/50 bg-field-mint/10' : ''"
-        >
-          <button class="w-full text-left" type="button" @click="selectCrop(crop.id)">
-            <div class="flex items-start justify-between gap-4">
-              <div>
-                <p class="font-semibold text-white">{{ crop.name }}</p>
-                <p class="mt-1 text-xs italic text-slate-400">{{ crop.latinName ?? "-" }}</p>
+      <div class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
+        <div class="grid gap-3">
+          <article
+            v-for="crop in crops"
+            :key="crop.id"
+            class="rounded-2xl border border-slate-200/80 bg-white/50 p-4 text-left shadow-sm transition hover:border-emerald-300/70 hover:bg-white/70"
+            :class="selectedCropId === crop.id ? 'border-emerald-300 bg-emerald-50/80 ring-2 ring-emerald-200/60' : ''"
+          >
+            <button class="w-full text-left" type="button" @click="selectCrop(crop.id)">
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <p class="font-semibold text-slate-700">{{ crop.name }}</p>
+                  <p class="mt-1 text-xs italic text-slate-500">{{ crop.latinName ?? "-" }}</p>
+                </div>
+                <span
+                  class="rounded-full px-2.5 py-1 text-xs font-semibold"
+                  :class="crop.status === 'active' ? 'bg-emerald-100 text-emerald-700' : crop.status === 'draft' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'"
+                >
+                  {{ statusLabel(crop.status) }}
+                </span>
               </div>
-              <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="statusClass(crop.status)">
-                {{ statusLabel(crop.status) }}
-              </span>
-            </div>
-            <div class="mt-4 grid grid-cols-2 gap-3 text-xs text-slate-300">
-              <span class="rounded-lg bg-white/5 p-2">{{ plantingPeriodLabel(crop.plantingPeriodDays) }}</span>
-              <span class="rounded-lg bg-white/5 p-2">{{ plantingDateLabel(crop.plantingDate) }}</span>
-              <span class="rounded-lg bg-white/5 p-2">{{ hstLabel(crop) }}</span>
-              <span class="rounded-lg bg-white/5 p-2">{{ crop.varieties.join(", ") || "Varietas belum diisi" }}</span>
-            </div>
-          </button>
-          <div class="mt-4 flex justify-end gap-2 border-t border-white/10 pt-3">
-            <button class="icon-button" type="button" :aria-label="`Edit ${crop.name}`" @click="openCropModal(crop)">
-              <Pencil class="h-4 w-4" />
+              <div class="mt-4 grid grid-cols-2 gap-3 text-xs text-slate-600">
+                <span class="rounded-lg border border-slate-200/70 bg-white/50 p-2">{{ plantingPeriodLabel(crop.plantingPeriodDays) }}</span>
+                <span class="rounded-lg border border-slate-200/70 bg-white/50 p-2">{{ plantingDateLabel(crop.plantingDate) }}</span>
+                <span class="rounded-lg border border-slate-200/70 bg-white/50 p-2">{{ hstLabel(crop) }}</span>
+                <span class="rounded-lg border border-slate-200/70 bg-white/50 p-2">{{ crop.varieties.join(", ") || "Varietas belum diisi" }}</span>
+              </div>
             </button>
-            <button class="icon-button" type="button" :aria-label="`Hapus ${crop.name}`" @click="removeCrop(crop)">
-              <Trash2 class="h-4 w-4" />
-            </button>
-          </div>
-        </article>
+            <div class="mt-4 flex justify-end gap-2 border-t border-slate-200/70 pt-3">
+              <button class="icon-button" type="button" :aria-label="`Edit ${crop.name}`" @click="openCropModal(crop)">
+                <Pencil class="h-4 w-4" />
+              </button>
+              <button class="icon-button" type="button" :aria-label="`Hapus ${crop.name}`" @click="removeCrop(crop)">
+                <Trash2 class="h-4 w-4" />
+              </button>
+            </div>
+          </article>
 
-        <div v-if="isLoading" class="panel-surface p-6 text-center text-sm text-slate-400">
+        <div v-if="isLoading" class="rounded-2xl border border-slate-200/80 bg-white/50 p-6 text-center text-sm text-slate-500">
           Memuat data.
         </div>
 
-        <div v-else-if="crops.length === 0" class="panel-surface p-6 text-center text-sm text-slate-400">
+        <div v-else-if="crops.length === 0" class="rounded-2xl border border-slate-200/80 bg-white/50 p-6 text-center text-sm text-slate-500">
           Belum ada crop type.
+        </div>
         </div>
       </div>
 
-      <article v-if="selectedCrop" class="panel-surface p-5">
+      <article v-if="selectedCrop" class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h3 class="text-xl font-semibold tracking-normal text-white">{{ selectedCrop.name }}</h3>
-            <p class="mt-1 text-sm italic text-slate-400">{{ selectedCrop.latinName ?? "-" }}</p>
-            <p class="mt-3 max-w-2xl text-sm text-slate-300">{{ selectedCrop.description ?? "Deskripsi belum diisi." }}</p>
+            <h3 class="text-xl font-semibold tracking-normal text-slate-700">{{ selectedCrop.name }}</h3>
+            <p class="mt-1 text-sm italic text-slate-500">{{ selectedCrop.latinName ?? "-" }}</p>
+            <p class="mt-3 max-w-2xl text-sm text-slate-600">{{ selectedCrop.description ?? "Deskripsi belum diisi." }}</p>
           </div>
           <div class="flex items-center gap-2">
             <button class="icon-button" type="button" :aria-label="`Edit ${selectedCrop.name}`" @click="openCropModal(selectedCrop)">
@@ -98,41 +103,41 @@
         </div>
 
         <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-            <p class="text-xs text-slate-400">Tanggal Tanam</p>
-            <p class="mt-2 text-sm font-semibold text-white">{{ plantingDateLabel(selectedCrop.plantingDate) }}</p>
+          <div class="rounded-xl border border-slate-200/80 bg-white/50 p-4">
+            <p class="text-xs text-slate-500">Tanggal Tanam</p>
+            <p class="mt-2 text-sm font-semibold text-slate-700">{{ plantingDateLabel(selectedCrop.plantingDate) }}</p>
           </div>
-          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-            <p class="text-xs text-slate-400">Umur Tanaman</p>
-            <p class="mt-2 text-sm font-semibold text-field-mint">{{ hstLabel(selectedCrop) }}</p>
+          <div class="rounded-xl border border-slate-200/80 bg-white/50 p-4">
+            <p class="text-xs text-slate-500">Umur Tanaman</p>
+            <p class="mt-2 text-sm font-semibold text-emerald-700">{{ hstLabel(selectedCrop) }}</p>
           </div>
-          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-            <p class="text-xs text-slate-400">Progress</p>
-            <p class="mt-2 text-sm font-semibold text-white">{{ cropProgressLabel(selectedCrop) }}</p>
+          <div class="rounded-xl border border-slate-200/80 bg-white/50 p-4">
+            <p class="text-xs text-slate-500">Progress</p>
+            <p class="mt-2 text-sm font-semibold text-slate-700">{{ cropProgressLabel(selectedCrop) }}</p>
           </div>
-          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-            <p class="text-xs text-slate-400">Estimasi Panen</p>
-            <p class="mt-2 text-sm font-semibold text-white">{{ harvestEstimateLabel(selectedCrop) }}</p>
+          <div class="rounded-xl border border-slate-200/80 bg-white/50 p-4">
+            <p class="text-xs text-slate-500">Estimasi Panen</p>
+            <p class="mt-2 text-sm font-semibold text-slate-700">{{ harvestEstimateLabel(selectedCrop) }}</p>
           </div>
         </div>
 
         <div class="mt-5 grid gap-4 md:grid-cols-2">
-          <label v-for="metric in thresholdMetrics" :key="metric.key" class="space-y-2 rounded-lg border border-white/10 bg-white/5 p-4">
-            <span class="flex items-center justify-between gap-3 text-sm font-medium text-slate-300">
+          <label v-for="metric in thresholdMetrics" :key="metric.key" class="space-y-2 rounded-xl border border-slate-200/80 bg-white/50 p-4">
+            <span class="flex items-center justify-between gap-3 text-sm font-semibold text-slate-700">
               {{ metric.label }}
-              <span class="text-xs text-slate-500">{{ metric.unit }}</span>
+              <span class="text-xs font-medium text-slate-500">{{ metric.unit }}</span>
             </span>
             <div class="grid grid-cols-2 gap-3">
               <input
                 v-model.number="draftThresholds[metric.key].min"
-                class="min-h-11 rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+                class="w-full rounded-lg border border-slate-200 bg-white/50 px-3 py-1.5 text-center text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
                 placeholder="Min"
                 step="0.1"
                 type="number"
               />
               <input
                 v-model.number="draftThresholds[metric.key].max"
-                class="min-h-11 rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+                class="w-full rounded-lg border border-slate-200 bg-white/50 px-3 py-1.5 text-center text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
                 placeholder="Max"
                 step="0.1"
                 type="number"
@@ -142,9 +147,9 @@
         </div>
 
         <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
-          <p class="text-sm text-slate-400">{{ savedMessage }}</p>
+          <p class="text-sm text-slate-500">{{ savedMessage }}</p>
           <button
-            class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-field-green px-5 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60"
+            class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-300 px-5 text-sm font-semibold text-emerald-950 shadow-sm transition hover:bg-emerald-400 disabled:opacity-60"
             :disabled="isSaving"
             type="button"
             @click="saveThresholds"
@@ -156,10 +161,10 @@
       </article>
     </section>
 
-    <section v-else-if="activeTab === 'areas'" class="panel-surface overflow-hidden">
+    <section v-else-if="activeTab === 'areas'" class="overflow-hidden rounded-2xl border border-white/80 bg-white/60 shadow-sm backdrop-blur-md">
       <div class="overflow-x-auto">
         <table class="min-w-[920px] w-full text-left text-sm">
-          <thead class="border-b border-white/10 bg-white/5 text-xs uppercase tracking-wide text-slate-400">
+          <thead class="border-b border-slate-200/80 bg-white/50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th class="px-5 py-4 font-semibold">Zona / Area</th>
               <th class="px-5 py-4 font-semibold">Luas</th>
@@ -168,15 +173,15 @@
               <th class="px-5 py-4 text-right font-semibold">Aksi</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-white/10">
-            <tr v-for="plot in plots" :key="plot.id" class="hover:bg-white/[0.03]">
+          <tbody class="divide-y divide-slate-200/70">
+            <tr v-for="plot in plots" :key="plot.id" class="hover:bg-white/50">
               <td class="px-5 py-4">
-                <p class="font-semibold text-white">{{ plot.name }}</p>
-                <p class="mt-1 text-xs text-slate-400">{{ plot.id }}</p>
+                <p class="font-semibold text-slate-700">{{ plot.name }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ plot.id }}</p>
               </td>
-              <td class="px-5 py-4 text-slate-300">{{ plot.areaLabel }}</td>
-              <td class="px-5 py-4 text-slate-300">{{ plot.cropName ?? "Belum dipilih" }}</td>
-              <td class="px-5 py-4 font-semibold text-field-mint">{{ plot.bmkgAdm4Code ?? "-" }}</td>
+              <td class="px-5 py-4 text-slate-600">{{ plot.areaLabel }}</td>
+              <td class="px-5 py-4 text-slate-600">{{ plot.cropName ?? "Belum dipilih" }}</td>
+              <td class="px-5 py-4 font-semibold text-emerald-700">{{ plot.bmkgAdm4Code ?? "-" }}</td>
               <td class="px-5 py-4">
                 <div class="flex justify-end gap-2">
                   <button class="icon-button" type="button" :aria-label="`Edit ${plot.name}`" @click="openAreaModal(plot)">
@@ -192,39 +197,39 @@
         </table>
       </div>
 
-      <div v-if="plots.length === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
+      <div v-if="plots.length === 0" class="border-t border-slate-200/80 p-8 text-center text-sm text-slate-500">
         Belum ada zona atau area.
       </div>
     </section>
 
-    <section v-else class="panel-surface overflow-hidden">
-      <div class="border-b border-white/10 p-5">
-        <h3 class="text-base font-semibold tracking-normal text-white">Threshold Matrix</h3>
-        <p class="mt-1 text-sm text-slate-400">Ringkasan batas per crop dari API tenant.</p>
+    <section v-else class="overflow-hidden rounded-2xl border border-white/80 bg-white/60 shadow-sm backdrop-blur-md">
+      <div class="border-b border-slate-200/80 p-5">
+        <h3 class="text-base font-semibold tracking-normal text-slate-700">Threshold Matrix</h3>
+        <p class="mt-1 text-sm text-slate-600">Ringkasan batas per crop dari API tenant.</p>
       </div>
 
       <div class="overflow-x-auto">
         <table class="min-w-[920px] w-full text-left text-sm">
-          <thead class="border-b border-white/10 bg-white/5 text-xs uppercase tracking-wide text-slate-400">
+          <thead class="border-b border-slate-200/80 bg-white/50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th class="px-5 py-4 font-semibold">Crop Type</th>
               <th v-for="metric in thresholdMetrics" :key="metric.key" class="px-5 py-4 font-semibold">{{ metric.label }}</th>
               <th class="px-5 py-4 font-semibold">Status</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-white/10">
-            <tr v-for="crop in crops" :key="crop.id" class="hover:bg-white/[0.03]">
+          <tbody class="divide-y divide-slate-200/70">
+            <tr v-for="crop in crops" :key="crop.id" class="hover:bg-white/50">
               <td class="px-5 py-4">
-                <p class="font-semibold text-white">{{ crop.name }}</p>
-                <p class="mt-1 text-xs italic text-slate-400">{{ crop.latinName ?? "-" }}</p>
+                <p class="font-semibold text-slate-700">{{ crop.name }}</p>
+                <p class="mt-1 text-xs italic text-slate-500">{{ crop.latinName ?? "-" }}</p>
               </td>
-              <td v-for="metric in thresholdMetrics" :key="metric.key" class="px-5 py-4 text-slate-300">
+              <td v-for="metric in thresholdMetrics" :key="metric.key" class="px-5 py-4 text-slate-600">
                 {{ formatRange(crop.thresholds[metric.key]) }}
               </td>
               <td class="px-5 py-4">
                 <select
-                  class="min-h-9 rounded-full border border-white/10 bg-[#0b1626] px-3 text-xs font-semibold outline-none transition focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
-                  :class="statusClass(crop.status)"
+                  class="min-h-9 rounded-full border border-slate-200 bg-white/50 px-3 text-xs font-semibold outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
+                  :class="crop.status === 'active' ? 'text-emerald-700' : crop.status === 'draft' ? 'text-amber-700' : 'text-slate-600'"
                   :disabled="isSaving"
                   :value="crop.status"
                   @change="updateCropStatus(crop.id, ($event.target as HTMLSelectElement).value)"
@@ -239,17 +244,17 @@
         </table>
       </div>
 
-      <div v-if="crops.length === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
+      <div v-if="crops.length === 0" class="border-t border-slate-200/80 p-8 text-center text-sm text-slate-500">
         Belum ada threshold crop dari API.
       </div>
     </section>
 
-    <div v-if="isCropModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/75 p-4 backdrop-blur-sm">
-      <form class="w-full max-w-2xl rounded-lg border border-field-mint/20 bg-[#101f32] p-5 shadow-field" @submit.prevent="submitCrop">
+    <div v-if="isCropModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 p-4 backdrop-blur-sm">
+      <form class="w-full max-w-lg rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-2xl backdrop-blur-xl" @submit.prevent="submitCrop">
         <div class="flex items-center justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold tracking-normal text-white">{{ cropModalTitle }}</h2>
-            <p class="mt-1 text-sm text-slate-400">Data crop tenant.</p>
+            <h2 class="text-lg font-semibold tracking-normal text-slate-700">{{ cropModalTitle }}</h2>
+            <p class="mt-1 text-sm text-slate-600">Data crop tenant.</p>
           </div>
           <button class="icon-button" type="button" aria-label="Tutup modal" @click="closeCropModal">
             <X class="h-4 w-4" />
@@ -259,27 +264,27 @@
         <div class="mt-5 grid gap-4">
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="space-y-2">
-              <span class="text-sm font-medium text-slate-300">Nama</span>
-              <input v-model.trim="cropForm.name" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" required type="text" />
+              <span class="text-sm font-semibold text-slate-700">Nama</span>
+              <input v-model.trim="cropForm.name" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" required type="text" />
             </label>
             <label class="space-y-2">
-              <span class="text-sm font-medium text-slate-300">Latin</span>
-              <input v-model.trim="cropForm.latinName" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" type="text" />
+              <span class="text-sm font-semibold text-slate-700">Latin</span>
+              <input v-model.trim="cropForm.latinName" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" type="text" />
             </label>
           </div>
 
           <div class="grid gap-4 sm:grid-cols-3">
             <label class="space-y-2">
-              <span class="text-sm font-medium text-slate-300">Periode Tanam (hari)</span>
-              <input v-model.number="cropForm.plantingPeriodDays" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" min="1" type="number" />
+              <span class="text-sm font-semibold text-slate-700">Periode Tanam (hari)</span>
+              <input v-model.number="cropForm.plantingPeriodDays" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" min="1" type="number" />
             </label>
             <label class="space-y-2">
-              <span class="text-sm font-medium text-slate-300">Tanggal Tanam</span>
-              <input v-model="cropForm.plantingDate" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" type="date" />
+              <span class="text-sm font-semibold text-slate-700">Tanggal Tanam</span>
+              <input v-model="cropForm.plantingDate" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" type="date" />
             </label>
             <label class="space-y-2">
-              <span class="text-sm font-medium text-slate-300">Status</span>
-              <select v-model="cropForm.status" class="min-h-11 w-full rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25">
+              <span class="text-sm font-semibold text-slate-700">Status</span>
+              <select v-model="cropForm.status" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400">
                 <option value="active">Aktif</option>
                 <option value="draft">Draft</option>
                 <option value="archived">Archived</option>
@@ -288,26 +293,26 @@
           </div>
 
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Varietas</span>
-            <input v-model.trim="cropForm.varieties" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" placeholder="IR64, Inpari" type="text" />
+            <span class="text-sm font-semibold text-slate-700">Varietas</span>
+            <input v-model.trim="cropForm.varieties" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" placeholder="IR64, Inpari" type="text" />
           </label>
 
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Sumber Threshold</span>
-            <input v-model.trim="cropForm.thresholdSource" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" placeholder="Manual, rekomendasi agronom, jurnal" type="text" />
+            <span class="text-sm font-semibold text-slate-700">Sumber Threshold</span>
+            <input v-model.trim="cropForm.thresholdSource" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" placeholder="Manual, rekomendasi agronom, jurnal" type="text" />
           </label>
 
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Deskripsi</span>
-            <textarea v-model.trim="cropForm.description" class="min-h-24 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"></textarea>
+            <span class="text-sm font-semibold text-slate-700">Deskripsi</span>
+            <textarea v-model.trim="cropForm.description" class="min-h-24 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"></textarea>
           </label>
         </div>
 
         <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <button class="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-slate-300 hover:bg-white/5" type="button" @click="closeCropModal">
+          <button class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-100" type="button" @click="closeCropModal">
             Batal
           </button>
-          <button class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-field-green px-5 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60" :disabled="isSaving" type="submit">
+          <button class="inline-flex items-center gap-2 rounded-xl bg-emerald-300 px-5 py-2 text-sm font-semibold text-emerald-950 shadow-sm transition hover:bg-emerald-400 disabled:opacity-60" :disabled="isSaving" type="submit">
             <Save class="h-4 w-4" />
             {{ isSaving ? "Menyimpan" : cropSubmitLabel }}
           </button>
@@ -315,32 +320,32 @@
       </form>
     </div>
 
-    <div v-if="isAreaModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-[#020617]/75 p-4 backdrop-blur-sm">
-      <form ref="areaFormElement" class="mx-auto flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-field-mint/20 bg-[#101f32] shadow-field" @submit.prevent="submitArea">
-        <div class="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 p-5">
+    <div v-if="isAreaModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/20 p-4 backdrop-blur-sm">
+      <form ref="areaFormElement" class="mx-auto flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-2xl backdrop-blur-xl" @submit.prevent="submitArea">
+        <div class="flex shrink-0 items-center justify-between gap-4 border-b border-slate-200 pb-5">
           <div>
-            <h2 class="text-lg font-semibold tracking-normal text-white">{{ areaModalTitle }}</h2>
-            <p class="mt-1 text-sm text-slate-400">Relasi zona, crop, dan BMKG.</p>
+            <h2 class="text-lg font-semibold tracking-normal text-slate-700">{{ areaModalTitle }}</h2>
+            <p class="mt-1 text-sm text-slate-600">Relasi zona, crop, dan BMKG.</p>
           </div>
           <button class="icon-button" type="button" aria-label="Tutup modal" @click="closeAreaModal">
             <X class="h-4 w-4" />
           </button>
         </div>
 
-        <div class="grid gap-4 overflow-y-auto p-5 md:grid-cols-2">
+        <div class="grid gap-4 overflow-y-auto py-5 md:grid-cols-2">
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Nama Zona / Area</span>
-            <input v-model.trim="areaForm.name" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" required type="text" />
+            <span class="text-sm font-semibold text-slate-700">Nama Zona / Area</span>
+            <input v-model.trim="areaForm.name" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" required type="text" />
           </label>
 
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Luas (ha)</span>
-            <input v-model.number="areaForm.areaHectares" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" min="0" step="0.01" type="number" />
+            <span class="text-sm font-semibold text-slate-700">Luas (ha)</span>
+            <input v-model.number="areaForm.areaHectares" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" min="0" step="0.01" type="number" />
           </label>
 
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Crop</span>
-            <select v-model="areaForm.cropId" class="min-h-11 w-full rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25">
+            <span class="text-sm font-semibold text-slate-700">Crop</span>
+            <select v-model="areaForm.cropId" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400">
               <option value="">Belum dipilih</option>
               <option v-for="crop in crops" :key="crop.id" :value="crop.id">
                 {{ crop.name }}
@@ -349,25 +354,27 @@
           </label>
 
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">BMKG ADM4</span>
-            <input v-model.trim="areaForm.bmkgAdm4Code" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" placeholder="31.71.03.1001" type="text" />
+            <span class="text-sm font-semibold text-slate-700">BMKG ADM4</span>
+            <input v-model.trim="areaForm.bmkgAdm4Code" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" placeholder="31.71.03.1001" type="text" />
           </label>
 
           <div class="space-y-2 md:col-span-2">
-            <span class="text-sm font-medium text-slate-300">Polygon Lokasi</span>
-            <PolygonMapEditor v-model="areaPolygon" @cancel="closeAreaModal" @save="submitAreaFromPolygon" />
+            <span class="text-sm font-semibold text-slate-700">Polygon Lokasi</span>
+            <div class="overflow-hidden rounded-xl border border-slate-200">
+              <PolygonMapEditor v-model="areaPolygon" @cancel="closeAreaModal" @save="submitAreaFromPolygon" />
+            </div>
           </div>
         </div>
 
-        <div v-if="areaFormError" class="mx-5 mb-4 shrink-0 rounded-lg border border-amber-300/25 bg-amber-300/10 p-3 text-sm text-amber-100">
+        <div v-if="areaFormError" class="mb-4 shrink-0 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-sm text-amber-700">
           {{ areaFormError }}
         </div>
 
-        <div class="flex shrink-0 flex-col-reverse gap-3 border-t border-white/10 bg-[#101f32] p-5 sm:flex-row sm:justify-end">
-          <button class="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-slate-300 hover:bg-white/5" type="button" @click="closeAreaModal">
+        <div class="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
+          <button class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-100" type="button" @click="closeAreaModal">
             Kembali
           </button>
-          <button class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-field-green px-5 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60" :disabled="isSaving" type="submit">
+          <button class="inline-flex items-center gap-2 rounded-xl bg-emerald-300 px-5 py-2 text-sm font-semibold text-emerald-950 shadow-sm transition hover:bg-emerald-400 disabled:opacity-60" :disabled="isSaving" type="submit">
             <Save class="h-4 w-4" />
             {{ isSaving ? "Menyimpan" : "Simpan Area" }}
           </button>
