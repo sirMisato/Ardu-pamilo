@@ -18,6 +18,7 @@
     min-width: 320px;
     min-height: 100%;
     background: #f8f9fa;
+    overscroll-behavior-y: none;
   }
 
   body {
@@ -26,6 +27,7 @@
     margin: 0;
     background: #f8f9fa;
     color: #334155;
+    -webkit-tap-highlight-color: transparent;
   }
 
   a {
@@ -60,11 +62,11 @@
 
 @layer components {
   .glass-panel {
-    @apply rounded-3xl border border-white/70 bg-white/60 shadow-glass backdrop-blur-xl;
+    @apply rounded-3xl border border-white/70 bg-white/60 p-4 shadow-glass backdrop-blur-xl md:p-6;
   }
 
   .panel-surface {
-    @apply rounded-3xl border border-white/70 bg-white/60 shadow-glass backdrop-blur-xl;
+    @apply rounded-3xl border border-white/70 bg-white/60 p-4 shadow-glass backdrop-blur-xl md:p-6;
   }
 
   .icon-button {

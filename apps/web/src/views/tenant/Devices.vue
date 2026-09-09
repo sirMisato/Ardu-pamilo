@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-5">
     <section class="grid gap-4 md:grid-cols-3">
-      <article class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
+      <article class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-md md:p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <p class="text-sm font-medium text-slate-400">Total Perangkat</p>
@@ -13,7 +13,7 @@
         </div>
       </article>
 
-      <article class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
+      <article class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-md md:p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <p class="text-sm font-medium text-slate-400">Online</p>
@@ -25,7 +25,7 @@
         </div>
       </article>
 
-      <article class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
+      <article class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-md md:p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <p class="text-sm font-medium text-slate-400">Plot Aktif</p>
@@ -38,7 +38,7 @@
       </article>
     </section>
 
-    <section class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
+    <section class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-md md:p-5">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div class="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
           <label class="relative w-full max-w-md">
@@ -77,7 +77,7 @@
       </div>
     </section>
 
-    <section class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg">
+    <section class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6">
       <div class="w-full overflow-x-auto whitespace-nowrap rounded-2xl">
         <table class="min-w-[900px] w-full text-left text-sm">
           <thead class="bg-white/40 text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -147,17 +147,17 @@
         </table>
       </div>
 
-      <div v-if="isLoading" class="border-t border-white/60 p-8 text-center text-sm font-medium text-slate-400">
+      <div v-if="isLoading" class="border-t border-white/60 p-6 text-center text-sm font-medium text-slate-400 md:p-8">
         Memuat perangkat dari API.
       </div>
 
-      <div v-else-if="filteredDevices.length === 0" class="border-t border-white/60 p-8 text-center text-sm font-medium text-slate-400">
+      <div v-else-if="filteredDevices.length === 0" class="border-t border-white/60 p-6 text-center text-sm font-medium text-slate-400 md:p-8">
         Tidak ada perangkat sesuai filter.
       </div>
     </section>
 
     <div v-if="isAddModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 p-4 backdrop-blur-sm">
-      <form class="w-full max-w-md rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-2xl backdrop-blur-xl" @submit.prevent="submitDevice">
+      <form class="w-full max-w-md rounded-[2rem] border border-white/80 bg-white/85 p-4 shadow-2xl backdrop-blur-xl md:p-6" @submit.prevent="submitDevice">
         <div class="flex items-center justify-between gap-4">
           <div>
             <h2 class="text-lg font-bold tracking-normal text-slate-800">Tambah Perangkat</h2>

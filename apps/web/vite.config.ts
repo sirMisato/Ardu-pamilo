@@ -22,7 +22,7 @@ export default defineConfig({
         name: "PAMILO Smart Farming",
         short_name: "PAMILO",
         start_url: "/",
-        theme_color: "#34d399"
+        theme_color: "#ffffff"
       },
       registerType: "autoUpdate",
       workbox: {

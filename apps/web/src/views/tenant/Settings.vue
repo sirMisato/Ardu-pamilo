@@ -1,6 +1,6 @@
 <template>
   <div class="grid gap-5 text-slate-700 xl:grid-cols-[280px_minmax(0,1fr)]">
-    <aside class="h-fit rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
+    <aside class="h-fit rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-md md:p-5">
       <button
         v-for="item in tabs"
         :key="item.id"
@@ -22,7 +22,7 @@
         {{ successMessage }}
       </div>
 
-      <form v-if="activeTab === 'profile'" class="rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg lg:p-8" @submit.prevent="submitProfile">
+      <form v-if="activeTab === 'profile'" class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6 lg:p-8" @submit.prevent="submitProfile">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 class="text-2xl font-bold tracking-normal text-slate-800">Profil</h2>
@@ -63,7 +63,7 @@
         </div>
       </form>
 
-      <section v-else-if="activeTab === 'display'" class="rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg lg:p-8">
+      <section v-else-if="activeTab === 'display'" class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6 lg:p-8">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 class="text-2xl font-bold tracking-normal text-slate-800">Tampilan</h2>
@@ -115,7 +115,7 @@
         </div>
       </section>
 
-      <section v-else-if="activeTab === 'notifications'" class="rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg lg:p-8">
+      <section v-else-if="activeTab === 'notifications'" class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6 lg:p-8">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 class="text-2xl font-bold tracking-normal text-slate-800">Notifikasi</h2>
@@ -152,7 +152,7 @@
         </div>
       </section>
 
-      <form v-else-if="activeTab === 'security'" class="rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg lg:p-8" @submit.prevent="submitPassword">
+      <form v-else-if="activeTab === 'security'" class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6 lg:p-8" @submit.prevent="submitPassword">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 class="text-2xl font-bold tracking-normal text-slate-800">Keamanan</h2>
@@ -190,7 +190,7 @@
         </div>
       </form>
 
-      <section v-else class="rounded-[2rem] border border-rose-200/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg lg:p-8">
+      <section v-else class="rounded-[2rem] border border-rose-200/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6 lg:p-8">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 class="text-2xl font-bold tracking-normal text-slate-800">Reset Semua Sistem</h2>
@@ -213,7 +213,7 @@
     </section>
 
     <div v-if="isResetModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 p-4 backdrop-blur-sm">
-      <form class="w-full max-w-lg rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-2xl backdrop-blur-xl" @submit.prevent="submitReset">
+      <form class="w-full max-w-lg rounded-[2rem] border border-white/80 bg-white/85 p-4 shadow-2xl backdrop-blur-xl md:p-6" @submit.prevent="submitReset">
         <div class="flex items-start justify-between gap-4">
           <div>
             <h2 class="text-xl font-bold tracking-normal text-slate-800">Konfirmasi Reset</h2>

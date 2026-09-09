@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-5 text-slate-700">
-    <section class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
+    <section class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-md md:p-5">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 class="text-lg font-semibold tracking-normal text-slate-700">Master Data Agronomi</h2>
@@ -36,7 +36,7 @@
     </section>
 
     <section v-if="activeTab === 'crops'" class="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)]">
-      <div class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
+      <div class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-md md:p-5">
         <div class="grid gap-3">
           <article
             v-for="crop in crops"
@@ -74,17 +74,17 @@
             </div>
           </article>
 
-        <div v-if="isLoading" class="rounded-2xl border border-slate-200/80 bg-white/50 p-6 text-center text-sm text-slate-500">
+        <div v-if="isLoading" class="rounded-2xl border border-slate-200/80 bg-white/50 p-4 text-center text-sm text-slate-500 md:p-6">
           Memuat data.
         </div>
 
-        <div v-else-if="crops.length === 0" class="rounded-2xl border border-slate-200/80 bg-white/50 p-6 text-center text-sm text-slate-500">
+        <div v-else-if="crops.length === 0" class="rounded-2xl border border-slate-200/80 bg-white/50 p-4 text-center text-sm text-slate-500 md:p-6">
           Belum ada crop type.
         </div>
         </div>
       </div>
 
-      <article v-if="selectedCrop" class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
+      <article v-if="selectedCrop" class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-md md:p-5">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h3 class="text-xl font-semibold tracking-normal text-slate-700">{{ selectedCrop.name }}</h3>
@@ -203,7 +203,7 @@
     </section>
 
     <section v-else class="overflow-hidden rounded-2xl border border-white/80 bg-white/60 shadow-sm backdrop-blur-md">
-      <div class="border-b border-slate-200/80 p-5">
+      <div class="border-b border-slate-200/80 p-4 md:p-5">
         <h3 class="text-base font-semibold tracking-normal text-slate-700">Threshold Matrix</h3>
         <p class="mt-1 text-sm text-slate-600">Ringkasan batas per crop dari API tenant.</p>
       </div>
@@ -250,7 +250,7 @@
     </section>
 
     <div v-if="isCropModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 p-4 backdrop-blur-sm">
-      <form class="w-full max-w-lg rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-2xl backdrop-blur-xl" @submit.prevent="submitCrop">
+      <form class="w-full max-w-lg rounded-[2rem] border border-white/80 bg-white/85 p-4 shadow-2xl backdrop-blur-xl md:p-6" @submit.prevent="submitCrop">
         <div class="flex items-center justify-between gap-4">
           <div>
             <h2 class="text-lg font-semibold tracking-normal text-slate-700">{{ cropModalTitle }}</h2>
@@ -321,7 +321,7 @@
     </div>
 
     <div v-if="isAreaModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/20 p-4 backdrop-blur-sm">
-      <form ref="areaFormElement" class="mx-auto flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-2xl backdrop-blur-xl" @submit.prevent="submitArea">
+      <form ref="areaFormElement" class="mx-auto flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 p-4 shadow-2xl backdrop-blur-xl md:p-6" @submit.prevent="submitArea">
         <div class="flex shrink-0 items-center justify-between gap-4 border-b border-slate-200 pb-5">
           <div>
             <h2 class="text-lg font-semibold tracking-normal text-slate-700">{{ areaModalTitle }}</h2>

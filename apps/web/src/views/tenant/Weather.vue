@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-5">
-    <section class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
+    <section class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-5">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 class="text-lg font-semibold tracking-normal text-slate-800">Weather Station</h2>
@@ -37,7 +37,7 @@
       </div>
 
       <section v-if="forecast" class="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.45fr)]">
-        <article class="rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg">
+        <article class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6">
           <div class="border-b border-white/60 pb-5">
             <p class="text-sm font-medium text-slate-500">Prakiraan Cuaca Saat Ini</p>
             <div class="mt-4 flex items-center justify-between gap-4">
@@ -77,7 +77,7 @@
           </div>
         </article>
 
-        <article class="rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg">
+        <article class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 class="text-base font-semibold tracking-normal text-slate-800">3-Day Forecast Grid</h3>
@@ -118,7 +118,7 @@
         </article>
       </section>
 
-      <section v-if="forecast" class="rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg">
+      <section v-if="forecast" class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 class="text-base font-semibold tracking-normal text-slate-800">Hourly Forecast</h3>
@@ -158,7 +158,7 @@
     </section>
 
     <section v-else-if="activeTab === 'monthly'" class="space-y-5">
-      <section class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
+      <section class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-5">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="text-lg font-semibold tracking-normal text-slate-800">Report Bulanan</h2>
@@ -227,7 +227,7 @@
       </section>
 
       <section class="overflow-hidden rounded-2xl border border-white/80 bg-white/60 shadow-sm backdrop-blur-lg">
-        <div class="border-b border-white/60 p-5">
+        <div class="border-b border-white/60 p-4 md:p-5">
           <h3 class="text-base font-semibold tracking-normal text-slate-800">Histori Cuaca</h3>
           <p class="mt-1 text-sm text-slate-500">ADM4 {{ activeAdm4 || "-" }}</p>
         </div>
@@ -308,7 +308,7 @@
       </section>
     </section>
 
-    <section v-else class="rounded-2xl border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg">
+    <section v-else class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <h2 class="text-lg font-semibold tracking-normal text-slate-800">Konfigurasi</h2>
         <button

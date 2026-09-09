@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-5 text-slate-700">
     <section class="grid gap-4 md:grid-cols-3">
-      <article class="rounded-[2rem] border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
+      <article class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <p class="text-sm font-medium text-slate-500">Total User</p>
@@ -13,7 +13,7 @@
         </div>
       </article>
 
-      <article class="rounded-[2rem] border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
+      <article class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <p class="text-sm font-medium text-slate-500">Aktif</p>
@@ -25,7 +25,7 @@
         </div>
       </article>
 
-      <article class="rounded-[2rem] border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
+      <article class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <p class="text-sm font-medium text-slate-500">Role</p>
@@ -38,7 +38,7 @@
       </article>
     </section>
 
-    <section class="rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg">
+    <section class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <label class="relative flex-1">
           <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
@@ -69,7 +69,7 @@
       </div>
     </section>
 
-    <section class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg">
+    <section class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6">
       <div class="overflow-hidden rounded-[1.5rem] border border-white/70 bg-white/30">
         <div class="w-full overflow-x-auto whitespace-nowrap">
           <table class="min-w-[820px] w-full text-left text-sm">
@@ -122,17 +122,17 @@
         </div>
       </div>
 
-      <div v-if="isLoading" class="mt-4 rounded-xl border border-white/70 bg-white/40 p-8 text-center text-sm text-slate-500">
+      <div v-if="isLoading" class="mt-4 rounded-xl border border-white/70 bg-white/40 p-6 text-center text-sm text-slate-500 md:p-8">
         Memuat user tenant.
       </div>
 
-      <div v-else-if="filteredUsers.length === 0" class="mt-4 rounded-xl border border-white/70 bg-white/40 p-8 text-center text-sm text-slate-500">
+      <div v-else-if="filteredUsers.length === 0" class="mt-4 rounded-xl border border-white/70 bg-white/40 p-6 text-center text-sm text-slate-500 md:p-8">
         Belum ada user tenant sesuai filter.
       </div>
     </section>
 
     <div v-if="isUserModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 p-4 backdrop-blur-sm">
-      <form class="w-full max-w-lg rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-2xl backdrop-blur-xl" @submit.prevent="submitUser">
+      <form class="w-full max-w-lg rounded-[2rem] border border-white/80 bg-white/85 p-4 shadow-2xl backdrop-blur-xl md:p-6" @submit.prevent="submitUser">
         <div class="flex items-center justify-between gap-4">
           <div>
             <h2 class="text-xl font-bold tracking-normal text-slate-800">{{ userModalTitle }}</h2>

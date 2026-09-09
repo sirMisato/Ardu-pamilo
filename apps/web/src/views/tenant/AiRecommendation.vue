@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-5">
-    <section class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
+    <section class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-5">
       <div class="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(220px,1.4fr)_repeat(3,minmax(150px,1fr))_auto] xl:items-end">
         <label class="space-y-2">
           <span class="flex items-center gap-2 text-sm font-medium text-slate-700">
@@ -75,7 +75,7 @@
     </section>
 
     <section class="grid gap-5 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-      <article class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
+      <article class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <h2 class="text-base font-semibold tracking-normal text-slate-800">Konteks Cuaca</h2>
@@ -117,7 +117,7 @@
         </div>
       </article>
 
-      <article class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
+      <article class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <h2 class="text-base font-semibold tracking-normal text-slate-800">Catatan Lapang</h2>
@@ -143,7 +143,7 @@
     </section>
 
     <section v-else-if="result" class="space-y-5">
-      <article class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
+      <article class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-5">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div class="max-w-4xl">
             <div class="flex flex-wrap items-center gap-2">
@@ -180,7 +180,7 @@
         </div>
       </article>
 
-      <section v-if="result.recommendation.riskAlerts.length > 0" class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
+      <section v-if="result.recommendation.riskAlerts.length > 0" class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-5">
         <div class="flex items-center gap-3">
           <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
             <AlertTriangle class="h-5 w-5" />
@@ -203,7 +203,7 @@
       </section>
 
       <section class="grid gap-5 xl:grid-cols-2">
-        <article v-for="section in recommendationSections" :key="section.id" class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
+        <article v-for="section in recommendationSections" :key="section.id" class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-5">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
               <div class="flex h-10 w-10 items-center justify-center rounded-xl" :class="section.iconClass">
@@ -235,13 +235,13 @@
             </article>
           </div>
 
-          <div v-else class="mt-5 rounded-xl border border-white/80 bg-white/50 p-5 text-sm text-slate-600">
+          <div v-else class="mt-5 rounded-xl border border-white/80 bg-white/50 p-4 text-sm text-slate-600 md:p-5">
             Tidak ada rekomendasi pada kategori ini.
           </div>
         </article>
       </section>
 
-      <section v-if="result.recommendation.dataGaps.length > 0" class="rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg">
+      <section v-if="result.recommendation.dataGaps.length > 0" class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-5">
         <div class="flex items-center gap-3">
           <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-600">
             <Database class="h-5 w-5" />

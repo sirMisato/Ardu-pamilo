@@ -1,18 +1,18 @@
 <template>
-  <header class="sticky top-0 z-50 border-b border-white/80 bg-white/60 text-slate-800 shadow-sm backdrop-blur-md">
-    <div class="flex min-h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+  <header class="sticky top-0 z-50 border-b border-white/50 bg-white/60 pt-[env(safe-area-inset-top)] text-slate-800 shadow-sm backdrop-blur-xl">
+    <div class="flex min-h-14 items-center justify-between gap-3 px-3 sm:px-4 md:min-h-16 md:px-6 lg:px-8">
       <div class="flex min-w-0 items-center gap-3">
-        <button class="rounded-full bg-white/50 p-2 text-slate-600 shadow-sm transition-all hover:bg-white/80 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 lg:hidden" type="button" aria-label="Open navigation" @click="emit('toggleSidebar')">
+        <button class="hidden rounded-full bg-white/50 p-2 text-slate-600 shadow-sm transition-all hover:bg-white/80 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 md:inline-flex lg:hidden" type="button" aria-label="Open navigation" @click="emit('toggleSidebar')">
           <Menu class="h-5 w-5" />
         </button>
         <div class="min-w-0">
-          <h1 class="truncate text-lg font-bold tracking-normal text-slate-800 sm:text-xl">{{ title }}</h1>
-          <p class="hidden truncate text-sm text-slate-500 sm:block">{{ subtitle }}</p>
+          <h1 class="truncate text-base font-bold tracking-normal text-slate-800 sm:text-lg md:text-xl">{{ title }}</h1>
+          <p class="hidden truncate text-sm text-slate-500 md:block">{{ subtitle }}</p>
         </div>
       </div>
 
       <div class="flex items-center gap-2">
-        <button class="hidden rounded-full bg-white/50 p-2 text-slate-600 shadow-sm transition-all hover:bg-white/80 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 sm:inline-flex" type="button" aria-label="Search">
+        <button class="hidden rounded-full bg-white/50 p-2 text-slate-600 shadow-sm transition-all hover:bg-white/80 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 md:inline-flex" type="button" aria-label="Search">
           <Search class="h-5 w-5" />
         </button>
         <button class="rounded-full bg-white/50 p-2 text-slate-600 shadow-sm transition-all hover:bg-white/80 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40" type="button" aria-label="Notifications">
@@ -21,7 +21,7 @@
         <div ref="profileMenuElement" class="relative ml-1">
           <button
             type="button"
-            class="flex cursor-pointer items-center gap-3 rounded-full border border-white/60 bg-white/50 px-4 py-2 text-left text-slate-700 shadow-sm backdrop-blur-md transition-all hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+            class="flex cursor-pointer items-center justify-center rounded-full border border-white/60 bg-white/50 p-1.5 text-left text-slate-700 shadow-sm backdrop-blur-md transition-all hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 md:gap-3 md:px-4 md:py-2"
             aria-haspopup="menu"
             :aria-expanded="profileMenuOpen"
             @click.stop="toggleProfileMenu"
@@ -31,7 +31,7 @@
               <span class="block truncate text-sm font-bold text-slate-700">{{ profileName }}</span>
               <span class="block truncate text-xs text-slate-500">{{ profileDetail }}</span>
             </span>
-            <ChevronDown class="hidden h-4 w-4 shrink-0 text-slate-500 sm:block" :class="profileMenuOpen ? 'rotate-180' : ''" />
+            <ChevronDown class="hidden h-4 w-4 shrink-0 text-slate-500 md:block" :class="profileMenuOpen ? 'rotate-180' : ''" />
           </button>
 
           <Transition

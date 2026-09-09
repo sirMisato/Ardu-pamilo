@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen text-slate-800">
     <Sidebar
-      class="fixed inset-y-0 left-0 z-40 overflow-hidden"
+      class="fixed inset-y-0 left-0 z-40 hidden overflow-hidden md:flex"
       :class="sidebarCollapsed ? 'w-20' : 'w-72'"
       :collapsed="sidebarCollapsed"
       @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
@@ -11,8 +11,9 @@
       <Topbar
         class="md:fixed md:right-0 md:top-0 md:z-50 md:block md:transition-[left]"
         :class="sidebarCollapsed ? 'md:left-20' : 'md:left-72'"
+        @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
       />
-      <main class="px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 md:px-6 md:pb-8 md:pt-20 lg:px-8">
+      <main class="mb-24 px-3 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-3 sm:px-4 md:mb-0 md:px-6 md:pb-8 md:pt-20 lg:px-8">
         <RouterView />
       </main>
     </div>

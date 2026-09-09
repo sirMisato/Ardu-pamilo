@@ -1,5 +1,5 @@
 <template>
-  <section class="panel-surface p-6">
+  <section class="panel-surface p-4 md:p-6">
     <div class="flex flex-wrap items-center justify-between gap-4">
       <div>
         <h2 class="text-xl font-semibold tracking-normal text-white">{{ title }}</h2>

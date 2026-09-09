@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-5">
-    <section class="rounded-[2rem] border border-white bg-white/70 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl">
+    <section class="rounded-[2rem] border border-white bg-white/70 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl md:p-6">
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(260px,2fr)_minmax(150px,1fr)_auto] xl:items-end">
         <label class="space-y-2">
           <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
@@ -56,7 +56,7 @@
       <article
         v-for="card in chartCards"
         :key="card.id"
-        class="rounded-[2rem] border border-white bg-white/70 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl"
+        class="rounded-[2rem] border border-white bg-white/70 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl md:p-6"
       >
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div class="min-w-0">

@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-5">
-    <section class="mb-6 rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
+    <section class="mb-6 rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-md md:p-5">
       <div class="grid gap-4 lg:grid-cols-2 xl:grid-cols-[repeat(5,minmax(0,1fr))_auto] xl:items-end">
         <label class="space-y-2">
           <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
@@ -106,7 +106,7 @@
       </div>
     </section>
 
-    <section class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg">
+    <section class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6">
       <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-base font-bold tracking-normal text-slate-800">Data Logs</h2>

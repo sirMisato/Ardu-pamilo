@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col space-y-4 lg:grid lg:grid-cols-12 lg:gap-6 lg:space-y-0">
     <aside class="order-3 flex h-full flex-col lg:order-2 lg:col-span-4">
-      <article class="flex flex-1 flex-col justify-between rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
+      <article class="flex flex-1 flex-col justify-between rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-md md:p-5">
         <div>
           <div class="flex items-center justify-between gap-3">
             <div>
@@ -71,7 +71,7 @@
       </div>
     </section>
 
-    <section class="order-4 glass-panel border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-lg lg:order-4 lg:col-span-12">
+    <section class="order-4 glass-panel border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-5 lg:order-4 lg:col-span-12">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">Sensor Realtime</p>
@@ -87,7 +87,7 @@
         <article
           v-for="metric in latestMetricCards"
           :key="`${metric.source}-${metric.key}`"
-          class="flex min-h-[240px] flex-col overflow-hidden rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md"
+          class="flex min-h-[240px] flex-col overflow-hidden rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-md md:p-5"
         >
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
@@ -113,7 +113,7 @@
           </div>
         </article>
 
-        <div v-if="latestMetricCards.length === 0" class="rounded-[1.5rem] border border-dashed border-white/70 bg-white/40 p-5 text-sm font-medium text-slate-500 sm:col-span-2 xl:col-span-4">
+        <div v-if="latestMetricCards.length === 0" class="rounded-[1.5rem] border border-dashed border-white/70 bg-white/40 p-4 text-sm font-medium text-slate-500 md:p-5 sm:col-span-2 xl:col-span-4">
           Menunggu telemetry sensor terbaru.
         </div>
       </div>
