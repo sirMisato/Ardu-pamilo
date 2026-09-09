@@ -1,11 +1,11 @@
 <template>
-  <div class="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
-    <aside class="panel-surface h-fit p-3">
+  <div class="grid gap-5 text-slate-700 xl:grid-cols-[280px_minmax(0,1fr)]">
+    <aside class="h-fit rounded-2xl border border-white/80 bg-white/60 p-5 shadow-sm backdrop-blur-md">
       <button
         v-for="item in tabs"
         :key="item.id"
-        class="flex min-h-12 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold transition"
-        :class="activeTab === item.id ? 'bg-field-mint/10 text-field-mint ring-1 ring-field-mint/30' : 'text-slate-300 hover:bg-white/5 hover:text-white'"
+        class="flex min-h-11 w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm transition-all"
+        :class="activeTab === item.id ? 'bg-emerald-100 font-semibold text-emerald-700' : 'font-medium text-slate-500 hover:bg-white/50 hover:text-slate-700'"
         type="button"
         @click="selectTab(item.id)"
       >
@@ -15,38 +15,40 @@
     </aside>
 
     <section class="space-y-5">
-      <div v-if="errorMessage" class="rounded-lg border border-rose-300/25 bg-rose-300/10 p-4 text-sm text-rose-100">
+      <div v-if="errorMessage" class="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-700 shadow-sm backdrop-blur-md">
         {{ errorMessage }}
       </div>
-      <div v-if="successMessage" class="rounded-lg border border-field-mint/25 bg-field-mint/10 p-4 text-sm text-field-mint">
+      <div v-if="successMessage" class="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-700 shadow-sm backdrop-blur-md">
         {{ successMessage }}
       </div>
 
-      <form v-if="activeTab === 'profile'" class="panel-surface p-5" @submit.prevent="submitProfile">
+      <form v-if="activeTab === 'profile'" class="rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg lg:p-8" @submit.prevent="submitProfile">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold tracking-normal text-white">Profil</h2>
-            <p class="mt-1 text-sm text-slate-400">Identitas tenant yang tampil di dashboard.</p>
+            <h2 class="text-2xl font-bold tracking-normal text-slate-800">Profil</h2>
+            <p class="mt-1 mb-6 text-sm text-slate-500">Identitas tenant yang tampil di dashboard.</p>
           </div>
-          <UserRound class="h-7 w-7 text-field-mint" />
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+            <UserRound class="h-6 w-6" />
+          </div>
         </div>
 
         <div class="mt-6 grid gap-4 md:grid-cols-2">
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Nama Tenant</span>
+            <span class="mb-1.5 block text-sm font-semibold text-slate-700">Nama Tenant</span>
             <input
               v-model.trim="profileDraft.name"
-              class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
               required
               type="text"
             />
           </label>
 
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Email</span>
+            <span class="mb-1.5 block text-sm font-semibold text-slate-700">Email</span>
             <input
               v-model.trim="profileDraft.email"
-              class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-field-mint focus:ring-2 focus:ring-field-mint/25"
+              class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
               required
               type="email"
             />
@@ -54,31 +56,33 @@
         </div>
 
         <div class="mt-6 flex justify-end">
-          <button class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-field-green px-5 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60" :disabled="isSaving" type="submit">
+          <button class="inline-flex items-center gap-2 rounded-xl bg-emerald-300 px-6 py-2.5 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 disabled:opacity-60" :disabled="isSaving" type="submit">
             <Save class="h-4 w-4" />
             {{ isSaving ? "Menyimpan" : "Simpan Profil" }}
           </button>
         </div>
       </form>
 
-      <section v-else-if="activeTab === 'display'" class="panel-surface p-5">
+      <section v-else-if="activeTab === 'display'" class="rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg lg:p-8">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold tracking-normal text-white">Tampilan</h2>
-            <p class="mt-1 text-sm text-slate-400">Preferensi visual tenant.</p>
+            <h2 class="text-2xl font-bold tracking-normal text-slate-800">Tampilan</h2>
+            <p class="mt-1 mb-6 text-sm text-slate-500">Preferensi visual tenant.</p>
           </div>
-          <Palette class="h-7 w-7 text-field-mint" />
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+            <Palette class="h-6 w-6" />
+          </div>
         </div>
 
         <div class="mt-6 grid gap-5">
           <div>
-            <p class="text-sm font-medium text-slate-300">Theme</p>
+            <p class="mb-1.5 text-sm font-semibold text-slate-700">Theme</p>
             <div class="mt-3 grid gap-3 sm:grid-cols-3">
               <button
                 v-for="theme in themeOptions"
                 :key="theme.value"
-                class="min-h-11 rounded-lg px-4 text-sm font-semibold transition"
-                :class="displayDraft.theme === theme.value ? 'bg-field-green text-[#102016]' : 'border border-white/10 bg-white/5 text-slate-300 hover:border-field-mint/35 hover:text-field-mint'"
+                class="min-h-11 rounded-xl px-4 text-sm font-semibold transition-all"
+                :class="displayDraft.theme === theme.value ? 'bg-emerald-300 text-emerald-950 shadow-sm' : 'border border-slate-200 bg-white/50 text-slate-500 hover:bg-white/70 hover:text-slate-700'"
                 type="button"
                 @click="displayDraft.theme = theme.value"
               >
@@ -88,13 +92,13 @@
           </div>
 
           <div class="grid gap-3 md:grid-cols-2">
-            <label v-for="item in displayToggles" :key="item.key" class="flex min-h-20 items-center justify-between gap-4 rounded-lg border border-white/10 bg-white/5 p-4">
+            <label v-for="item in displayToggles" :key="item.key" class="flex min-h-20 items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/50 p-4 transition-all hover:bg-white/70">
               <span>
-                <span class="block text-sm font-semibold text-white">{{ item.label }}</span>
-                <span class="mt-1 block text-xs text-slate-400">{{ item.detail }}</span>
+                <span class="block text-sm font-semibold text-slate-700">{{ item.label }}</span>
+                <span class="mt-1 block text-xs text-slate-500">{{ item.detail }}</span>
               </span>
               <input
-                class="h-5 w-5 accent-[#a7e8af]"
+                class="h-5 w-5 accent-emerald-300"
                 :checked="displayDraft[item.key]"
                 type="checkbox"
                 @change="setDisplayToggle(item.key, ($event.target as HTMLInputElement).checked)"
@@ -104,33 +108,35 @@
         </div>
 
         <div class="mt-6 flex justify-end">
-          <button class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-field-green px-5 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60" :disabled="isSaving" type="button" @click="submitDisplay">
+          <button class="inline-flex items-center gap-2 rounded-xl bg-emerald-300 px-6 py-2.5 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 disabled:opacity-60" :disabled="isSaving" type="button" @click="submitDisplay">
             <Save class="h-4 w-4" />
             {{ isSaving ? "Menyimpan" : "Simpan Tampilan" }}
           </button>
         </div>
       </section>
 
-      <section v-else-if="activeTab === 'notifications'" class="panel-surface p-5">
+      <section v-else-if="activeTab === 'notifications'" class="rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg lg:p-8">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold tracking-normal text-white">Notifikasi</h2>
-            <p class="mt-1 text-sm text-slate-400">Alert operasional sensor dan cuaca.</p>
+            <h2 class="text-2xl font-bold tracking-normal text-slate-800">Notifikasi</h2>
+            <p class="mt-1 mb-6 text-sm text-slate-500">Alert operasional sensor dan cuaca.</p>
           </div>
-          <Bell class="h-7 w-7 text-field-mint" />
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+            <Bell class="h-6 w-6" />
+          </div>
         </div>
 
         <div class="mt-6 grid gap-3 md:grid-cols-2">
-          <label v-for="item in notificationItems" :key="item.key" class="flex min-h-24 items-center justify-between gap-4 rounded-lg border border-white/10 bg-white/5 p-4">
+          <label v-for="item in notificationItems" :key="item.key" class="flex min-h-24 items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/50 p-4 transition-all hover:bg-white/70">
             <span class="flex items-start gap-3">
-              <component :is="item.icon" class="mt-0.5 h-5 w-5 text-field-mint" />
+              <component :is="item.icon" class="mt-0.5 h-5 w-5 text-emerald-700" />
               <span>
-                <span class="block text-sm font-semibold text-white">{{ item.label }}</span>
-                <span class="mt-1 block text-xs text-slate-400">{{ item.detail }}</span>
+                <span class="block text-sm font-semibold text-slate-700">{{ item.label }}</span>
+                <span class="mt-1 block text-xs text-slate-500">{{ item.detail }}</span>
               </span>
             </span>
             <input
-              class="h-5 w-5 shrink-0 accent-[#a7e8af]"
+              class="h-5 w-5 shrink-0 accent-emerald-300"
               :checked="notificationDraft[item.key]"
               type="checkbox"
               @change="setNotificationToggle(item.key, ($event.target as HTMLInputElement).checked)"
@@ -139,75 +145,79 @@
         </div>
 
         <div class="mt-6 flex justify-end">
-          <button class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-field-green px-5 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60" :disabled="isSaving" type="button" @click="submitNotifications">
+          <button class="inline-flex items-center gap-2 rounded-xl bg-emerald-300 px-6 py-2.5 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 disabled:opacity-60" :disabled="isSaving" type="button" @click="submitNotifications">
             <Save class="h-4 w-4" />
             {{ isSaving ? "Menyimpan" : "Simpan Notifikasi" }}
           </button>
         </div>
       </section>
 
-      <form v-else-if="activeTab === 'security'" class="panel-surface p-5" @submit.prevent="submitPassword">
+      <form v-else-if="activeTab === 'security'" class="rounded-[2rem] border border-white/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg lg:p-8" @submit.prevent="submitPassword">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold tracking-normal text-white">Keamanan</h2>
-            <p class="mt-1 text-sm text-slate-400">Perbarui kata sandi tenant.</p>
+            <h2 class="text-2xl font-bold tracking-normal text-slate-800">Keamanan</h2>
+            <p class="mt-1 mb-6 text-sm text-slate-500">Perbarui kata sandi tenant.</p>
           </div>
-          <ShieldCheck class="h-7 w-7 text-field-mint" />
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+            <ShieldCheck class="h-6 w-6" />
+          </div>
         </div>
 
         <div class="mt-6 grid gap-4 md:grid-cols-3">
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Password Saat Ini</span>
-            <input v-model="passwordForm.currentPassword" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" required type="password" autocomplete="current-password" />
+            <span class="mb-1.5 block text-sm font-semibold text-slate-700">Password Saat Ini</span>
+            <input v-model="passwordForm.currentPassword" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" required type="password" autocomplete="current-password" />
           </label>
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Password Baru</span>
-            <input v-model="passwordForm.newPassword" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" minlength="8" required type="password" autocomplete="new-password" />
+            <span class="mb-1.5 block text-sm font-semibold text-slate-700">Password Baru</span>
+            <input v-model="passwordForm.newPassword" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" minlength="8" required type="password" autocomplete="new-password" />
           </label>
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-300">Ulangi Password</span>
-            <input v-model="passwordForm.confirmPassword" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-field-mint focus:ring-2 focus:ring-field-mint/25" minlength="8" required type="password" autocomplete="new-password" />
+            <span class="mb-1.5 block text-sm font-semibold text-slate-700">Ulangi Password</span>
+            <input v-model="passwordForm.confirmPassword" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" minlength="8" required type="password" autocomplete="new-password" />
           </label>
         </div>
 
-        <div v-if="passwordMismatch" class="mt-4 rounded-lg border border-amber-300/25 bg-amber-300/10 p-3 text-sm text-amber-100">
+        <div v-if="passwordMismatch" class="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-sm text-amber-700">
           Password baru dan konfirmasi belum sama.
         </div>
 
         <div class="mt-6 flex justify-end">
-          <button class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-field-green px-5 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60" :disabled="isSaving || passwordMismatch" type="submit">
+          <button class="inline-flex items-center gap-2 rounded-xl bg-emerald-300 px-6 py-2.5 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 disabled:opacity-60" :disabled="isSaving || passwordMismatch" type="submit">
             <Save class="h-4 w-4" />
             {{ isSaving ? "Menyimpan" : "Ganti Password" }}
           </button>
         </div>
       </form>
 
-      <section v-else class="rounded-lg border border-rose-300/25 bg-rose-300/10 p-5">
+      <section v-else class="rounded-[2rem] border border-rose-200/80 bg-white/60 p-6 shadow-sm backdrop-blur-lg lg:p-8">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold tracking-normal text-rose-100">Reset Semua Sistem</h2>
-            <p class="mt-1 text-sm text-rose-100/75">Menghapus perangkat dan telemetry data tenant aktif.</p>
+            <h2 class="text-2xl font-bold tracking-normal text-slate-800">Reset Semua Sistem</h2>
+            <p class="mt-1 mb-6 text-sm text-slate-500">Menghapus perangkat dan telemetry data tenant aktif.</p>
           </div>
-          <AlertTriangle class="h-7 w-7 text-rose-200" />
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-700">
+            <AlertTriangle class="h-6 w-6" />
+          </div>
         </div>
 
-        <div class="mt-6 rounded-lg border border-rose-300/25 bg-[#160b13] p-4 text-sm text-rose-100">
+        <div class="mt-6 rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-700">
           Reset hanya berlaku untuk tenant ini. Data tenant lain tidak disentuh oleh endpoint backend.
         </div>
 
-        <button class="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg bg-rose-300 px-5 text-sm font-semibold text-rose-950 hover:bg-rose-200" type="button" @click="isResetModalOpen = true">
+        <button class="mt-6 inline-flex items-center gap-2 rounded-xl bg-rose-100 px-6 py-2.5 text-sm font-semibold text-rose-700 transition-all hover:bg-rose-200" type="button" @click="isResetModalOpen = true">
           <RotateCcw class="h-4 w-4" />
           Reset Tenant Data
         </button>
       </section>
     </section>
 
-    <div v-if="isResetModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/75 p-4 backdrop-blur-sm">
-      <form class="w-full max-w-lg rounded-lg border border-rose-300/30 bg-[#10131f] p-5 shadow-field" @submit.prevent="submitReset">
+    <div v-if="isResetModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 p-4 backdrop-blur-sm">
+      <form class="w-full max-w-lg rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-2xl backdrop-blur-xl" @submit.prevent="submitReset">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold tracking-normal text-rose-100">Konfirmasi Reset</h2>
-            <p class="mt-2 text-sm text-slate-300">Ketik <span class="font-semibold text-rose-100">{{ resetPhrase }}</span> untuk melanjutkan.</p>
+            <h2 class="text-xl font-bold tracking-normal text-slate-800">Konfirmasi Reset</h2>
+            <p class="mt-2 text-sm text-slate-500">Ketik <span class="font-semibold text-rose-700">{{ resetPhrase }}</span> untuk melanjutkan.</p>
           </div>
           <button class="icon-button" type="button" aria-label="Tutup modal" @click="closeResetModal">
             <X class="h-4 w-4" />
@@ -216,16 +226,16 @@
 
         <input
           v-model.trim="resetConfirmation"
-          class="mt-5 min-h-11 w-full rounded-lg border border-rose-300/25 bg-white/5 px-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-rose-300 focus:ring-2 focus:ring-rose-300/25"
+          class="mt-5 min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
           placeholder="RESET PAMILO"
           type="text"
         />
 
         <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <button class="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-slate-300 hover:bg-white/5" type="button" @click="closeResetModal">
+          <button class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 transition-all hover:bg-slate-100" type="button" @click="closeResetModal">
             Batal
           </button>
-          <button class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-rose-300 px-5 text-sm font-semibold text-rose-950 hover:bg-rose-200 disabled:opacity-60" :disabled="isSaving || resetConfirmation !== resetPhrase" type="submit">
+          <button class="inline-flex items-center gap-2 rounded-xl bg-rose-100 px-6 py-2.5 text-sm font-semibold text-rose-700 transition-all hover:bg-rose-200 disabled:opacity-60" :disabled="isSaving || resetConfirmation !== resetPhrase" type="submit">
             <AlertTriangle class="h-4 w-4" />
             {{ isSaving ? "Mereset" : "Konfirmasi Reset" }}
           </button>
