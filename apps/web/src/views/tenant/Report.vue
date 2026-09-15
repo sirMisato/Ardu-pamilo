@@ -227,7 +227,7 @@
         </table>
       </div>
 
-      <div v-if="isLoading" class="border-t border-white/60 p-8 text-center text-sm font-medium text-slate-400">
+      <div v-if="isLoading && sampledRows.length === 0" class="border-t border-white/60 p-8 text-center text-sm font-medium text-slate-400">
         Memuat data report...
       </div>
 
@@ -236,8 +236,9 @@
       </div>
 
       <div v-else class="flex flex-wrap items-center justify-between gap-3 border-t border-white/60 pt-4 text-sm font-medium text-slate-700">
-        <p>
-          Menampilkan {{ paginationStart }}-{{ paginationEnd }} dari {{ sampledRows.length.toLocaleString("id-ID") }} records
+        <p class="flex flex-wrap items-center gap-2">
+          <span>Menampilkan {{ paginationStart }}-{{ paginationEnd }} dari {{ sampledRows.length.toLocaleString("id-ID") }} records</span>
+          <span v-if="isLoading" class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-teal-700">Memperbarui...</span>
         </p>
         <div class="flex flex-wrap items-center gap-2">
           <label class="flex items-center gap-2 text-xs font-medium text-slate-400">
@@ -252,11 +253,31 @@
           <button
             class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             type="button"
+            aria-label="Halaman pertama"
+            :disabled="activePage <= 1"
+            @click="setPage(1)"
+          >
+            <ChevronsLeft class="h-4 w-4" />
+          </button>
+          <button
+            class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            type="button"
             aria-label="Halaman sebelumnya"
             :disabled="activePage <= 1"
             @click="setPage(activePage - 1)"
           >
             <ChevronLeft class="h-4 w-4" />
+          </button>
+          <button
+            v-for="pageNumber in visiblePageNumbers"
+            :key="pageNumber"
+            class="inline-flex h-9 min-w-9 items-center justify-center rounded-full border px-3 text-xs font-semibold shadow-sm transition-all"
+            :class="pageNumber === activePage ? 'border-emerald-300 bg-emerald-300 text-emerald-950' : 'border-slate-200 bg-white/80 text-slate-700 hover:bg-slate-50'"
+            type="button"
+            :aria-current="pageNumber === activePage ? 'page' : undefined"
+            @click="setPage(pageNumber)"
+          >
+            {{ pageNumber }}
           </button>
           <span class="min-w-24 text-center text-xs font-medium text-slate-400">Hal {{ activePage }} / {{ totalPages }}</span>
           <button
@@ -268,6 +289,15 @@
           >
             <ChevronRight class="h-4 w-4" />
           </button>
+          <button
+            class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            type="button"
+            aria-label="Halaman terakhir"
+            :disabled="activePage >= totalPages"
+            @click="setPage(totalPages)"
+          >
+            <ChevronsRight class="h-4 w-4" />
+          </button>
         </div>
       </div>
     </section>
@@ -275,7 +305,7 @@
 </template>
 
 <script setup lang="ts">
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Download, FileDown, FileText, Filter, RefreshCw, TableProperties } from "@lucide/vue";
+import { CalendarDays, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Clock, Download, FileDown, FileText, Filter, RefreshCw, TableProperties } from "@lucide/vue";
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { ApiClientError, apiGet } from "../../services/apiClient";
 
@@ -581,6 +611,17 @@ const paginatedWeatherRows = computed(() => paginatedRows.value.filter(isWeather
 const paginatedAlertRows = computed(() => paginatedRows.value.filter(isAlertReportRow));
 const paginationStart = computed(() => sampledRows.value.length === 0 ? 0 : (activePage.value - 1) * pageSize.value + 1);
 const paginationEnd = computed(() => Math.min(activePage.value * pageSize.value, sampledRows.value.length));
+const visiblePageNumbers = computed(() => {
+  const maxVisiblePages = 5;
+  const halfWindow = Math.floor(maxVisiblePages / 2);
+  const lastPage = totalPages.value;
+  let startPage = Math.max(1, activePage.value - halfWindow);
+  const endPage = Math.min(lastPage, startPage + maxVisiblePages - 1);
+
+  startPage = Math.max(1, endPage - maxVisiblePages + 1);
+
+  return Array.from({ length: endPage - startPage + 1 }, (_, index) => startPage + index);
+});
 const selectedSamplingLabel = computed(() => samplingOptions.find((option) => option.value === filters.intervalMinutes)?.label ?? "Semua data");
 const reportPreviewLabel = computed(() => `Preview data export tenant, ${selectedSamplingLabel.value.toLowerCase()}.`);
 
