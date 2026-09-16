@@ -202,6 +202,95 @@
     "waitingMqttTelemetry": "Menunggu telemetry MQTT."
   },
   "mqtt": {
+    "actions": {
+      "copyPayload": "Salin payload",
+      "copyTopic": "Salin topic",
+      "copyTopicAria": "Salin topic {topic}",
+      "delete": "Hapus topic",
+      "deleteAria": "Hapus topic {topic}",
+      "pause": "Jeda subscription",
+      "pauseAria": "Jeda subscription {topic}",
+      "resume": "Aktifkan subscription",
+      "resumeAria": "Aktifkan subscription {topic}",
+      "view": "Lihat detail",
+      "viewAria": "Lihat detail {topic}"
+    },
+    "addTopic": "Tambah Topic",
+    "cards": {
+      "activeSubscription": "Subscription Aktif",
+      "activeTopicCount": {
+        "one": "{count} topic aktif",
+        "other": "{count} topic aktif"
+      },
+      "nativeTls": "Endpoint native MQTT TLS",
+      "perDeviceScoped": "Per-device scoped",
+      "telemetryTransport": "Transport telemetry frontend",
+      "tenantTopicIsolation": "Topic tenant tidak bercampur",
+      "websocketEndpoint": "Endpoint WebSocket"
+    },
+    "columns": {
+      "broker": "Broker",
+      "device": "Perangkat",
+      "dynamicKeys": "Key Dinamis",
+      "lastMessage": "Pesan Terakhir",
+      "topic": "Topic Subscription"
+    },
+    "confirm": {
+      "deleteTopic": "Hapus subscription untuk {topic}?"
+    },
+    "connection": {
+      "connected": "Terhubung",
+      "connecting": "Menghubungkan",
+      "error": "Error",
+      "history": "Data histori",
+      "idle": "Standby",
+      "offline": "Terputus",
+      "reconnecting": "Menghubungkan ulang"
+    },
+    "detail": {
+      "close": "Tutup detail",
+      "connectionStatus": "Status koneksi",
+      "dynamicKeys": "Key dinamis",
+      "metricCount": "Jumlah key",
+      "noPayload": "Belum ada payload untuk topic ini.",
+      "noRawPayload": "Raw payload belum tersedia.",
+      "title": "Detail Pesan MQTT"
+    },
+    "empty": {
+      "noSearchResults": "Tidak ada subscription yang cocok dengan pencarian.",
+      "noSubscriptions": "Belum ada topic MQTT yang ditambahkan."
+    },
+    "feedback": {
+      "copyFailed": "Gagal menyalin. Periksa izin clipboard browser.",
+      "noPayloadToCopy": "Belum ada payload untuk disalin.",
+      "payloadCopied": "Payload berhasil disalin tanpa perubahan.",
+      "topicCopied": "Topic {topic} berhasil disalin.",
+      "topicDeleted": "Subscription {topic} dihapus.",
+      "topicSaved": "Topic {topic} ditambahkan.",
+      "topicUpdated": "Topic {topic} diperbarui."
+    },
+    "modal": {
+      "addSubtitle": "Hubungkan topic EMQX ke perangkat tenant.",
+      "addTitle": "Tambah MQTT Topic",
+      "close": "Tutup modal",
+      "deviceHelper": "Gunakan device ID yang sama dengan pengirim telemetry.",
+      "metricKeys": "Preview Metric Keys",
+      "metricKeysHelper": "Pisahkan key dengan koma. Key teknis tetap disimpan apa adanya.",
+      "saveTopic": "Simpan Topic",
+      "topic": "Topic",
+      "topicHelper": "Topic MQTT tidak diterjemahkan dan tetap dipakai sebagai identitas protokol."
+    },
+    "searchAria": "Cari perangkat, topic, atau metric key",
+    "searchPlaceholder": "Cari perangkat, topic, atau metric key",
+    "status": {
+      "active": "Aktif",
+      "paused": "Dijeda"
+    },
+    "validation": {
+      "deviceRequired": "Device ID wajib diisi.",
+      "topicInvalid": "Topic MQTT harus memuat path yang valid.",
+      "topicRequired": "Topic MQTT wajib diisi."
+    },
     "title": "MQTT"
   },
   "navigation": {

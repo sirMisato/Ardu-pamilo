@@ -22,7 +22,8 @@
           <input
             v-model.trim="searchQuery"
             class="min-h-11 w-full rounded-full border border-white/80 bg-white/50 py-2.5 pl-12 pr-5 text-sm text-slate-700 shadow-sm outline-none backdrop-blur-sm transition-all placeholder:text-slate-400 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-400"
-            placeholder="Cari device, topic, atau metric key"
+            :aria-label="t('mqtt.searchAria')"
+            :placeholder="t('mqtt.searchPlaceholder')"
             type="search"
           />
         </label>
@@ -33,9 +34,12 @@
           @click="openModal"
         >
           <Plus class="h-4 w-4" />
-          Tambah Topic
+          {{ t("mqtt.addTopic") }}
         </button>
       </div>
+      <p v-if="feedbackMessage" class="mt-3 text-sm font-medium" :class="feedbackToneClass">
+        {{ feedbackMessage }}
+      </p>
     </section>
 
     <section class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6">
@@ -43,13 +47,13 @@
         <table class="min-w-[980px] w-full text-left text-sm">
           <thead class="bg-white/40 text-xs font-bold uppercase tracking-wider text-slate-500">
             <tr>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Device</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Topic Subscription</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Broker</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("mqtt.columns.device") }}</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("mqtt.columns.topic") }}</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("mqtt.columns.broker") }}</th>
               <th class="border-b border-white/60 px-5 py-4 font-bold">QoS</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Dynamic Keys</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Last Message</th>
-              <th class="border-b border-white/60 px-5 py-4 text-right font-bold">Aksi</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("mqtt.columns.dynamicKeys") }}</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("mqtt.columns.lastMessage") }}</th>
+              <th class="border-b border-white/60 px-5 py-4 text-right font-bold">{{ t("common.actions") }}</th>
             </tr>
           </thead>
           <tbody>
@@ -63,13 +67,24 @@
                       class="mt-1 inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide"
                       :class="subscription.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'"
                     >
-                      {{ subscription.status }}
+                      {{ subscriptionStatusLabel(subscription.status) }}
                     </span>
                   </div>
                 </div>
               </td>
               <td class="px-5 py-4">
-                <code class="break-all rounded-xl border border-white/80 bg-white/60 px-2.5 py-1 text-xs font-medium text-slate-600">{{ subscription.topic }}</code>
+                <div class="flex max-w-[320px] items-center gap-2">
+                  <code class="min-w-0 break-all rounded-xl border border-white/80 bg-white/60 px-2.5 py-1 text-xs font-medium text-slate-600">{{ subscription.topic }}</code>
+                  <button
+                    class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm transition-all hover:bg-slate-50"
+                    type="button"
+                    :aria-label="t('mqtt.actions.copyTopicAria', { topic: subscription.topic })"
+                    :title="t('mqtt.actions.copyTopic')"
+                    @click="copyTopic(subscription)"
+                  >
+                    <Copy class="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </td>
               <td class="px-5 py-4 font-medium text-slate-700">{{ subscription.brokerHost }}</td>
               <td class="px-5 py-4">
@@ -78,17 +93,30 @@
               <td class="px-5 py-4">
                 <div class="flex flex-wrap gap-2">
                   <span v-for="key in subscription.metricKeys" :key="key" class="rounded-full border border-white/80 bg-white/60 px-2.5 py-1 text-xs font-medium text-slate-600">
-                    {{ key }}
+                    <span>{{ key }}</span>
+                    <span v-if="metricFriendlyLabel(key) !== key" class="ml-1 text-slate-400">({{ metricFriendlyLabel(key) }})</span>
                   </span>
                 </div>
               </td>
-              <td class="px-5 py-4 font-medium text-slate-700">{{ formatDateTime(subscription.lastMessageAt) }}</td>
+              <td class="px-5 py-4 font-medium text-slate-700" :title="formatExactMessageTime(subscription)">
+                {{ formatLastMessageTime(subscription) }}
+              </td>
               <td class="px-5 py-4">
                 <div class="flex justify-end gap-2">
                   <button
                     class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 shadow-sm transition-all hover:bg-slate-50"
                     type="button"
-                    :aria-label="`Toggle ${subscription.topic}`"
+                    :aria-label="t('mqtt.actions.viewAria', { topic: subscription.topic })"
+                    :title="t('mqtt.actions.view')"
+                    @click="openDetail(subscription.id)"
+                  >
+                    <Eye class="h-4 w-4" />
+                  </button>
+                  <button
+                    class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 shadow-sm transition-all hover:bg-slate-50"
+                    type="button"
+                    :aria-label="subscription.status === 'active' ? t('mqtt.actions.pauseAria', { topic: subscription.topic }) : t('mqtt.actions.resumeAria', { topic: subscription.topic })"
+                    :title="subscription.status === 'active' ? t('mqtt.actions.pause') : t('mqtt.actions.resume')"
                     @click="toggleSubscription(subscription.id)"
                   >
                     <component :is="subscription.status === 'active' ? ToggleRight : ToggleLeft" class="h-4 w-4" />
@@ -96,12 +124,18 @@
                   <button
                     class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rose-100 bg-white/80 text-rose-500 shadow-sm transition-all hover:bg-rose-50"
                     type="button"
-                    :aria-label="`Hapus ${subscription.topic}`"
+                    :aria-label="t('mqtt.actions.deleteAria', { topic: subscription.topic })"
+                    :title="t('mqtt.actions.delete')"
                     @click="removeSubscription(subscription.id)"
                   >
                     <Trash2 class="h-4 w-4" />
                   </button>
                 </div>
+              </td>
+            </tr>
+            <tr v-if="filteredSubscriptions.length === 0">
+              <td class="px-5 py-10 text-center text-sm font-medium text-slate-500" colspan="7">
+                {{ subscriptions.length === 0 ? t("mqtt.empty.noSubscriptions") : t("mqtt.empty.noSearchResults") }}
               </td>
             </tr>
           </tbody>
@@ -113,13 +147,13 @@
       <form class="w-full max-w-md rounded-[2rem] border border-white/80 bg-white/85 p-4 shadow-2xl backdrop-blur-xl md:p-6" @submit.prevent="registerTopic">
         <div class="flex items-center justify-between gap-4">
           <div>
-            <h2 class="text-lg font-bold tracking-normal text-slate-800">Tambah MQTT Topic</h2>
-            <p class="mt-1 text-sm font-medium text-slate-400">Hubungkan topic EMQX ke device tenant.</p>
+            <h2 class="text-lg font-bold tracking-normal text-slate-800">{{ t("mqtt.modal.addTitle") }}</h2>
+            <p class="mt-1 text-sm font-medium text-slate-400">{{ t("mqtt.modal.addSubtitle") }}</p>
           </div>
           <button
             class="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-all hover:bg-slate-100"
             type="button"
-            aria-label="Tutup modal"
+            :aria-label="t('mqtt.modal.close')"
             @click="closeModal"
           >
             <X class="h-4 w-4" />
@@ -133,9 +167,9 @@
               <input
                 v-model.trim="topicForm.deviceId"
                 class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
-                required
                 type="text"
               />
+              <span class="block text-xs font-medium text-slate-400">{{ t("mqtt.modal.deviceHelper") }}</span>
             </label>
 
             <label class="space-y-2">
@@ -152,37 +186,106 @@
           </div>
 
           <label class="space-y-2">
-            <span class="text-sm font-semibold text-slate-700">Topic</span>
+            <span class="text-sm font-semibold text-slate-700">{{ t("mqtt.modal.topic") }}</span>
             <input
               v-model.trim="topicForm.topic"
               class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
               placeholder="pamilo/v1/tenants/demo-tenant/devices/+/telemetry"
-              required
               type="text"
             />
+            <span class="block text-xs font-medium text-slate-400">{{ t("mqtt.modal.topicHelper") }}</span>
           </label>
 
           <label class="space-y-2">
-            <span class="text-sm font-semibold text-slate-700">Metric Keys Preview</span>
+            <span class="text-sm font-semibold text-slate-700">{{ t("mqtt.modal.metricKeys") }}</span>
             <input
               v-model.trim="topicForm.metricKeys"
               class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
               placeholder="ph, moisture, nitrogen, temperature"
               type="text"
             />
+            <span class="block text-xs font-medium text-slate-400">{{ t("mqtt.modal.metricKeysHelper") }}</span>
           </label>
         </div>
+        <p v-if="formErrorMessage" class="mt-4 text-sm font-semibold text-rose-600">
+          {{ formErrorMessage }}
+        </p>
 
         <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button class="min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 transition-all hover:bg-slate-100" type="button" @click="closeModal">
-            Batal
+            {{ t("common.cancel") }}
           </button>
           <button class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-300 px-5 py-2 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400" type="submit">
             <Save class="h-4 w-4" />
-            Simpan Topic
+            {{ t("mqtt.modal.saveTopic") }}
           </button>
         </div>
       </form>
+    </div>
+
+    <div v-if="detailSubscription" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 p-4 backdrop-blur-sm">
+      <section class="w-full max-w-2xl rounded-[2rem] border border-white/80 bg-white/90 p-4 shadow-2xl backdrop-blur-xl md:p-6">
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <h2 class="text-lg font-bold tracking-normal text-slate-800">{{ t("mqtt.detail.title") }}</h2>
+            <p class="mt-1 truncate text-sm font-medium text-slate-400">{{ detailSubscription.topic }}</p>
+          </div>
+          <button
+            class="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-all hover:bg-slate-100"
+            type="button"
+            :aria-label="t('mqtt.detail.close')"
+            @click="closeDetail"
+          >
+            <X class="h-4 w-4" />
+          </button>
+        </div>
+
+        <div class="mt-5 grid gap-3 sm:grid-cols-2">
+          <div class="rounded-2xl border border-white/80 bg-white/60 p-3">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t("mqtt.columns.device") }}</p>
+            <p class="mt-1 font-semibold text-slate-700">{{ detailSubscription.deviceId }}</p>
+          </div>
+          <div class="rounded-2xl border border-white/80 bg-white/60 p-3">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t("mqtt.detail.connectionStatus") }}</p>
+            <p class="mt-1 font-semibold text-slate-700">{{ connectionStateLabel }}</p>
+          </div>
+          <div class="rounded-2xl border border-white/80 bg-white/60 p-3">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t("mqtt.columns.lastMessage") }}</p>
+            <p class="mt-1 font-semibold text-slate-700">{{ formatLastMessageTime(detailSubscription) }}</p>
+          </div>
+          <div class="rounded-2xl border border-white/80 bg-white/60 p-3">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t("mqtt.detail.metricCount") }}</p>
+            <p class="mt-1 font-semibold text-slate-700">{{ formatDataCount(detailMetrics.length) }}</p>
+          </div>
+        </div>
+
+        <div class="mt-5">
+          <div class="mb-2 flex items-center justify-between gap-3">
+            <h3 class="text-sm font-bold text-slate-700">{{ t("mqtt.detail.dynamicKeys") }}</h3>
+            <button
+              class="inline-flex min-h-9 items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 text-xs font-semibold text-slate-600 shadow-sm transition-all hover:bg-slate-50"
+              type="button"
+              :disabled="!detailPayloadText"
+              :title="t('mqtt.actions.copyPayload')"
+              @click="copyPayload"
+            >
+              <Copy class="h-3.5 w-3.5" />
+              {{ t("mqtt.actions.copyPayload") }}
+            </button>
+          </div>
+          <div v-if="detailMetrics.length > 0" class="flex flex-wrap gap-2">
+            <span v-for="metric in detailMetrics" :key="metric.key" class="rounded-full border border-white/80 bg-white/60 px-2.5 py-1 text-xs font-medium text-slate-600">
+              {{ metric.key }}
+              <span v-if="metricFriendlyLabel(metric.key) !== metric.key" class="ml-1 text-slate-400">({{ metricFriendlyLabel(metric.key) }})</span>
+            </span>
+          </div>
+          <p v-else class="rounded-2xl border border-dashed border-slate-200 bg-white/40 p-4 text-sm font-medium text-slate-500">
+            {{ t("mqtt.detail.noPayload") }}
+          </p>
+        </div>
+
+        <pre class="mt-4 max-h-72 overflow-auto rounded-2xl border border-slate-200 bg-slate-950 p-4 text-xs leading-relaxed text-slate-100"><code>{{ detailPayloadText || t("mqtt.detail.noRawPayload") }}</code></pre>
+      </section>
     </div>
   </div>
 </template>
@@ -190,6 +293,8 @@
 <script setup lang="ts">
 import {
   Activity,
+  Copy,
+  Eye,
   Plus,
   Router,
   SatelliteDish,
@@ -203,6 +308,9 @@ import {
 } from "@lucide/vue";
 import { computed, reactive, ref, watch } from "vue";
 import { appEnvironment } from "../../config/environment";
+import { useI18n } from "../../i18n";
+import { formatDataCount, formatDateTime, formatRelativeTime } from "../../i18n/formatters";
+import { getMetricLabel } from "../../i18n/metrics";
 import { useAuthStore } from "../../stores/authStore";
 import { useTelemetryStore } from "../../stores/telemetryStore";
 
@@ -223,11 +331,15 @@ interface TopicSubscription {
 const mqttSubscriptionsStoragePrefix = "pamilo.mqttSubscriptions";
 const telemetryStore = useTelemetryStore();
 const authStore = useAuthStore();
+const { t, tn } = useI18n();
 const tenantId = computed(() => authStore.tenant?.id ?? "demo-tenant");
 const brokerHost = computed(() => hostFromUrl(appEnvironment.mqttBrokerUrl, "mqtt.keycloud.id:8883"));
 const websocketHost = computed(() => hostFromUrl(appEnvironment.mqttWebSocketUrl, "mqtt.keycloud.id:8084"));
 const searchQuery = ref("");
 const isModalOpen = ref(false);
+const selectedSubscriptionId = ref<string | null>(null);
+const formErrorKey = ref<string | null>(null);
+const feedback = ref<{ key: string; params?: Record<string, string | number>; tone: "success" | "error" } | null>(null);
 const topicForm = reactive<{
   deviceId: string;
   topic: string;
@@ -241,6 +353,9 @@ const topicForm = reactive<{
 });
 
 const subscriptions = ref<TopicSubscription[]>([]);
+const formErrorMessage = computed(() => formErrorKey.value ? t(formErrorKey.value) : "");
+const feedbackMessage = computed(() => feedback.value ? t(feedback.value.key, feedback.value.params) : "");
+const feedbackToneClass = computed(() => feedback.value?.tone === "error" ? "text-rose-600" : "text-emerald-700");
 
 watch(() => topicForm.deviceId, () => {
   topicForm.topic = buildMqttTopic(topicForm.deviceId);
@@ -274,35 +389,51 @@ const filteredSubscriptions = computed(() => {
 
 const activeSubscriptions = computed(() => subscriptions.value.filter((item) => item.status === "active"));
 const activeSubscriptionTopic = computed(() => activeSubscriptions.value[0]?.topic ?? telemetryStore.subscriptionTopic);
+const detailSubscription = computed(() => subscriptions.value.find((subscription) => subscription.id === selectedSubscriptionId.value) ?? null);
+const detailTelemetry = computed(() => detailSubscription.value ? telemetryStore.deviceById(detailSubscription.value.deviceId) : null);
+const detailMetrics = computed(() => detailTelemetry.value ? Object.values(detailTelemetry.value.metrics) : []);
+const detailPayloadText = computed(() => {
+  if (!detailTelemetry.value) {
+    return "";
+  }
+
+  try {
+    return JSON.stringify(detailTelemetry.value.rawPayload, null, 2);
+  } catch {
+    return String(detailTelemetry.value.rawPayload);
+  }
+});
+const connectionStateLabel = computed(() => connectionStatusLabel(telemetryStore.connectionState));
 
 const brokerCards = computed(() => [
   {
     label: "EMQX MQTT Broker",
     value: brokerHost.value,
-    detail: "Native MQTT TLS endpoint",
+    detail: t("mqtt.cards.nativeTls"),
     icon: SatelliteDish
   },
   {
-    label: "WebSocket Endpoint",
+    label: t("mqtt.cards.websocketEndpoint"),
     value: websocketHost.value,
-    detail: "Frontend telemetry transport",
+    detail: t("mqtt.cards.telemetryTransport"),
     icon: Router
   },
   {
-    label: "Active Subscription",
+    label: t("mqtt.cards.activeSubscription"),
     value: activeSubscriptionTopic.value,
-    detail: `${activeSubscriptions.value.length} topic aktif`,
+    detail: tn("mqtt.cards.activeTopicCount", activeSubscriptions.value.length, { count: formatDataCount(activeSubscriptions.value.length) }),
     icon: Activity
   },
   {
     label: "Tenant ACL",
-    value: "Per-device scoped",
-    detail: "Topic tenant tidak bercampur",
+    value: t("mqtt.cards.perDeviceScoped"),
+    detail: t("mqtt.cards.tenantTopicIsolation"),
     icon: ShieldCheck
   }
 ].slice(0, 3));
 
 function openModal(): void {
+  formErrorKey.value = null;
   topicForm.deviceId = "SensorNode04";
   topicForm.topic = buildMqttTopic("SensorNode04");
   topicForm.qos = 1;
@@ -315,6 +446,11 @@ function closeModal(): void {
 }
 
 function registerTopic(): void {
+  formErrorKey.value = validateTopicForm();
+  if (formErrorKey.value) {
+    return;
+  }
+
   const nextSubscription: TopicSubscription = {
     id: createSubscriptionId(topicForm.deviceId),
     deviceId: topicForm.deviceId,
@@ -338,6 +474,11 @@ function registerTopic(): void {
         ...subscriptions.value
       ];
   persistSubscriptions();
+  feedback.value = {
+    key: existingIndex >= 0 ? "mqtt.feedback.topicUpdated" : "mqtt.feedback.topicSaved",
+    params: { topic: nextSubscription.topic },
+    tone: "success"
+  };
   closeModal();
 }
 
@@ -356,8 +497,59 @@ function toggleSubscription(subscriptionId: string): void {
 }
 
 function removeSubscription(subscriptionId: string): void {
+  const subscription = subscriptions.value.find((item) => item.id === subscriptionId);
+  if (!subscription) {
+    return;
+  }
+
+  if (!window.confirm(t("mqtt.confirm.deleteTopic", { topic: subscription.topic }))) {
+    return;
+  }
+
   subscriptions.value = subscriptions.value.filter((subscription) => subscription.id !== subscriptionId);
   persistSubscriptions();
+  if (selectedSubscriptionId.value === subscriptionId) {
+    selectedSubscriptionId.value = null;
+  }
+  feedback.value = {
+    key: "mqtt.feedback.topicDeleted",
+    params: { topic: subscription.topic },
+    tone: "success"
+  };
+}
+
+function openDetail(subscriptionId: string): void {
+  selectedSubscriptionId.value = subscriptionId;
+}
+
+function closeDetail(): void {
+  selectedSubscriptionId.value = null;
+}
+
+async function copyTopic(subscription: TopicSubscription): Promise<void> {
+  await copyText(subscription.topic, "mqtt.feedback.topicCopied", "mqtt.feedback.copyFailed", { topic: subscription.topic });
+}
+
+async function copyPayload(): Promise<void> {
+  if (!detailPayloadText.value) {
+    feedback.value = { key: "mqtt.feedback.noPayloadToCopy", tone: "error" };
+    return;
+  }
+
+  await copyText(detailPayloadText.value, "mqtt.feedback.payloadCopied", "mqtt.feedback.copyFailed");
+}
+
+async function copyText(text: string, successKey: string, errorKey: string, params: Record<string, string | number> = {}): Promise<void> {
+  try {
+    if (!navigator.clipboard) {
+      throw new Error("Clipboard unavailable");
+    }
+
+    await navigator.clipboard.writeText(text);
+    feedback.value = { key: successKey, params, tone: "success" };
+  } catch {
+    feedback.value = { key: errorKey, tone: "error" };
+  }
 }
 
 function readStoredSubscriptions(currentTenantId: string, currentBrokerHost: string): TopicSubscription[] {
@@ -437,16 +629,75 @@ function canUseStorage(): boolean {
   return typeof window !== "undefined" && Boolean(window.localStorage);
 }
 
-function formatDateTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
+function formatLastMessageTime(subscription: TopicSubscription): string {
+  const value = getSubscriptionLastSeen(subscription);
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    return value || t("format.nullValue");
   }
 
-  return new Intl.DateTimeFormat("id-ID", {
+  const seconds = Math.round((timestamp - Date.now()) / 1000);
+  const absoluteSeconds = Math.abs(seconds);
+
+  if (absoluteSeconds < 60) {
+    return formatRelativeTime(seconds, "second");
+  }
+
+  if (absoluteSeconds < 3600) {
+    return formatRelativeTime(Math.round(seconds / 60), "minute");
+  }
+
+  if (absoluteSeconds < 86_400) {
+    return formatRelativeTime(Math.round(seconds / 3600), "hour");
+  }
+
+  return formatDateTime(value, {
     dateStyle: "medium",
     timeStyle: "short"
-  }).format(date);
+  });
+}
+
+function formatExactMessageTime(subscription: TopicSubscription): string {
+  return formatDateTime(getSubscriptionLastSeen(subscription), {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
+}
+
+function getSubscriptionLastSeen(subscription: TopicSubscription): string {
+  return telemetryStore.deviceById(subscription.deviceId)?.lastSeenAt ?? subscription.lastMessageAt;
+}
+
+function subscriptionStatusLabel(status: SubscriptionStatus): string {
+  return t(`mqtt.status.${status}`);
+}
+
+function connectionStatusLabel(status: string): string {
+  if (status === "connected" || status === "connecting" || status === "reconnecting" || status === "offline" || status === "history" || status === "error" || status === "idle") {
+    return t(`mqtt.connection.${status}`);
+  }
+
+  return status;
+}
+
+function metricFriendlyLabel(metricKey: string): string {
+  return getMetricLabel(metricKey);
+}
+
+function validateTopicForm(): string | null {
+  if (!topicForm.deviceId.trim()) {
+    return "mqtt.validation.deviceRequired";
+  }
+
+  if (!topicForm.topic.trim()) {
+    return "mqtt.validation.topicRequired";
+  }
+
+  if (!topicForm.topic.includes("/")) {
+    return "mqtt.validation.topicInvalid";
+  }
+
+  return null;
 }
 
 function hostFromUrl(value: string, fallback: string): string {

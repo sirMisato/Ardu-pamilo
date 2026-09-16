@@ -370,3 +370,42 @@ Keterbatasan verifikasi:
 - Tidak ada service/generator laporan backend untuk diuji terkait job queue/cache/HTTP cache. Jika fitur itu berada di repositori lain, perubahan yang diperlukan adalah menyimpan `locale` bersama parameter request, menambahkan locale ke cache key, dan melokalisasi template server dengan katalog yang setara.
 
 Batch berikutnya yang siap dikerjakan bila diminta: MQTT dan Perangkat.
+
+## Batch 08 Status
+
+Status: completed for MQTT module localization and sensor connection UI.
+
+Perubahan Batch 08:
+
+- Melokalisasi `apps/web/src/views/tenant/MQTT.vue` untuk kartu broker MQTT, endpoint WebSocket, subscription aktif, pencarian, tombol tambah topic, header tabel, badge status, aksi, empty state, modal tambah topic, validasi, dan konfirmasi hapus.
+- Menambahkan katalog `mqtt.*` di `apps/web/src/i18n/id.json` dan `apps/web/src/i18n/en.json` untuk endpoint native TLS, transport telemetry, placeholder `Cari perangkat, topic, atau metric key` / `Search devices, topics, or metric keys`, status terhubung/terputus/menghubungkan, tooltip lihat/hapus/salin, dan pesan copy berhasil/gagal.
+- Menambahkan detail modal MQTT yang membaca cache `telemetryStore` untuk menampilkan status koneksi, jumlah key, dynamic key asli, dan raw payload read-only. Tombol salin topic/payload menyalin string asli tanpa menerjemahkan atau mengubah payload.
+- Memakai formatter bersama untuk jumlah topic aktif, jumlah key, waktu pesan terakhir, dan waktu relatif; formatter `Intl.DateTimeFormat("id-ID")` lokal di halaman MQTT dihapus.
+- Menjaga hostname, port/URI, MQTT topic, device ID, tenant ID dalam topic, QoS value, metric key, raw JSON payload, status source enum, dan isi protokol tetap sebagai nilai asli.
+- Status subscription tetap memakai kode stabil `active`/`paused` di data tersimpan dan dipetakan ke label katalog saat render. Status koneksi realtime memakai `telemetryStore.connectionState` tanpa watcher locale yang memanggil connect/disconnect, publish, subscribe/unsubscribe, atau autentikasi broker.
+- Dynamic keys tetap menampilkan key teknis asli; bila metric key dikenal, label ramah bilingual ditambahkan sebagai teks pendamping, bukan pengganti key mentah.
+
+Pemeriksaan aktual Batch 08:
+
+| Pemeriksaan | Hasil aktual |
+| --- | --- |
+| `npm run i18n:check` di `apps/web` | Lulus: 407 keys, 286 used keys |
+| `npm run typecheck` di `apps/web` | Lulus |
+| `npm run build` di `apps/web` | Lulus, tetap ada warning baseline chunk JS > 500 kB |
+| Pencarian literal MQTT utama dengan `rg` | Tidak menemukan literal lama utama di `MQTT.vue` seperti `Cari device`, `Tambah Topic`, `Tambah MQTT Topic`, `Hubungkan topic`, `Last Message`, `Dynamic Keys`, `Native MQTT TLS endpoint`, `Frontend telemetry transport`, atau `id-ID` |
+
+Verifikasi perilaku Batch 08:
+
+- Locale switch memperbarui label MQTT dari computed/template dan tidak mengubah `searchQuery`, `topicForm`, modal terbuka, `selectedSubscriptionId`, subscription tersimpan, telemetry cache, atau auth state.
+- Detail modal memakai data telemetry yang sudah ada di store; membuka/menutup detail dan mengganti bahasa tidak menambah request, subscription, atau koneksi MQTT/SSE.
+- Copy topic dan copy payload memakai nilai mentah yang sama dengan UI/protokol. Raw payload tidak diterjemahkan, tidak diparse ulang untuk dikirim, dan tidak dimutasi.
+- Hapus subscription memakai dialog konfirmasi lokal tetapi hanya menghapus daftar lokal halaman setelah user mengonfirmasi; tidak memutus subscription produksi atau memanggil broker.
+- Empty state daftar dan hasil pencarian, validasi Device ID/topic, serta feedback simpan/update/hapus/copy tersedia dalam ID dan EN.
+
+Keterbatasan verifikasi:
+
+- Tidak menjalankan browser end-to-end dengan broker produksi atau akun nyata. Skenario telemetry masuk saat language switch diverifikasi lewat jalur kode: render bergantung pada computed dari store yang sudah ada dan tidak ada watcher locale yang memanggil operasi koneksi.
+- Clipboard success/failure tidak diuji di browser nyata; handler dan fallback error diverifikasi lewat typecheck/build.
+- Halaman `/devices` tetap belum dimigrasikan pada batch ini karena instruksi aktif memfokuskan seluruh modul MQTT. Baris Devices di coverage tetap `not_started` untuk batch berikut yang sesuai.
+
+Batch berikutnya yang siap dikerjakan bila diminta: Perangkat atau Master Data, sesuai urutan batch yang ingin dilanjutkan.

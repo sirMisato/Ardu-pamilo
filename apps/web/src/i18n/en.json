@@ -202,6 +202,95 @@
     "waitingMqttTelemetry": "Waiting for MQTT telemetry."
   },
   "mqtt": {
+    "actions": {
+      "copyPayload": "Copy payload",
+      "copyTopic": "Copy topic",
+      "copyTopicAria": "Copy topic {topic}",
+      "delete": "Delete topic",
+      "deleteAria": "Delete topic {topic}",
+      "pause": "Pause subscription",
+      "pauseAria": "Pause subscription {topic}",
+      "resume": "Resume subscription",
+      "resumeAria": "Resume subscription {topic}",
+      "view": "View details",
+      "viewAria": "View details for {topic}"
+    },
+    "addTopic": "Add Topic",
+    "cards": {
+      "activeSubscription": "Active Subscription",
+      "activeTopicCount": {
+        "one": "{count} active topic",
+        "other": "{count} active topics"
+      },
+      "nativeTls": "Native MQTT TLS endpoint",
+      "perDeviceScoped": "Per-device scoped",
+      "telemetryTransport": "Frontend telemetry transport",
+      "tenantTopicIsolation": "Tenant topics stay isolated",
+      "websocketEndpoint": "WebSocket Endpoint"
+    },
+    "columns": {
+      "broker": "Broker",
+      "device": "Device",
+      "dynamicKeys": "Dynamic Keys",
+      "lastMessage": "Last Message",
+      "topic": "Topic Subscription"
+    },
+    "confirm": {
+      "deleteTopic": "Delete the subscription for {topic}?"
+    },
+    "connection": {
+      "connected": "Connected",
+      "connecting": "Connecting",
+      "error": "Error",
+      "history": "History data",
+      "idle": "Standby",
+      "offline": "Disconnected",
+      "reconnecting": "Reconnecting"
+    },
+    "detail": {
+      "close": "Close details",
+      "connectionStatus": "Connection status",
+      "dynamicKeys": "Dynamic keys",
+      "metricCount": "Key count",
+      "noPayload": "No payload is available for this topic yet.",
+      "noRawPayload": "Raw payload is not available yet.",
+      "title": "MQTT Message Details"
+    },
+    "empty": {
+      "noSearchResults": "No subscriptions match this search.",
+      "noSubscriptions": "No MQTT topics have been added yet."
+    },
+    "feedback": {
+      "copyFailed": "Copy failed. Check the browser clipboard permission.",
+      "noPayloadToCopy": "There is no payload to copy yet.",
+      "payloadCopied": "Payload copied without changes.",
+      "topicCopied": "Topic {topic} copied.",
+      "topicDeleted": "Subscription {topic} deleted.",
+      "topicSaved": "Topic {topic} added.",
+      "topicUpdated": "Topic {topic} updated."
+    },
+    "modal": {
+      "addSubtitle": "Connect an EMQX topic to a tenant device.",
+      "addTitle": "Add MQTT Topic",
+      "close": "Close modal",
+      "deviceHelper": "Use the same device ID used by the telemetry sender.",
+      "metricKeys": "Metric Keys Preview",
+      "metricKeysHelper": "Separate keys with commas. Technical keys are stored exactly as entered.",
+      "saveTopic": "Save Topic",
+      "topic": "Topic",
+      "topicHelper": "The MQTT topic is not translated and remains the protocol identity."
+    },
+    "searchAria": "Search devices, topics, or metric keys",
+    "searchPlaceholder": "Search devices, topics, or metric keys",
+    "status": {
+      "active": "Active",
+      "paused": "Paused"
+    },
+    "validation": {
+      "deviceRequired": "Device ID is required.",
+      "topicInvalid": "MQTT topic must contain a valid path.",
+      "topicRequired": "MQTT topic is required."
+    },
     "title": "MQTT"
   },
   "navigation": {
