@@ -5,7 +5,7 @@
         <label class="space-y-2">
           <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
             <CalendarDays class="h-4 w-4 text-emerald-500" />
-            Start Date
+            {{ t("reports.filters.startDate") }}
           </span>
           <input
             v-model="filters.startDate"
@@ -17,7 +17,7 @@
         <label class="space-y-2">
           <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
             <CalendarDays class="h-4 w-4 text-teal-500" />
-            End Date
+            {{ t("reports.filters.endDate") }}
           </span>
           <input
             v-model="filters.endDate"
@@ -29,14 +29,14 @@
         <label class="space-y-2">
           <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
             <Filter class="h-4 w-4 text-sky-500" />
-            Device
+            {{ t("reports.filters.device") }}
           </span>
           <select
             v-model="filters.deviceId"
             class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
             :disabled="filters.dataset === 'weather'"
           >
-            <option value="all">Semua Device</option>
+            <option value="all">{{ t("common.allDevices") }}</option>
             <option v-for="device in devices" :key="device.id" :value="device.id">{{ device.label }}</option>
           </select>
         </label>
@@ -44,22 +44,20 @@
         <label class="space-y-2">
           <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
             <TableProperties class="h-4 w-4 text-violet-500" />
-            Dataset
+            {{ t("reports.filters.dataset") }}
           </span>
           <select
             v-model="filters.dataset"
             class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
           >
-            <option value="telemetry">Telemetry</option>
-            <option value="alerts">Alerts</option>
-            <option value="weather">Weather</option>
+            <option v-for="option in datasetOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
           </select>
         </label>
 
         <label class="space-y-2">
           <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
             <Clock class="h-4 w-4 text-amber-500" />
-            Interval
+            {{ t("reports.filters.interval") }}
           </span>
           <select
             v-model="filters.intervalMinutes"
@@ -77,7 +75,7 @@
             @click="refreshReportData"
           >
             <RefreshCw class="h-4 w-4" :class="isLoading ? 'animate-spin' : ''" />
-            Refresh
+            {{ t("common.refresh") }}
           </button>
           <button
             class="flex min-h-11 items-center gap-2 rounded-full bg-emerald-300 px-5 py-2 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400"
@@ -109,7 +107,7 @@
     <section class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6">
       <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 class="text-base font-bold tracking-normal text-slate-800">Data Logs</h2>
+          <h2 class="text-base font-bold tracking-normal text-slate-800">{{ t("reports.dataLogs") }}</h2>
           <p class="mt-1 text-sm font-medium text-slate-400">{{ reportPreviewLabel }}</p>
         </div>
         <FileText class="h-6 w-6 text-emerald-500" />
@@ -119,10 +117,10 @@
         <table class="min-w-[1680px] w-full text-left text-sm">
           <thead class="bg-white/40 text-xs font-bold uppercase tracking-wider text-slate-500">
             <tr>
-              <th rowspan="3" class="border-b border-white/60 px-5 py-4 align-middle font-bold">Timestamp</th>
-              <th rowspan="3" class="border-b border-white/60 px-5 py-4 align-middle font-bold">Device</th>
-              <th rowspan="3" class="border-b border-white/60 px-5 py-4 align-middle font-bold">Plot/Area</th>
-              <th :colspan="metricColumns.length * 2" class="border-b border-white/60 px-5 py-3 text-center font-bold">Metric</th>
+              <th rowspan="3" class="border-b border-white/60 px-5 py-4 align-middle font-bold">{{ t("reports.columns.timestamp") }}</th>
+              <th rowspan="3" class="border-b border-white/60 px-5 py-4 align-middle font-bold">{{ t("reports.columns.device") }}</th>
+              <th rowspan="3" class="border-b border-white/60 px-5 py-4 align-middle font-bold">{{ t("reports.columns.plotArea") }}</th>
+              <th :colspan="metricColumns.length * 2" class="border-b border-white/60 px-5 py-3 text-center font-bold">{{ t("reports.columns.metric") }}</th>
             </tr>
             <tr>
               <th
@@ -136,8 +134,8 @@
             </tr>
             <tr>
               <template v-for="metric in metricColumns" :key="metric.key">
-                <th class="border-b border-white/60 px-4 py-3 text-center font-bold">Value</th>
-                <th class="border-b border-white/60 px-4 py-3 text-center font-bold">Status</th>
+                <th class="border-b border-white/60 px-4 py-3 text-center font-bold">{{ t("reports.columns.value") }}</th>
+                <th class="border-b border-white/60 px-4 py-3 text-center font-bold">{{ t("common.status") }}</th>
               </template>
             </tr>
           </thead>
@@ -147,7 +145,7 @@
               <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ row.deviceId }}</td>
               <td class="px-5 py-4 text-sm font-medium text-slate-700">{{ row.plot }}</td>
               <template v-for="metric in metricColumns" :key="`${row.id}-${metric.key}`">
-                <td class="px-4 py-4 text-center text-sm font-medium text-slate-700">{{ row.metrics[metric.key].value }}</td>
+                <td class="px-4 py-4 text-center text-sm font-medium text-slate-700">{{ formatMetricCellValue(row.metrics[metric.key]) }}</td>
                 <td class="px-4 py-4 text-center">
                   <span
                     class="rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide"
@@ -166,16 +164,16 @@
         <table class="min-w-[1180px] w-full text-left text-sm">
           <thead class="bg-white/40 text-xs font-bold uppercase tracking-wider text-slate-500">
             <tr>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Timestamp</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Lokasi</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("reports.columns.timestamp") }}</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("weather.location") }}</th>
               <th class="border-b border-white/60 px-5 py-4 font-bold">ADM4</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Kondisi</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Temp</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Humidity</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Rainfall</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Rain Chance</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Wind</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Source</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("weather.currentCondition") }}</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("weather.temperature") }}</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("weather.airHumidity") }}</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("weather.rainfall") }}</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("weather.rainChance") }}</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("weather.wind") }}</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("reports.columns.source") }}</th>
             </tr>
           </thead>
           <tbody>
@@ -199,12 +197,12 @@
         <table class="min-w-[1120px] w-full text-left text-sm">
           <thead class="bg-white/40 text-xs font-bold uppercase tracking-wider text-slate-500">
             <tr>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Timestamp</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Severity</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Source</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Subject</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Alert</th>
-              <th class="border-b border-white/60 px-5 py-4 font-bold">Detail</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("reports.columns.timestamp") }}</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("reports.columns.severity") }}</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("reports.columns.source") }}</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("reports.columns.subject") }}</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("reports.columns.alert") }}</th>
+              <th class="border-b border-white/60 px-5 py-4 font-bold">{{ t("reports.columns.detail") }}</th>
             </tr>
           </thead>
           <tbody>
@@ -228,21 +226,21 @@
       </div>
 
       <div v-if="isLoading && sampledRows.length === 0" class="border-t border-white/60 p-8 text-center text-sm font-medium text-slate-400">
-        Memuat data report...
+        {{ t("reports.loading") }}
       </div>
 
       <div v-else-if="sampledRows.length === 0" class="border-t border-white/60 p-8 text-center text-sm font-medium text-slate-400">
-        Tidak ada data pada filter ini.
+        {{ t("reports.empty") }}
       </div>
 
       <div v-else class="flex flex-wrap items-center justify-between gap-3 border-t border-white/60 pt-4 text-sm font-medium text-slate-700">
         <p class="flex flex-wrap items-center gap-2">
-          <span>Menampilkan {{ paginationStart }}-{{ paginationEnd }} dari {{ sampledRows.length.toLocaleString("id-ID") }} records</span>
-          <span v-if="isLoading" class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-teal-700">Memperbarui...</span>
+          <span>{{ t("reports.showingRecords", { start: paginationStart, end: paginationEnd, total: formatDataCount(sampledRows.length) }) }}</span>
+          <span v-if="isLoading" class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-teal-700">{{ t("reports.updating") }}</span>
         </p>
         <div class="flex flex-wrap items-center gap-2">
           <label class="flex items-center gap-2 text-xs font-medium text-slate-400">
-            Rows
+            {{ t("weather.rows") }}
             <select
               v-model.number="pageSize"
               class="h-9 rounded-xl border border-slate-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
@@ -253,7 +251,7 @@
           <button
             class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             type="button"
-            aria-label="Halaman pertama"
+            :aria-label="t('reports.firstPage')"
             :disabled="activePage <= 1"
             @click="setPage(1)"
           >
@@ -262,7 +260,7 @@
           <button
             class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             type="button"
-            aria-label="Halaman sebelumnya"
+            :aria-label="t('weather.previousPage')"
             :disabled="activePage <= 1"
             @click="setPage(activePage - 1)"
           >
@@ -279,11 +277,11 @@
           >
             {{ pageNumber }}
           </button>
-          <span class="min-w-24 text-center text-xs font-medium text-slate-400">Hal {{ activePage }} / {{ totalPages }}</span>
+          <span class="min-w-24 text-center text-xs font-medium text-slate-400">{{ t("weather.pageStatus", { page: activePage, total: totalPages }) }}</span>
           <button
             class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             type="button"
-            aria-label="Halaman berikutnya"
+            :aria-label="t('weather.nextPage')"
             :disabled="activePage >= totalPages"
             @click="setPage(activePage + 1)"
           >
@@ -292,7 +290,7 @@
           <button
             class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 shadow-sm transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             type="button"
-            aria-label="Halaman terakhir"
+            :aria-label="t('reports.lastPage')"
             :disabled="activePage >= totalPages"
             @click="setPage(totalPages)"
           >
@@ -307,6 +305,10 @@
 <script setup lang="ts">
 import { CalendarDays, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Clock, Download, FileDown, FileText, Filter, RefreshCw, TableProperties } from "@lucide/vue";
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { t, useI18n, type TranslationParams } from "../../i18n";
+import { formatDataCount, formatDateTime as formatLocalizedDateTime, formatNumber, formatPercent as formatLocalizedPercent } from "../../i18n/formatters";
+import { getMetricLabel, getMetricUnit } from "../../i18n/metrics";
+import { formatWindLabel, getWeatherConditionLabel, isRainyCondition, type WeatherConditionSource } from "../../i18n/weather";
 import { ApiClientError, apiGet } from "../../services/apiClient";
 
 type ExportFormat = "CSV" | "PDF";
@@ -321,17 +323,22 @@ interface ReportDevice {
 
 type ReportMetricKey = "conductivity" | "moisture" | "nitrogen" | "phosphorus" | "potassium" | "ph" | "soil_temperature";
 type ReportMetricStatus = "normal" | "attention" | "empty";
+type FeedbackKind = "error" | "success";
+
+interface FeedbackMessage {
+  key: string;
+  kind: FeedbackKind;
+  params?: TranslationParams;
+}
 
 interface ReportMetricColumn {
   key: ReportMetricKey;
-  label: string;
   sourceKeys: string[];
-  unitLabel: string;
 }
 
 interface ReportMetricCell {
   status: ReportMetricStatus;
-  value: string;
+  value: unknown;
 }
 
 type ReportMetricCells = Record<ReportMetricKey, ReportMetricCell>;
@@ -438,45 +445,31 @@ const weatherHistoryMaxRows = 100_000;
 const metricColumns: ReportMetricColumn[] = [
   {
     key: "conductivity",
-    label: "Conductivity",
-    sourceKeys: ["conductivity", "ec", "electrical_conductivity"],
-    unitLabel: "µS/cm"
+    sourceKeys: ["conductivity", "ec", "electrical_conductivity"]
   },
   {
     key: "moisture",
-    label: "Moisture",
-    sourceKeys: ["moisture", "soil_moisture"],
-    unitLabel: "%"
+    sourceKeys: ["moisture", "soil_moisture"]
   },
   {
     key: "nitrogen",
-    label: "Nitrogen",
-    sourceKeys: ["nitrogen", "n"],
-    unitLabel: "mg/kg"
+    sourceKeys: ["nitrogen", "n"]
   },
   {
     key: "phosphorus",
-    label: "Phosphorus",
-    sourceKeys: ["phosphorus", "p"],
-    unitLabel: "mg/kg"
+    sourceKeys: ["phosphorus", "p"]
   },
   {
     key: "potassium",
-    label: "Potassium",
-    sourceKeys: ["potassium", "k"],
-    unitLabel: "mg/kg"
+    sourceKeys: ["potassium", "k"]
   },
   {
     key: "ph",
-    label: "pH",
-    sourceKeys: ["ph", "pH"],
-    unitLabel: "pH"
+    sourceKeys: ["ph", "pH"]
   },
   {
     key: "soil_temperature",
-    label: "Soil Temperature",
-    sourceKeys: ["soil_temperature", "soilTemperature", "soilTemperatureC", "temperature"],
-    unitLabel: "°C"
+    sourceKeys: ["soil_temperature", "soilTemperature", "soilTemperatureC", "temperature"]
   }
 ];
 
@@ -494,8 +487,8 @@ const filters = reactive<{
   intervalMinutes: "raw"
 });
 
-const exportMessage = ref("");
-const errorMessage = ref<string | null>(null);
+const exportFeedback = ref<FeedbackMessage | null>(null);
+const errorFeedback = ref<FeedbackMessage | null>(null);
 const isLoading = ref(false);
 const apiDevices = ref<ApiDevice[]>([]);
 const historyItems = ref<TelemetryHistoryItem[]>([]);
@@ -504,13 +497,21 @@ const rows = ref<ReportRow[]>([]);
 const currentPage = ref(1);
 const pageSize = ref(25);
 const pageSizeOptions = [10, 25, 50];
+const { locale } = useI18n();
 let refreshTimer: number | undefined;
-const samplingOptions: Array<{ label: string; value: SamplingInterval }> = [
-  { label: "Semua data", value: "raw" },
-  { label: "Per 5 menit", value: "5" },
-  { label: "Per 15 menit", value: "15" },
-  { label: "Per jam", value: "60" }
-];
+const datasetOptions = computed<Array<{ label: string; value: Dataset }>>(() => [
+  { label: t("reports.datasets.telemetry"), value: "telemetry" },
+  { label: t("reports.datasets.alerts"), value: "alerts" },
+  { label: t("reports.datasets.weather"), value: "weather" }
+]);
+const samplingOptions = computed<Array<{ label: string; value: SamplingInterval }>>(() => [
+  { label: t("reports.sampling.raw"), value: "raw" },
+  { label: t("reports.sampling.minutes", { minutes: 5 }), value: "5" },
+  { label: t("reports.sampling.minutes", { minutes: 15 }), value: "15" },
+  { label: t("reports.sampling.hourly"), value: "60" }
+]);
+const exportMessage = computed(() => exportFeedback.value ? t(exportFeedback.value.key, exportFeedback.value.params ?? {}) : "");
+const errorMessage = computed(() => errorFeedback.value ? t(errorFeedback.value.key, errorFeedback.value.params ?? {}) : null);
 
 const deviceLookup = computed(() => new Map(apiDevices.value.flatMap((device) => [
   [device.deviceUid, device],
@@ -622,8 +623,9 @@ const visiblePageNumbers = computed(() => {
 
   return Array.from({ length: endPage - startPage + 1 }, (_, index) => startPage + index);
 });
-const selectedSamplingLabel = computed(() => samplingOptions.find((option) => option.value === filters.intervalMinutes)?.label ?? "Semua data");
-const reportPreviewLabel = computed(() => `Preview data export tenant, ${selectedSamplingLabel.value.toLowerCase()}.`);
+const selectedDatasetLabel = computed(() => datasetOptions.value.find((option) => option.value === filters.dataset)?.label ?? filters.dataset);
+const selectedSamplingLabel = computed(() => samplingOptions.value.find((option) => option.value === filters.intervalMinutes)?.label ?? t("reports.sampling.raw"));
+const reportPreviewLabel = computed(() => t("reports.preview", { sampling: selectedSamplingLabel.value.toLowerCase() }));
 
 onMounted(() => {
   void loadReportData();
@@ -659,6 +661,10 @@ watch(pageSize, () => {
   currentPage.value = 1;
 });
 
+watch(locale, () => {
+  rows.value = buildRowsFromCachedItems();
+});
+
 async function refreshReportData(): Promise<void> {
   currentPage.value = 1;
   await loadReportData();
@@ -669,11 +675,20 @@ async function loadReportData(options: { clearExportMessage?: boolean } = {}): P
     return;
   }
 
+  if (!isDateRangeValid()) {
+    errorFeedback.value = {
+      kind: "error",
+      key: "reports.invalidRange"
+    };
+    rows.value = [];
+    return;
+  }
+
   isLoading.value = true;
-  errorMessage.value = null;
+  errorFeedback.value = null;
 
   if (options.clearExportMessage !== false) {
-    exportMessage.value = "";
+    exportFeedback.value = null;
   }
 
   try {
@@ -682,7 +697,7 @@ async function loadReportData(options: { clearExportMessage?: boolean } = {}): P
     apiDevices.value = deviceRows;
     rows.value = await fetchReportRowsForDataset();
   } catch (error) {
-    errorMessage.value = normalizeError(error);
+    errorFeedback.value = normalizeError(error);
     rows.value = [];
   } finally {
     isLoading.value = false;
@@ -694,7 +709,7 @@ async function fetchReportRowsForDataset(): Promise<ReportRow[]> {
     historyItems.value = [];
     const weatherItems = await fetchWeatherHistoryItems();
     weatherHistoryItems.value = weatherItems;
-    return weatherItems.map(toWeatherReportRow);
+    return buildRowsFromCachedItems();
   }
 
   const telemetryItems = await fetchTelemetryHistoryItems();
@@ -703,14 +718,26 @@ async function fetchReportRowsForDataset(): Promise<ReportRow[]> {
   if (filters.dataset === "alerts") {
     const weatherItems = await fetchWeatherHistoryItems();
     weatherHistoryItems.value = weatherItems;
-    return [
-      ...telemetryItems.flatMap(toTelemetryAlertRows),
-      ...weatherItems.flatMap(toWeatherAlertRows)
-    ];
+    return buildRowsFromCachedItems();
   }
 
   weatherHistoryItems.value = [];
-  return telemetryItems.map(toReportRow);
+  return buildRowsFromCachedItems();
+}
+
+function buildRowsFromCachedItems(): ReportRow[] {
+  if (filters.dataset === "weather") {
+    return weatherHistoryItems.value.map(toWeatherReportRow);
+  }
+
+  if (filters.dataset === "alerts") {
+    return [
+      ...historyItems.value.flatMap(toTelemetryAlertRows),
+      ...weatherHistoryItems.value.flatMap(toWeatherAlertRows)
+    ];
+  }
+
+  return historyItems.value.map(toReportRow);
 }
 
 async function fetchTelemetryHistoryItems(): Promise<TelemetryHistoryItem[]> {
@@ -726,7 +753,14 @@ async function fetchTelemetryHistoryItems(): Promise<TelemetryHistoryItem[]> {
   }
 
   if (items.length >= telemetryHistoryMaxRows) {
-    exportMessage.value = `Report dibatasi ${telemetryHistoryMaxRows.toLocaleString("id-ID")} records. Persempit rentang tanggal untuk mengambil data yang lebih spesifik.`;
+    exportFeedback.value = {
+      kind: "success",
+      key: "reports.limitReached",
+      params: {
+        count: formatDataCount(telemetryHistoryMaxRows),
+        dataset: t("reports.datasets.telemetry").toLowerCase()
+      }
+    };
   }
 
   return items;
@@ -745,7 +779,14 @@ async function fetchWeatherHistoryItems(): Promise<WeatherHistoryItem[]> {
   }
 
   if (items.length >= weatherHistoryMaxRows) {
-    exportMessage.value = `Report weather dibatasi ${weatherHistoryMaxRows.toLocaleString("id-ID")} records. Persempit rentang tanggal untuk mengambil data yang lebih spesifik.`;
+    exportFeedback.value = {
+      kind: "success",
+      key: "reports.limitReached",
+      params: {
+        count: formatDataCount(weatherHistoryMaxRows),
+        dataset: t("reports.datasets.weather").toLowerCase()
+      }
+    };
   }
 
   return items;
@@ -755,6 +796,7 @@ function buildTelemetryHistoryUrl(offset = 0): string {
   const params = new URLSearchParams({
     end: endOfDayIso(filters.endDate),
     limit: String(telemetryHistoryPageSize),
+    locale: locale.value,
     offset: String(offset),
     start: startOfDayIso(filters.startDate)
   });
@@ -770,6 +812,7 @@ function buildWeatherHistoryUrl(offset = 0): string {
   const params = new URLSearchParams({
     end: endOfDayIso(filters.endDate),
     limit: String(weatherHistoryPageSize),
+    locale: locale.value,
     offset: String(offset),
     start: startOfDayIso(filters.startDate)
   });
@@ -788,7 +831,7 @@ function toReportRow(item: TelemetryHistoryItem): ReportRow {
     if (value !== undefined && !isRecord(value)) {
       metrics[column.key] = {
         status: classifyMetricStatus(column.key, value),
-        value: formatMetricValue(value)
+        value
       };
     }
   }
@@ -806,17 +849,17 @@ function toReportRow(item: TelemetryHistoryItem): ReportRow {
 function toWeatherReportRow(item: WeatherHistoryItem): WeatherReportRow {
   return {
     adm4Code: item.adm4Code,
-    condition: item.condition,
+    condition: getWeatherConditionLabel(toWeatherConditionSource(item)),
     dataset: "weather",
     humidityPercent: item.humidityPercent,
     id: `weather-${item.id}`,
     location: formatWeatherLocation(item),
     rainfallMm: item.rainfallMm,
     rainChancePercent: readWeatherRainChance(item),
-    source: item.isMock ? "BMKG fallback" : item.source,
+    source: item.isMock ? t("weather.weatherSourceMock") : item.source,
     temperatureC: item.temperatureC,
     timestamp: item.observedAt,
-    wind: formatWind(item.windSpeed, item.windDirection ?? "-")
+    wind: formatWindLabel(item.windSpeed, item.windDirection)
   };
 }
 
@@ -832,16 +875,24 @@ function toTelemetryAlertRows(item: TelemetryHistoryItem): AlertReportRow[] {
       continue;
     }
 
+    const metricLabel = getMetricLabel(column.key);
+    const metricUnit = getMetricUnit(column.key);
+
     alerts.push({
       dataset: "alerts",
       deviceId: item.deviceUid,
       id: `alert-telemetry-${item.id}-${column.key}`,
-      message: `${column.label} ${formatMetricValue(value)} ${column.unitLabel} berada di luar rentang normal pada ${plot}.`,
+      message: t("reports.alerts.telemetryMessage", {
+        metric: metricLabel,
+        plot,
+        unit: metricUnit,
+        value: formatMetricValue(value)
+      }),
       severity: telemetryAlertSeverity(column.key, value),
-      source: "Telemetry",
+      source: t("reports.datasets.telemetry"),
       subject: `${item.deviceUid} / ${plot}`,
       timestamp: item.receivedAt,
-      title: `${column.label} perlu perhatian`
+      title: t("reports.alerts.telemetryTitle", { metric: metricLabel })
     });
   }
 
@@ -850,9 +901,11 @@ function toTelemetryAlertRows(item: TelemetryHistoryItem): AlertReportRow[] {
 
 function toWeatherAlertRows(item: WeatherHistoryItem): AlertReportRow[] {
   const rainChance = readWeatherRainChance(item);
-  const isRainy = item.condition.toLowerCase().includes("hujan") || (item.rainfallMm ?? 0) > 0 || (rainChance ?? 0) >= 60;
+  const conditionSource = toWeatherConditionSource(item);
+  const weatherCondition = getWeatherConditionLabel(conditionSource);
+  const hasRain = isRainyCondition(conditionSource) || (item.rainfallMm ?? 0) > 0 || (rainChance ?? 0) >= 60;
 
-  if (!isRainy) {
+  if (!hasRain) {
     return [];
   }
 
@@ -860,12 +913,16 @@ function toWeatherAlertRows(item: WeatherHistoryItem): AlertReportRow[] {
     dataset: "alerts",
     deviceId: null,
     id: `alert-weather-${item.id}`,
-    message: `${item.condition}; rainfall ${formatRain(item.rainfallMm)}; rain chance ${formatPercent(rainChance)}.`,
+    message: t("reports.alerts.weatherMessage", {
+      condition: weatherCondition,
+      rain: formatRain(item.rainfallMm),
+      chance: formatPercent(rainChance)
+    }),
     severity: weatherAlertSeverity(item, rainChance),
-    source: "Weather",
+    source: t("reports.datasets.weather"),
     subject: formatWeatherLocation(item),
     timestamp: item.observedAt,
-    title: "Peringatan cuaca"
+    title: t("reports.alerts.weatherTitle")
   }];
 }
 
@@ -879,6 +936,7 @@ function exportReport(format: ExportFormat): void {
 }
 
 function exportCsv(): void {
+  errorFeedback.value = null;
   const rows = createCsvRows();
   const csv = rows.map((row) => row.map(escapeCsvCell).join(",")).join("\r\n");
   const blob = new Blob([csv], {
@@ -888,16 +946,25 @@ function exportCsv(): void {
   const link = document.createElement("a");
 
   link.href = url;
-  link.download = `pamilo-${filters.dataset}-${filters.startDate}-${filters.endDate}.csv`;
+  link.download = createExportFilename("csv");
   link.click();
   URL.revokeObjectURL(url);
-  exportMessage.value = `CSV export dibuat untuk ${sampledRows.value.length} ${filters.dataset} records (${selectedSamplingLabel.value.toLowerCase()}).`;
+  exportFeedback.value = {
+    kind: "success",
+    key: "reports.exportReady",
+    params: {
+      count: formatDataCount(sampledRows.value.length),
+      dataset: selectedDatasetLabel.value.toLowerCase(),
+      format: "CSV",
+      sampling: selectedSamplingLabel.value.toLowerCase()
+    }
+  };
 }
 
 function createCsvRows(): string[][] {
   if (filters.dataset === "weather") {
     return [
-      ["Timestamp", "Lokasi", "ADM4", "Kondisi", "Temp", "Humidity", "Rainfall", "Rain Chance", "Wind", "Source"],
+      weatherCsvHeaders(),
       ...sampledRows.value.filter(isWeatherReportRow).map((row) => [
         formatDateTime(row.timestamp),
         row.location,
@@ -915,7 +982,7 @@ function createCsvRows(): string[][] {
 
   if (filters.dataset === "alerts") {
     return [
-      ["Timestamp", "Severity", "Source", "Subject", "Alert", "Detail"],
+      alertCsvHeaders(),
       ...sampledRows.value.filter(isAlertReportRow).map((row) => [
         formatDateTime(row.timestamp),
         formatAlertSeverity(row.severity),
@@ -928,15 +995,15 @@ function createCsvRows(): string[][] {
   }
 
   return [
-    ["Timestamp", "Device", "Plot/Area", ...metricColumns.flatMap((metric, index) => [index === 0 ? "Metric" : "", ""])],
+    [t("reports.columns.timestamp"), t("reports.columns.device"), t("reports.columns.plotArea"), ...metricColumns.flatMap((metric, index) => [index === 0 ? t("reports.columns.metric") : "", ""])],
     ["", "", "", ...metricColumns.flatMap((metric) => [metricHeaderLabel(metric), ""])],
-    ["", "", "", ...metricColumns.flatMap(() => ["Value", "Status"])],
+    ["", "", "", ...metricColumns.flatMap(() => [t("reports.columns.value"), t("common.status")])],
     ...sampledRows.value.filter(isTelemetryReportRow).map((row) => [
       formatDateTime(row.timestamp),
       row.deviceId,
       row.plot,
       ...metricColumns.flatMap((metric) => [
-        row.metrics[metric.key].value,
+        formatMetricCellValue(row.metrics[metric.key]),
         formatMetricStatus(row.metrics[metric.key].status)
       ])
     ])
@@ -944,9 +1011,13 @@ function createCsvRows(): string[][] {
 }
 
 function exportPdf(): void {
+  errorFeedback.value = null;
   const reportWindow = window.open("", "_blank", "width=1024,height=720");
   if (!reportWindow) {
-    exportMessage.value = "Popup PDF diblokir browser. Izinkan popup lalu coba lagi.";
+    errorFeedback.value = {
+      kind: "error",
+      key: "reports.popupBlocked"
+    };
     return;
   }
 
@@ -954,7 +1025,46 @@ function exportPdf(): void {
   reportWindow.document.close();
   reportWindow.focus();
   reportWindow.print();
-  exportMessage.value = `PDF export disiapkan untuk ${sampledRows.value.length} ${filters.dataset} records (${selectedSamplingLabel.value.toLowerCase()}).`;
+  exportFeedback.value = {
+    kind: "success",
+    key: "reports.exportReady",
+    params: {
+      count: formatDataCount(sampledRows.value.length),
+      dataset: selectedDatasetLabel.value.toLowerCase(),
+      format: "PDF",
+      sampling: selectedSamplingLabel.value.toLowerCase()
+    }
+  };
+}
+
+function weatherCsvHeaders(): string[] {
+  return [
+    t("reports.columns.timestamp"),
+    t("weather.location"),
+    "ADM4",
+    t("weather.currentCondition"),
+    t("weather.temperature"),
+    t("weather.airHumidity"),
+    t("weather.rainfall"),
+    t("weather.rainChance"),
+    t("weather.wind"),
+    t("reports.columns.source")
+  ];
+}
+
+function alertCsvHeaders(): string[] {
+  return [
+    t("reports.columns.timestamp"),
+    t("reports.columns.severity"),
+    t("reports.columns.source"),
+    t("reports.columns.subject"),
+    t("reports.columns.alert"),
+    t("reports.columns.detail")
+  ];
+}
+
+function createExportFilename(extension: "csv"): string {
+  return `pamilo-${locale.value}-${filters.dataset}-${filters.startDate}-${filters.endDate}.${extension}`;
 }
 
 function setPage(page: number): void {
@@ -965,7 +1075,7 @@ function createEmptyMetricCells(): ReportMetricCells {
   return metricColumns.reduce((cells, column) => {
     cells[column.key] = {
       status: "empty",
-      value: "-"
+      value: null
     };
 
     return cells;
@@ -1013,6 +1123,30 @@ function readWeatherRainChance(item: WeatherHistoryItem): number | null {
   return null;
 }
 
+function toWeatherConditionSource(item: WeatherHistoryItem): WeatherConditionSource {
+  const current = isRecord(item.current) ? item.current : {};
+  return {
+    condition: item.condition,
+    conditionEn: typeof current.conditionEn === "string" ? current.conditionEn : null,
+    weatherCode: readWeatherCode(current)
+  };
+}
+
+function readWeatherCode(current: Record<string, unknown>): number | null {
+  const rawCode = current.weatherCode ?? current.weather_code ?? current.weather;
+
+  if (typeof rawCode === "number" && Number.isFinite(rawCode)) {
+    return rawCode;
+  }
+
+  if (typeof rawCode === "string") {
+    const parsed = Number(rawCode);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
 function telemetryAlertSeverity(metricKey: ReportMetricKey, value: unknown): AlertSeverity {
   const numericValue = typeof value === "number" ? value : typeof value === "string" ? Number(value.replace(",", ".")) : Number.NaN;
 
@@ -1040,7 +1174,8 @@ function telemetryAlertSeverity(metricKey: ReportMetricKey, value: unknown): Ale
 }
 
 function weatherAlertSeverity(item: WeatherHistoryItem, rainChance: number | null): AlertSeverity {
-  if ((item.rainfallMm ?? 0) >= 20 || (rainChance ?? 0) >= 80 || item.condition.toLowerCase().includes("petir")) {
+  const conditionLabel = getWeatherConditionLabel(toWeatherConditionSource(item)).toLowerCase();
+  if ((item.rainfallMm ?? 0) >= 20 || (rainChance ?? 0) >= 80 || conditionLabel.includes("petir") || conditionLabel.includes("thunder")) {
     return "high";
   }
 
@@ -1076,7 +1211,8 @@ function isAlertReportRow(row: ReportRow): row is AlertReportRow {
 }
 
 function metricHeaderLabel(metric: ReportMetricColumn): string {
-  return `${metric.label} (${metric.unitLabel})`;
+  const unit = getMetricUnit(metric.key);
+  return unit ? `${getMetricLabel(metric.key)} (${unit})` : getMetricLabel(metric.key);
 }
 
 function metricStatusClass(status: ReportMetricStatus): string {
@@ -1092,7 +1228,19 @@ function metricStatusClass(status: ReportMetricStatus): string {
 }
 
 function formatMetricStatus(status: ReportMetricStatus): string {
-  return status === "empty" ? "-" : status;
+  if (status === "normal") {
+    return t("reports.status.normal");
+  }
+
+  if (status === "attention") {
+    return t("reports.status.attention");
+  }
+
+  return t("format.nullValue");
+}
+
+function formatMetricCellValue(cell: ReportMetricCell): string {
+  return cell.status === "empty" ? t("format.nullValue") : formatMetricValue(cell.value);
 }
 
 function alertSeverityClass(severity: AlertSeverity): string {
@@ -1108,9 +1256,9 @@ function alertSeverityClass(severity: AlertSeverity): string {
 }
 
 function formatAlertSeverity(severity: AlertSeverity): string {
-  if (severity === "high") return "High";
-  if (severity === "medium") return "Medium";
-  return "Low";
+  if (severity === "high") return t("reports.severity.high");
+  if (severity === "medium") return t("reports.severity.medium");
+  return t("reports.severity.low");
 }
 
 function formatWeatherLocation(item: WeatherHistoryItem): string {
@@ -1129,23 +1277,19 @@ function formatWeatherLocation(item: WeatherHistoryItem): string {
 }
 
 function formatTemperature(value: number | null): string {
-  return value === null ? "-" : `${formatMetricValue(value)} C`;
+  return value === null ? t("format.nullValue") : `${formatMetricValue(value)} C`;
 }
 
 function formatHumidity(value: number | null): string {
-  return value === null ? "-" : `${formatMetricValue(value)}%`;
+  return formatPercent(value);
 }
 
 function formatRain(value: number | null): string {
-  return value === null ? "-" : `${formatMetricValue(value)} mm`;
+  return value === null ? t("format.nullValue") : `${formatMetricValue(value)} mm`;
 }
 
 function formatPercent(value: number | null): string {
-  return value === null ? "-" : `${formatMetricValue(value)}%`;
-}
-
-function formatWind(value: number | null, direction: string): string {
-  return value === null ? "-" : `${formatMetricValue(value)} km/j ${direction}`.trim();
+  return formatLocalizedPercent(value, { valueKind: "percent" });
 }
 
 function toInputDate(value: Date): string {
@@ -1157,15 +1301,10 @@ function toInputDate(value: Date): string {
 }
 
 function formatDateTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("id-ID", {
+  return formatLocalizedDateTime(value, {
     dateStyle: "medium",
     timeStyle: "medium"
-  }).format(date);
+  });
 }
 
 function startOfDayIso(value: string): string {
@@ -1206,11 +1345,11 @@ function unwrapMetricValue(value: unknown): unknown {
 
 function formatMetricValue(value: unknown): string {
   if (value === null) {
-    return "-";
+    return t("format.nullValue");
   }
 
   const normalizedValue = typeof value === "number"
-    ? new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(Math.round(value * 100) / 100)
+    ? formatNumber(Math.round(value * 100) / 100, { maximumFractionDigits: 2 })
     : String(value);
 
   return normalizedValue;
@@ -1248,12 +1387,20 @@ function escapeCsvCell(value: string): string {
 
 function createPrintableReportHtml(): string {
   const table = createPrintableTableHtml();
+  const title = t("reports.printTitle", { dataset: selectedDatasetLabel.value });
+  const summary = t("reports.printSummary", {
+    count: formatDataCount(sampledRows.value.length),
+    end: formatDateOnly(filters.endDate),
+    sampling: selectedSamplingLabel.value,
+    start: formatDateOnly(filters.startDate)
+  });
+  const generatedAt = t("reports.generatedAt", { time: formatDateTime(new Date().toISOString()) });
 
   return `
     <!doctype html>
-    <html>
+    <html lang="${escapeHtml(locale.value)}">
       <head>
-        <title>PAMILO ${filters.dataset} report</title>
+        <title>${escapeHtml(title)}</title>
         <style>
           @page { size: landscape; }
           body { color: #0f172a; font-family: Arial, sans-serif; padding: 24px; }
@@ -1266,12 +1413,19 @@ function createPrintableReportHtml(): string {
         </style>
       </head>
       <body>
-        <h1>PAMILO ${escapeHtml(filters.dataset)} report</h1>
-        <p>${escapeHtml(filters.startDate)} sampai ${escapeHtml(filters.endDate)} - ${sampledRows.value.length} records - ${escapeHtml(selectedSamplingLabel.value)}</p>
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(summary)}</p>
+        <p>${escapeHtml(generatedAt)}</p>
         ${table}
       </body>
     </html>
   `;
+}
+
+function formatDateOnly(value: string): string {
+  return formatLocalizedDateTime(`${value}T00:00:00`, {
+    dateStyle: "medium"
+  });
 }
 
 function createPrintableTableHtml(): string {
@@ -1295,19 +1449,10 @@ function createPrintableTableHtml(): string {
       <table>
         <thead>
           <tr>
-            <th>Timestamp</th>
-            <th>Lokasi</th>
-            <th>ADM4</th>
-            <th>Kondisi</th>
-            <th>Temp</th>
-            <th>Humidity</th>
-            <th>Rainfall</th>
-            <th>Rain Chance</th>
-            <th>Wind</th>
-            <th>Source</th>
+            ${weatherCsvHeaders().map((header) => `<th>${escapeHtml(header)}</th>`).join("")}
           </tr>
         </thead>
-        <tbody>${rows}</tbody>
+        <tbody>${rows || emptyPrintableRows(weatherCsvHeaders().length)}</tbody>
       </table>
     `;
   }
@@ -1328,28 +1473,23 @@ function createPrintableTableHtml(): string {
       <table>
         <thead>
           <tr>
-            <th>Timestamp</th>
-            <th>Severity</th>
-            <th>Source</th>
-            <th>Subject</th>
-            <th>Alert</th>
-            <th>Detail</th>
+            ${alertCsvHeaders().map((header) => `<th>${escapeHtml(header)}</th>`).join("")}
           </tr>
         </thead>
-        <tbody>${rows}</tbody>
+        <tbody>${rows || emptyPrintableRows(alertCsvHeaders().length)}</tbody>
       </table>
     `;
   }
 
   const metricGroupHeaders = metricColumns.map((metric) => `<th colspan="2">${escapeHtml(metricHeaderLabel(metric))}</th>`).join("");
-  const metricSubHeaders = metricColumns.map(() => "<th>Value</th><th>Status</th>").join("");
+  const metricSubHeaders = metricColumns.map(() => `<th>${escapeHtml(t("reports.columns.value"))}</th><th>${escapeHtml(t("common.status"))}</th>`).join("");
   const rows = sampledRows.value.filter(isTelemetryReportRow).map((row) => `
     <tr>
       <td>${escapeHtml(formatDateTime(row.timestamp))}</td>
       <td>${escapeHtml(row.deviceId)}</td>
       <td>${escapeHtml(row.plot)}</td>
       ${metricColumns.map((metric) => `
-        <td>${escapeHtml(row.metrics[metric.key].value)}</td>
+        <td>${escapeHtml(formatMetricCellValue(row.metrics[metric.key]))}</td>
         <td>${escapeHtml(formatMetricStatus(row.metrics[metric.key].status))}</td>
       `).join("")}
     </tr>
@@ -1359,10 +1499,10 @@ function createPrintableTableHtml(): string {
     <table>
       <thead>
         <tr>
-          <th rowspan="3">Timestamp</th>
-          <th rowspan="3">Device</th>
-          <th rowspan="3">Plot/Area</th>
-          <th class="center" colspan="${metricColumns.length * 2}">Metric</th>
+          <th rowspan="3">${escapeHtml(t("reports.columns.timestamp"))}</th>
+          <th rowspan="3">${escapeHtml(t("reports.columns.device"))}</th>
+          <th rowspan="3">${escapeHtml(t("reports.columns.plotArea"))}</th>
+          <th class="center" colspan="${metricColumns.length * 2}">${escapeHtml(t("reports.columns.metric"))}</th>
         </tr>
         <tr>
           ${metricGroupHeaders}
@@ -1371,9 +1511,13 @@ function createPrintableTableHtml(): string {
           ${metricSubHeaders}
         </tr>
       </thead>
-      <tbody>${rows}</tbody>
+      <tbody>${rows || emptyPrintableRows(3 + metricColumns.length * 2)}</tbody>
     </table>
   `;
+}
+
+function emptyPrintableRows(colspan: number): string {
+  return `<tr><td colspan="${colspan}">${escapeHtml(t("reports.empty"))}</td></tr>`;
 }
 
 function escapeHtml(value: string): string {
@@ -1385,16 +1529,25 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#039;");
 }
 
-function normalizeError(error: unknown): string {
+function isDateRangeValid(): boolean {
+  const start = Date.parse(`${filters.startDate}T00:00:00`);
+  const end = Date.parse(`${filters.endDate}T23:59:59`);
+
+  return Number.isFinite(start) && Number.isFinite(end) && start <= end;
+}
+
+function normalizeError(error: unknown): FeedbackMessage {
   if (error instanceof ApiClientError) {
-    return error.status === 401 ? "Sesi login berakhir. Silakan login ulang." : error.message;
+    return error.status === 401
+      ? { kind: "error", key: "reports.sessionExpired" }
+      : { kind: "error", key: "api.requestFailed", params: { status: error.status } };
   }
 
   if (error instanceof TypeError) {
-    return "API report belum dapat dihubungi.";
+    return { kind: "error", key: "reports.apiUnavailable" };
   }
 
-  return "Gagal mengambil data report.";
+  return { kind: "error", key: "reports.loadFailed" };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

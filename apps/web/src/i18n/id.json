@@ -229,7 +229,69 @@
     "title": "Notifikasi"
   },
   "reports": {
-    "title": "Laporan"
+    "alerts": {
+      "telemetryMessage": "{metric} {value} {unit} berada di luar rentang normal pada {plot}.",
+      "telemetryTitle": "{metric} perlu perhatian",
+      "weatherMessage": "{condition}; curah hujan {rain}; peluang hujan {chance}.",
+      "weatherTitle": "Peringatan cuaca"
+    },
+    "apiUnavailable": "API laporan belum dapat dihubungi.",
+    "columns": {
+      "alert": "Peringatan",
+      "detail": "Detail",
+      "device": "Perangkat",
+      "metric": "Metrik",
+      "plotArea": "Lahan/Area",
+      "severity": "Tingkat",
+      "source": "Sumber",
+      "subject": "Subjek",
+      "timestamp": "Waktu",
+      "value": "Nilai"
+    },
+    "dataLogs": "Log Data",
+    "datasets": {
+      "alerts": "Peringatan",
+      "telemetry": "Telemetry",
+      "weather": "Cuaca"
+    },
+    "empty": "Tidak ada data pada filter ini.",
+    "exportReady": "Ekspor {format} dibuat untuk {count} record {dataset} ({sampling}).",
+    "filters": {
+      "dataset": "Dataset",
+      "device": "Perangkat",
+      "endDate": "Tanggal Akhir",
+      "interval": "Interval",
+      "startDate": "Tanggal Mulai"
+    },
+    "firstPage": "Halaman pertama",
+    "generatedAt": "Dibuat pada {time}",
+    "invalidRange": "Tanggal mulai tidak boleh lebih baru dari tanggal akhir.",
+    "lastPage": "Halaman terakhir",
+    "limitReached": "Laporan {dataset} dibatasi {count} record. Persempit rentang tanggal untuk mengambil data yang lebih spesifik.",
+    "loadFailed": "Gagal mengambil data laporan.",
+    "loading": "Memuat data laporan...",
+    "popupBlocked": "Popup cetak PDF diblokir browser. Izinkan popup lalu coba lagi.",
+    "preview": "Preview data ekspor tenant, {sampling}.",
+    "printSummary": "{start} sampai {end} - {count} record - {sampling}",
+    "printTitle": "PAMILO laporan {dataset}",
+    "sampling": {
+      "hourly": "Per jam",
+      "minutes": "Per {minutes} menit",
+      "raw": "Semua data"
+    },
+    "sessionExpired": "Sesi login berakhir. Silakan login ulang untuk melihat laporan.",
+    "severity": {
+      "high": "Tinggi",
+      "low": "Rendah",
+      "medium": "Sedang"
+    },
+    "showingRecords": "Menampilkan {start}-{end} dari {total} record",
+    "status": {
+      "attention": "Perlu perhatian",
+      "normal": "Normal"
+    },
+    "title": "Laporan",
+    "updating": "Memperbarui..."
   },
   "roles": {
     "superAdmin": "Super Admin",

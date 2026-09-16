@@ -331,3 +331,42 @@ Keterbatasan verifikasi:
 - Tidak menjalankan browser end-to-end untuk membuka tooltip Chart.js setelah language switch karena tidak ada akun/API telemetry test aktif dalam konteks kerja. Verifikasi dilakukan lewat jalur kode, i18n check, typecheck, build, dan pencarian literal.
 
 Batch berikutnya yang siap dikerjakan bila diminta: Report dan ekspor.
+
+## Batch 07 Status
+
+Status: completed for Report page and available client-side report outputs.
+
+Perubahan Batch 07:
+
+- Melokalisasi `apps/web/src/views/tenant/Report.vue` untuk filter Tanggal Mulai/Start Date, Tanggal Akhir/End Date, Perangkat/Device, Dataset, Interval, Refresh, tabel telemetry/cuaca/peringatan, loading/empty/updating state, validasi rentang tanggal, pagination, dan aria label pagination.
+- Memperluas katalog `apps/web/src/i18n/id.json` dan `apps/web/src/i18n/en.json` dengan namespace `reports.*` untuk header tabel, dataset, sampling interval, status metrik, severity alert, pesan ekspor, print summary, dan error report.
+- Mengganti label metrik hard-coded di laporan dengan registry bersama `apps/web/src/i18n/metrics.ts`; metric key/payload tetap menjadi identitas data dan tidak diterjemahkan.
+- Mengganti formatter lokal `id-ID` di Report dengan formatter bersama untuk tanggal, angka, persen, dan jumlah data. Nilai mentah metrik disimpan di row dan diformat saat render/ekspor agar locale switch tidak perlu refetch.
+- Menggunakan adapter cuaca bersama `apps/web/src/i18n/weather.ts` untuk kondisi cuaca, arah/kecepatan angin, dan deteksi hujan/petir pada alert sintetis. Nama lokasi, ADM4, source backend, perangkat, plot, dan nilai data tetap asli.
+- Melokalisasi output laporan yang benar-benar tersedia: CSV human-readable dan HTML cetak yang dibuka melalui tombol PDF/browser print. Header, judul, ringkasan periode, status, severity, pesan alert, timestamp pembuatan pada HTML cetak, dan nama file CSV memakai bahasa aktif saat diminta.
+- Menambahkan `locale` eksplisit ke query history Report di samping header locale dari `apiClient`. Tidak ditemukan generator backend, background job, cache laporan, spreadsheet XLSX, PDF native, atau ekspor raw mesin dalam repo ini.
+- Locale switch membangun ulang row turunan dari cache respons terakhir tanpa request ulang, sehingga filter, tanggal, perangkat, dataset, interval, page size, current page, dan data yang sedang terbuka tetap bertahan.
+
+Pemeriksaan aktual Batch 07:
+
+| Pemeriksaan | Hasil aktual |
+| --- | --- |
+| `npm run i18n:check` di `apps/web` | Lulus: 342 keys, 241 used keys |
+| `npm run typecheck` di `apps/web` | Lulus |
+| `npm run build` di `apps/web` | Lulus, tetap ada warning baseline chunk JS > 500 kB |
+| Pencarian literal Report utama dengan `rg` | Tidak menemukan string UI lama utama seperti `Start Date`, `Data Logs`, `Memuat data report`, `Popup PDF`, `Preview data export`, atau formatter hard-coded `id-ID` di `Report.vue`; hasil tersisa hanya nama variabel seperti `sampledRows` |
+
+Verifikasi perilaku Batch 07:
+
+- Format yang dipetakan dari kode hanya CSV dan printable HTML/browser print dari tombol PDF. Tidak ada generator PDF native, spreadsheet XLSX, gambar chart, background job, cache laporan, atau endpoint ekspor khusus di repo yang bisa dilokalisasi.
+- CSV tetap memakai koma sebagai delimiter dan semua sel di-quote, sehingga angka/desimal lokal yang mengandung koma aman sebagai satu sel. Ekspor raw mesin tidak ada; karena itu tidak ada schema/header kontraktual mesin yang diubah.
+- Jumlah record, nilai numerik mentah, timestamp asal, device UID, plot/lokasi, ADM4, dan source backend tidak diubah oleh locale. Perubahan bahasa hanya mengganti label, format tampilan, dan kalimat aplikasi.
+- Request Report EN lalu UI diganti ke ID saat data sudah terbuka tidak memicu fetch ulang; row turunan direbuild dari cache dengan bahasa baru. Tidak ada background job asinkron; output ekspor memakai bahasa aktif pada saat tombol CSV/PDF ditekan.
+- Popup print/PDF yang diblokir browser menampilkan pesan error lokal. Empty report di halaman dan HTML cetak memakai bahasa aktif.
+
+Keterbatasan verifikasi:
+
+- Tidak menjalankan browser end-to-end dengan akun nyata atau dataset database aktif, sehingga sampel file CSV/print ID dan EN tidak benar-benar diunduh dari data backend lokal. Verifikasi dilakukan lewat jalur kode, i18n check, typecheck, build, dan pencarian literal.
+- Tidak ada service/generator laporan backend untuk diuji terkait job queue/cache/HTTP cache. Jika fitur itu berada di repositori lain, perubahan yang diperlukan adalah menyimpan `locale` bersama parameter request, menambahkan locale ke cache key, dan melokalisasi template server dengan katalog yang setara.
+
+Batch berikutnya yang siap dikerjakan bila diminta: MQTT dan Perangkat.

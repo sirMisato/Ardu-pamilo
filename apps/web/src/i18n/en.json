@@ -229,7 +229,69 @@
     "title": "Notifications"
   },
   "reports": {
-    "title": "Reports"
+    "alerts": {
+      "telemetryMessage": "{metric} {value} {unit} is outside the normal range in {plot}.",
+      "telemetryTitle": "{metric} needs attention",
+      "weatherMessage": "{condition}; rainfall {rain}; rain chance {chance}.",
+      "weatherTitle": "Weather alert"
+    },
+    "apiUnavailable": "The reports API cannot be reached yet.",
+    "columns": {
+      "alert": "Alert",
+      "detail": "Detail",
+      "device": "Device",
+      "metric": "Metric",
+      "plotArea": "Plot/Area",
+      "severity": "Severity",
+      "source": "Source",
+      "subject": "Subject",
+      "timestamp": "Timestamp",
+      "value": "Value"
+    },
+    "dataLogs": "Data Logs",
+    "datasets": {
+      "alerts": "Alerts",
+      "telemetry": "Telemetry",
+      "weather": "Weather"
+    },
+    "empty": "No data matches these filters.",
+    "exportReady": "{format} export was created for {count} {dataset} records ({sampling}).",
+    "filters": {
+      "dataset": "Dataset",
+      "device": "Device",
+      "endDate": "End Date",
+      "interval": "Interval",
+      "startDate": "Start Date"
+    },
+    "firstPage": "First page",
+    "generatedAt": "Generated at {time}",
+    "invalidRange": "Start date cannot be later than end date.",
+    "lastPage": "Last page",
+    "limitReached": "{dataset} report is capped at {count} records. Narrow the date range to fetch more specific data.",
+    "loadFailed": "Failed to load report data.",
+    "loading": "Loading report data...",
+    "popupBlocked": "The browser blocked the PDF print popup. Allow popups and try again.",
+    "preview": "Tenant export data preview, {sampling}.",
+    "printSummary": "{start} to {end} - {count} records - {sampling}",
+    "printTitle": "PAMILO {dataset} report",
+    "sampling": {
+      "hourly": "Hourly",
+      "minutes": "Every {minutes} minutes",
+      "raw": "All data"
+    },
+    "sessionExpired": "The login session has ended. Please sign in again to view reports.",
+    "severity": {
+      "high": "High",
+      "low": "Low",
+      "medium": "Medium"
+    },
+    "showingRecords": "Showing {start}-{end} of {total} records",
+    "status": {
+      "attention": "Needs attention",
+      "normal": "Normal"
+    },
+    "title": "Reports",
+    "updating": "Updating..."
   },
   "roles": {
     "superAdmin": "Super Admin",
