@@ -170,11 +170,11 @@
         <table class="min-w-[920px] w-full text-left text-sm">
           <thead class="border-b border-slate-200/80 bg-white/50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
-              <th class="px-5 py-4 font-semibold">Zona / Area</th>
-              <th class="px-5 py-4 font-semibold">Luas</th>
-              <th class="px-5 py-4 font-semibold">Crop</th>
-              <th class="px-5 py-4 font-semibold">BMKG ADM4</th>
-              <th class="px-5 py-4 text-right font-semibold">Aksi</th>
+              <th class="px-5 py-4 font-semibold">{{ t("masterData.area.columns.zoneArea") }}</th>
+              <th class="px-5 py-4 font-semibold">{{ t("masterData.area.columns.area") }}</th>
+              <th class="px-5 py-4 font-semibold">{{ t("masterData.area.columns.crop") }}</th>
+              <th class="px-5 py-4 font-semibold">{{ t("masterData.area.columns.bmkgAdm4") }}</th>
+              <th class="px-5 py-4 text-right font-semibold">{{ t("common.actions") }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-200/70">
@@ -183,15 +183,15 @@
                 <p class="font-semibold text-slate-700">{{ plot.name }}</p>
                 <p class="mt-1 text-xs text-slate-500">{{ plot.id }}</p>
               </td>
-              <td class="px-5 py-4 text-slate-600">{{ plot.areaLabel }}</td>
-              <td class="px-5 py-4 text-slate-600">{{ plot.cropName ?? "Belum dipilih" }}</td>
+              <td class="px-5 py-4 text-slate-600">{{ areaDisplayLabel(plot) }}</td>
+              <td class="px-5 py-4 text-slate-600">{{ plot.cropName ?? t("masterData.area.cropUnselected") }}</td>
               <td class="px-5 py-4 font-semibold text-emerald-700">{{ plot.bmkgAdm4Code ?? "-" }}</td>
               <td class="px-5 py-4">
                 <div class="flex justify-end gap-2">
-                  <button class="icon-button" type="button" :aria-label="`Edit ${plot.name}`" @click="openAreaModal(plot)">
+                  <button class="icon-button" type="button" :aria-label="t('masterData.actions.editArea', { name: plot.name })" @click="openAreaModal(plot)">
                     <Pencil class="h-4 w-4" />
                   </button>
-                  <button class="icon-button" type="button" :aria-label="`Hapus ${plot.name}`" @click="removePlot(plot)">
+                  <button class="icon-button" type="button" :aria-label="t('masterData.actions.deleteArea', { name: plot.name })" @click="removePlot(plot)">
                     <Trash2 class="h-4 w-4" />
                   </button>
                 </div>
@@ -201,8 +201,12 @@
         </table>
       </div>
 
+      <div v-if="areaFeedbackMessage" class="border-t border-slate-200/80 px-5 py-3 text-sm" :class="areaFeedbackToneClass">
+        {{ areaFeedbackMessage }}
+      </div>
+
       <div v-if="plots.length === 0" class="border-t border-slate-200/80 p-8 text-center text-sm text-slate-500">
-        Belum ada zona atau area.
+        {{ isLoading ? t("masterData.loading") : t("masterData.area.empty") }}
       </div>
     </section>
 
@@ -328,32 +332,32 @@
     </div>
 
     <div v-if="isAreaModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/20 p-4 backdrop-blur-sm">
-      <form ref="areaFormElement" class="mx-auto flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 p-4 shadow-2xl backdrop-blur-xl md:p-6" @submit.prevent="submitArea">
+      <form class="mx-auto flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 p-4 shadow-2xl backdrop-blur-xl md:p-6" novalidate @submit.prevent="submitArea">
         <div class="flex shrink-0 items-center justify-between gap-4 border-b border-slate-200 pb-5">
           <div>
             <h2 class="text-lg font-semibold tracking-normal text-slate-700">{{ areaModalTitle }}</h2>
-            <p class="mt-1 text-sm text-slate-600">Relasi zona, crop, dan BMKG.</p>
+            <p class="mt-1 text-sm text-slate-600">{{ t("masterData.area.modalSubtitle") }}</p>
           </div>
-          <button class="icon-button" type="button" aria-label="Tutup modal" @click="closeAreaModal">
+          <button class="icon-button" type="button" :aria-label="t('masterData.area.closeModal')" @click="closeAreaModal">
             <X class="h-4 w-4" />
           </button>
         </div>
 
         <div class="grid gap-4 overflow-y-auto py-5 md:grid-cols-2">
           <label class="space-y-2">
-            <span class="text-sm font-semibold text-slate-700">Nama Zona / Area</span>
-            <input v-model.trim="areaForm.name" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" required type="text" />
+            <span class="text-sm font-semibold text-slate-700">{{ t("masterData.area.name") }}</span>
+            <input v-model.trim="areaForm.name" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" type="text" />
           </label>
 
           <label class="space-y-2">
-            <span class="text-sm font-semibold text-slate-700">Luas (ha)</span>
+            <span class="text-sm font-semibold text-slate-700">{{ t("masterData.area.areaHectares") }}</span>
             <input v-model.number="areaForm.areaHectares" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" min="0" step="0.01" type="number" />
           </label>
 
           <label class="space-y-2">
-            <span class="text-sm font-semibold text-slate-700">Crop</span>
+            <span class="text-sm font-semibold text-slate-700">{{ t("masterData.area.crop") }}</span>
             <select v-model="areaForm.cropId" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400">
-              <option value="">Belum dipilih</option>
+              <option value="">{{ t("masterData.area.cropUnselected") }}</option>
               <option v-for="crop in crops" :key="crop.id" :value="crop.id">
                 {{ crop.name }}
               </option>
@@ -361,29 +365,29 @@
           </label>
 
           <label class="space-y-2">
-            <span class="text-sm font-semibold text-slate-700">BMKG ADM4</span>
+            <span class="text-sm font-semibold text-slate-700">{{ t("masterData.area.bmkgAdm4") }}</span>
             <input v-model.trim="areaForm.bmkgAdm4Code" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" placeholder="31.71.03.1001" type="text" />
           </label>
 
           <div class="space-y-2 md:col-span-2">
-            <span class="text-sm font-semibold text-slate-700">Polygon Lokasi</span>
+            <span class="text-sm font-semibold text-slate-700">{{ t("masterData.area.locationPolygon") }}</span>
             <div class="overflow-hidden rounded-xl border border-slate-200">
               <PolygonMapEditor v-model="areaPolygon" @cancel="closeAreaModal" @save="submitAreaFromPolygon" />
             </div>
           </div>
         </div>
 
-        <div v-if="areaFormError" class="mb-4 shrink-0 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-sm text-amber-700">
-          {{ areaFormError }}
+        <div v-if="areaFormErrorMessage" class="mb-4 shrink-0 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-sm text-amber-700">
+          {{ areaFormErrorMessage }}
         </div>
 
         <div class="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
           <button class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-100" type="button" @click="closeAreaModal">
-            Kembali
+            {{ t("common.back") }}
           </button>
           <button class="inline-flex items-center gap-2 rounded-xl bg-emerald-300 px-5 py-2 text-sm font-semibold text-emerald-950 shadow-sm transition hover:bg-emerald-400 disabled:opacity-60" :disabled="isSaving" type="submit">
             <Save class="h-4 w-4" />
-            {{ isSaving ? "Menyimpan" : "Simpan Area" }}
+            {{ isSaving ? t("common.saving") : t("masterData.area.saveArea") }}
           </button>
         </div>
       </form>
@@ -434,8 +438,8 @@ const isAreaModalOpen = ref(false);
 const editingCropId = ref<string | null>(null);
 const cropFormErrorKey = ref<string | null>(null);
 const editingAreaId = ref<string | null>(null);
-const areaFormError = ref<string | null>(null);
-const areaFormElement = ref<HTMLFormElement | null>(null);
+const areaFormErrorKey = ref<string | null>(null);
+const areaFeedback = ref<{ key: string; params?: Record<string, string | number>; tone: "error" | "neutral" | "success" } | null>(null);
 const areaPolygon = ref<unknown>(defaultPolygon());
 
 const cropForm = reactive<{
@@ -487,7 +491,20 @@ const tabs = computed(() => [
 const selectedCrop = computed(() => crops.value.find((crop) => crop.id === selectedCropId.value) ?? crops.value[0] ?? null);
 const cropModalTitle = computed(() => editingCropId.value ? t("masterData.crop.editTitle") : t("masterData.crop.addTitle"));
 const cropSubmitLabel = computed(() => editingCropId.value ? t("masterData.crop.update") : t("masterData.crop.save"));
-const areaModalTitle = computed(() => editingAreaId.value ? "Edit Zona / Area" : "Tambah Zona / Area");
+const areaModalTitle = computed(() => editingAreaId.value ? t("masterData.area.editTitle") : t("masterData.area.addTitle"));
+const areaFormErrorMessage = computed(() => areaFormErrorKey.value ? t(areaFormErrorKey.value) : null);
+const areaFeedbackMessage = computed(() => areaFeedback.value ? t(areaFeedback.value.key, areaFeedback.value.params) : null);
+const areaFeedbackToneClass = computed(() => {
+  if (areaFeedback.value?.tone === "error") {
+    return "text-rose-600";
+  }
+
+  if (areaFeedback.value?.tone === "success") {
+    return "text-emerald-700";
+  }
+
+  return "text-slate-500";
+});
 const thresholdFeedbackMessage = computed(() => t(thresholdFeedback.value.key, thresholdFeedback.value.params));
 const thresholdFeedbackToneClass = computed(() => {
   if (thresholdFeedback.value.tone === "error") {
@@ -668,7 +685,8 @@ function openAreaModal(plot?: ApiPlot): void {
   areaForm.cropId = plot?.cropId ?? "";
   areaForm.bmkgAdm4Code = plot?.bmkgAdm4Code ?? "";
   areaPolygon.value = plot?.polygonGeojson ?? defaultPolygon();
-  areaFormError.value = null;
+  areaFormErrorKey.value = null;
+  areaFeedback.value = null;
   masterDataStore.clearError();
   isAreaModalOpen.value = true;
 }
@@ -676,12 +694,12 @@ function openAreaModal(plot?: ApiPlot): void {
 function closeAreaModal(): void {
   isAreaModalOpen.value = false;
   editingAreaId.value = null;
-  areaFormError.value = null;
+  areaFormErrorKey.value = null;
 }
 
 async function submitArea(): Promise<void> {
-  if (polygonPointCount(areaPolygon.value) < 3) {
-    areaFormError.value = "Tentukan minimal 3 titik polygon pada peta.";
+  areaFormErrorKey.value = validateAreaForm();
+  if (areaFormErrorKey.value) {
     return;
   }
 
@@ -697,6 +715,12 @@ async function submitArea(): Promise<void> {
     : await masterDataStore.createPlot(payload);
 
   if (saved) {
+    areaFeedback.value = {
+      key: editingAreaId.value ? "masterData.area.updated" : "masterData.area.created",
+      params: { name: saved.name },
+      tone: "success"
+    };
+    tenantProfileStore.syncFieldsFromPlots(plots.value);
     closeAreaModal();
   }
 }
@@ -704,19 +728,23 @@ async function submitArea(): Promise<void> {
 async function submitAreaFromPolygon(polygonGeojson: Record<string, unknown>): Promise<void> {
   areaPolygon.value = polygonGeojson;
 
-  if (!areaFormElement.value?.reportValidity()) {
-    return;
-  }
-
   await submitArea();
 }
 
 async function removePlot(plot: ApiPlot): Promise<void> {
-  if (!window.confirm(`Hapus zona ${plot.name}?`)) {
+  if (!window.confirm(t("masterData.area.deleteConfirm", { name: plot.name }))) {
     return;
   }
 
-  await masterDataStore.deletePlot(plot.id);
+  const deleted = await masterDataStore.deletePlot(plot.id);
+  if (deleted) {
+    areaFeedback.value = {
+      key: "masterData.area.deleted",
+      params: { name: plot.name },
+      tone: "success"
+    };
+    tenantProfileStore.syncFieldsFromPlots(plots.value);
+  }
 }
 
 function syncDraftThresholds(): void {
@@ -939,6 +967,34 @@ function validateCropForm(): string | null {
   }
 
   return null;
+}
+
+function validateAreaForm(): string | null {
+  if (!areaForm.name.trim()) {
+    return "masterData.area.validationNameRequired";
+  }
+
+  if (areaForm.areaHectares !== null && (!Number.isFinite(areaForm.areaHectares) || areaForm.areaHectares < 0)) {
+    return "masterData.area.validationAreaInvalid";
+  }
+
+  if (polygonPointCount(areaPolygon.value) < 3) {
+    return "masterData.area.validationPolygonMinPoints";
+  }
+
+  return null;
+}
+
+function areaDisplayLabel(plot: ApiPlot): string {
+  if (plot.areaHectares === null || !Number.isFinite(plot.areaHectares)) {
+    return t("format.nullValue");
+  }
+
+  return t("masterData.area.areaValue", {
+    value: formatNumber(plot.areaHectares, {
+      maximumFractionDigits: 2
+    })
+  });
 }
 
 function defaultPolygon(): Record<string, unknown> {

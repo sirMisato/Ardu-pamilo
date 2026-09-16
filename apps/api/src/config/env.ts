@@ -44,7 +44,7 @@ const envSchema = z.object({
   LOG_LEVEL: z.string().default("info"),
   AI_RECOMMENDATION_API_KEY: optionalTrimmedString,
   AI_RECOMMENDATION_BASE_URL: optionalUrl,
-  AI_RECOMMENDATION_MAX_TOKENS: z.coerce.number().int().positive().max(4000).default(1600),
+  AI_RECOMMENDATION_MAX_TOKENS: z.coerce.number().int().positive().max(4000).default(3200),
   AI_RECOMMENDATION_MODEL: optionalTrimmedString,
   AI_RECOMMENDATION_OPENAI_API_KEY: optionalTrimmedString,
   AI_RECOMMENDATION_PROVIDER: aiProviderSchema.default("sumopod"),

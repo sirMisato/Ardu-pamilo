@@ -9,11 +9,16 @@
           :key="layer.key"
           class="rounded-full px-3 py-2 transition"
           :class="activeMapLayer === layer.key ? 'bg-field-mint text-[#07111f]' : 'hover:bg-white/10 hover:text-white'"
+          :title="layer.title"
           type="button"
           @click.stop="setActiveMapLayer(layer.key)"
         >
           {{ layer.label }}
         </button>
+      </div>
+
+      <div class="absolute bottom-3 left-3 z-[500] max-w-[calc(100%-1.5rem)] rounded-lg border border-white/10 bg-[#07111f]/90 px-3 py-2 text-xs font-medium text-slate-200 shadow-xl shadow-slate-950/25 backdrop-blur">
+        {{ editorInstruction }}
       </div>
     </div>
 
@@ -21,50 +26,60 @@
       <div class="flex flex-wrap gap-2">
         <button
           class="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
+          :title="t('masterData.polygon.cancelTitle')"
           type="button"
           @click="emit('cancel')"
         >
-          Kembali
+          {{ t("common.back") }}
         </button>
         <button
           class="rounded-lg border border-field-mint/30 px-3 py-2 text-xs font-semibold text-field-mint transition hover:bg-field-mint/10 disabled:opacity-50"
           :disabled="points.length === 0"
+          :title="t('masterData.polygon.undoTitle')"
           type="button"
           @click="undoPoint"
         >
-          Undo
+          {{ t("masterData.polygon.undo") }}
         </button>
         <button
           class="rounded-lg border border-rose-300/30 px-3 py-2 text-xs font-semibold text-rose-200 transition hover:bg-rose-300/10 disabled:opacity-50"
           :disabled="points.length === 0"
+          :title="t('masterData.polygon.clearTitle')"
           type="button"
           @click="clearPoints"
         >
-          Clear
+          {{ t("masterData.polygon.clear") }}
         </button>
       </div>
 
       <div class="flex flex-wrap items-center gap-3">
         <span class="rounded-lg border border-white/10 bg-[#07111f] px-3 py-2 text-xs text-slate-300">
-          {{ points.length }} titik
+          {{ t("masterData.polygon.pointCount", { count: formatNumber(points.length, { maximumFractionDigits: 0 }) }) }}
         </span>
         <button
           class="rounded-lg bg-field-green px-4 py-2 text-xs font-semibold text-[#102016] transition hover:bg-field-mint disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="!canSave"
+          :title="t('masterData.polygon.saveTitle')"
           type="button"
           @click="savePolygon"
         >
-          Simpan Polygon
+          {{ t("masterData.polygon.save") }}
         </button>
       </div>
+    </div>
+
+    <div v-if="mapLoadError" class="rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-xs font-semibold text-amber-700">
+      {{ t("masterData.polygon.layerLoadFailed") }}
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import L, { type LatLngExpression, type Map, type Polygon, type TileLayer } from "leaflet";
+import L, { type Control, type LatLngExpression, type Map, type Polygon, type TileLayer } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useI18n } from "../../i18n";
+import { formatNumber } from "../../i18n/formatters";
 
 type MapLayerKey = "street" | "satellite";
 type LatLngTuple = [number, number];
@@ -79,8 +94,10 @@ const emit = defineEmits<{
   "update:modelValue": [value: Record<string, unknown>];
 }>();
 
+const { locale, t } = useI18n();
 const mapElement = ref<HTMLDivElement | null>(null);
 const activeMapLayer = ref<MapLayerKey>("satellite");
+const mapLoadError = ref(false);
 const points = ref<LatLngTuple[]>([]);
 const defaultCenter: LatLngExpression = [-7.5666, 110.8167];
 
@@ -88,12 +105,16 @@ let map: Map | null = null;
 let baseLayers: Record<MapLayerKey, TileLayer> | null = null;
 let polygonLayer: Polygon | null = null;
 let pointLayerGroup: L.LayerGroup | null = null;
+let zoomControl: Control.Zoom | null = null;
 
-const mapLayerOptions: Array<{ key: MapLayerKey; label: string }> = [
-  { key: "satellite", label: "Satelit" },
-  { key: "street", label: "Peta" }
-];
+const mapLayerOptions = computed<Array<{ key: MapLayerKey; label: string; title: string }>>(() => [
+  { key: "satellite", label: t("fieldMap.layerSatellite"), title: t("fieldMap.layerSatelliteTitle") },
+  { key: "street", label: t("fieldMap.layerStreet"), title: t("fieldMap.layerStreetTitle") }
+]);
 const canSave = computed(() => points.value.length >= 3);
+const editorInstruction = computed(() => canSave.value
+  ? t("masterData.polygon.completeInstruction")
+  : t("masterData.polygon.drawInstruction"));
 
 onMounted(async () => {
   await nextTick();
@@ -105,6 +126,7 @@ onBeforeUnmount(() => {
   map = null;
   polygonLayer = null;
   pointLayerGroup = null;
+  zoomControl = null;
 });
 
 watch(() => props.modelValue, (value) => {
@@ -116,6 +138,10 @@ watch(() => props.modelValue, (value) => {
   immediate: true
 });
 
+watch(locale, () => {
+  setupZoomControl();
+});
+
 function initializeMap(): void {
   if (!mapElement.value || map) {
     return;
@@ -124,11 +150,12 @@ function initializeMap(): void {
   map = L.map(mapElement.value, {
     attributionControl: true,
     scrollWheelZoom: true,
-    zoomControl: true
+    zoomControl: false
   }).setView(defaultCenter, 16);
 
   baseLayers = createBaseLayers();
   setActiveMapLayer(activeMapLayer.value);
+  setupZoomControl();
   pointLayerGroup = L.layerGroup().addTo(map);
 
   map.on("click", (event) => {
@@ -142,7 +169,7 @@ function initializeMap(): void {
 }
 
 function createBaseLayers(): Record<MapLayerKey, TileLayer> {
-  return {
+  const layers = {
     satellite: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
       attribution: "Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community",
       maxNativeZoom: 19,
@@ -153,6 +180,36 @@ function createBaseLayers(): Record<MapLayerKey, TileLayer> {
       maxZoom: 19
     })
   };
+
+  for (const layer of Object.values(layers)) {
+    layer.on("tileerror", () => {
+      mapLoadError.value = true;
+    });
+    layer.on("load", () => {
+      mapLoadError.value = false;
+    });
+  }
+
+  return layers;
+}
+
+function setupZoomControl(): void {
+  if (!map) {
+    return;
+  }
+
+  if (zoomControl) {
+    map.removeControl(zoomControl);
+  }
+
+  zoomControl = L.control.zoom({
+    position: "topleft",
+    zoomInText: "+",
+    zoomInTitle: t("masterData.polygon.zoomIn"),
+    zoomOutText: "-",
+    zoomOutTitle: t("masterData.polygon.zoomOut")
+  });
+  zoomControl.addTo(map);
 }
 
 function setActiveMapLayer(layerKey: MapLayerKey): void {

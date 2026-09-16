@@ -1,6 +1,81 @@
 {
   "ai": {
-    "title": "AI Recommendations"
+    "actions": {
+      "generate": "Generate Recommendations"
+    },
+    "empty": {
+      "noRecommendationsInCategory": "No recommendations in this category.",
+      "readyDescription": "Soil, weather, field history, and telemetry data are ready for analysis."
+    },
+    "errors": {
+      "apiUnavailable": "The backend API cannot be reached yet.",
+      "generateFailed": "Failed to generate AI recommendations.",
+      "notConfigured": "AI recommendation is not configured in the backend.",
+      "providerNoResponse": "The AI provider has not responded yet.",
+      "sessionExpired": "The login session has ended. Please sign in again."
+    },
+    "fieldNotes": {
+      "placeholder": "Leaf symptoms, pest or disease pressure, irrigation channel condition, crop stage, harvest target",
+      "title": "Field Notes"
+    },
+    "filters": {
+      "allTenantZones": "All tenant zones",
+      "endDate": "End Date",
+      "rowsOption": "{count} rows",
+      "startDate": "Start Date",
+      "telemetryRows": "Telemetry Rows",
+      "zoneArea": "Zone/Area"
+    },
+    "language": {
+      "en": "English",
+      "id": "Bahasa Indonesia"
+    },
+    "legacy": {
+      "sourceShown": "This older recommendation is shown in its source language: {language}. A stored translation is not available yet.",
+      "variantMissing": "The {language} variant is not available for this recommendation yet. Use the explicit translate action when recommendation history is available."
+    },
+    "level": {
+      "high": "High",
+      "low": "Low",
+      "medium": "Medium"
+    },
+    "result": {
+      "confidenceWithLevel": "Confidence {level}",
+      "devices": "Devices",
+      "generated": "Generated",
+      "metrics": "Metrics",
+      "summaryTitle": "Recommendation Summary",
+      "telemetry": "Telemetry"
+    },
+    "sections": {
+      "dataGaps": "Data Gaps",
+      "fertilization": "Fertilization",
+      "harvestOptimization": "Harvest Optimization",
+      "irrigation": "Irrigation",
+      "pestManagement": "Pest and Disease Management",
+      "riskAlerts": "Risk Alerts"
+    },
+    "status": {
+      "analyzingFieldData": "Analyzing field data.",
+      "processing": "Analyzing"
+    },
+    "title": "AI Recommendations",
+    "validation": {
+      "dateRequired": "Start date and end date are required.",
+      "invalidDateRange": "Start date cannot be later than end date.",
+      "telemetryRowsInvalid": "Telemetry row count is invalid."
+    },
+    "weatherContext": {
+      "bmkgNotConfigured": "BMKG is not configured",
+      "current": "Current",
+      "fallback": "BMKG fallback: {message}",
+      "humidityValue": "Humidity {value}",
+      "rainChance": "Rain Chance",
+      "refresh": "Refresh weather",
+      "temperatureValue": "{value} C",
+      "title": "Weather Context",
+      "usingSampleData": "using sample data."
+    }
   },
   "api": {
     "requestFailed": "API request failed with HTTP {status}."
@@ -252,10 +327,38 @@
   "masterData": {
     "actions": {
       "deleteCrop": "Delete {name}",
+      "deleteArea": "Delete {name}",
+      "editArea": "Edit {name}",
       "editCrop": "Edit {name}"
     },
     "area": {
-      "addArea": "Add Area"
+      "addArea": "Add Area",
+      "addTitle": "Add Zone / Area",
+      "areaHectares": "Area (ha)",
+      "areaValue": "{value} ha",
+      "bmkgAdm4": "BMKG ADM4",
+      "closeModal": "Close zone and area modal",
+      "columns": {
+        "area": "Area",
+        "bmkgAdm4": "BMKG ADM4",
+        "crop": "Crop",
+        "zoneArea": "Zone / Area"
+      },
+      "created": "Zone/area {name} added.",
+      "crop": "Crop",
+      "cropUnselected": "Not selected",
+      "deleted": "Zone/area {name} deleted.",
+      "deleteConfirm": "Delete zone/area {name}?",
+      "editTitle": "Edit Zone / Area",
+      "empty": "No zones or areas yet.",
+      "locationPolygon": "Location Polygon",
+      "modalSubtitle": "Link this zone with a tenant crop and BMKG region code.",
+      "name": "Zone / Area Name",
+      "saveArea": "Save Area",
+      "updated": "Zone/area {name} updated.",
+      "validationAreaInvalid": "Area must be a number of 0 or more.",
+      "validationNameRequired": "Zone/area name is required.",
+      "validationPolygonMinPoints": "Set at least 3 polygon points on the map."
     },
     "crop": {
       "addCrop": "Add Crop",
@@ -295,6 +398,33 @@
     },
     "description": "Tenant crop types, zones and areas, and thresholds from the API.",
     "loading": "Loading data.",
+    "errors": {
+      "apiUnavailable": "The backend API cannot be reached yet. Make sure the local Fastify server is running.",
+      "createAreaFailed": "Failed to add the zone/area.",
+      "createCropFailed": "Failed to add the crop.",
+      "deleteAreaFailed": "Failed to delete the zone/area.",
+      "deleteCropFailed": "Failed to delete the crop.",
+      "loadAreasFailed": "Failed to load zones and areas.",
+      "loadCropsFailed": "Failed to load crop master data.",
+      "sessionExpired": "The login session has ended. Please sign in again.",
+      "updateAreaFailed": "Failed to update the zone/area.",
+      "updateCropFailed": "Failed to update the crop."
+    },
+    "polygon": {
+      "cancelTitle": "Go back without saving the polygon",
+      "clear": "Clear",
+      "clearTitle": "Clear all polygon points",
+      "completeInstruction": "The polygon is ready to save. Click the map to add another point if needed.",
+      "drawInstruction": "Click the map to add points. At least 3 points are required.",
+      "layerLoadFailed": "Failed to load the map layer. Try switching layers or check the connection.",
+      "pointCount": "{count} points",
+      "save": "Save Polygon",
+      "saveTitle": "Save the location polygon",
+      "undo": "Undo",
+      "undoTitle": "Remove the last point",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out"
+    },
     "status": {
       "active": "Active",
       "archived": "Archived",

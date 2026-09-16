@@ -1,5 +1,6 @@
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { defineStore } from "pinia";
+import { getCurrentLanguage, t, type LocaleCode } from "../i18n";
 import { ApiClientError, apiPost } from "../services/apiClient";
 
 export type RecommendationLevel = "high" | "low" | "medium";
@@ -34,6 +35,7 @@ export interface AiRecommendation {
 export interface AiRecommendationRequest {
   end?: string;
   farmerNotes?: string;
+  locale?: LocaleCode;
   plotId?: string | null;
   start?: string;
   telemetryLimit?: number;
@@ -60,27 +62,48 @@ export interface AiRecommendationResponse {
     plotCount: number;
     selectedPlotId: string | null;
   };
+  contentLocales?: LocaleCode[];
+  contentVersion?: string;
   generatedAt: string;
+  generatedLocale?: LocaleCode;
   model: string;
   provider: "custom" | "openai" | "sumopod" | "tencent";
   recommendation: AiRecommendation;
+  recommendations?: Partial<Record<LocaleCode, AiRecommendation>>;
 }
 
 export const useAiRecommendationStore = defineStore("aiRecommendation", () => {
-  const errorMessage = ref<string | null>(null);
+  const errorState = ref<{ key: string; params?: Record<string, string | number> } | { message: string } | null>(null);
   const isGenerating = ref(false);
   const lastResponse = ref<AiRecommendationResponse | null>(null);
+  const errorMessage = computed(() => {
+    if (!errorState.value) {
+      return null;
+    }
+
+    return "key" in errorState.value ? t(errorState.value.key, errorState.value.params) : errorState.value.message;
+  });
+  const localizedResponse = computed(() => {
+    if (!lastResponse.value) {
+      return null;
+    }
+
+    return selectLocalizedResponse(lastResponse.value, getCurrentLanguage());
+  });
 
   async function generateRecommendation(input: AiRecommendationRequest): Promise<AiRecommendationResponse | null> {
     isGenerating.value = true;
-    errorMessage.value = null;
+    errorState.value = null;
 
     try {
-      const response = await apiPost<AiRecommendationResponse>("/api/v1/ai/recommendations", input);
+      const response = await apiPost<AiRecommendationResponse>("/api/v1/ai/recommendations", {
+        ...input,
+        locale: input.locale ?? getCurrentLanguage()
+      });
       lastResponse.value = response;
       return response;
     } catch (error) {
-      errorMessage.value = normalizeApiError(error);
+      errorState.value = normalizeApiError(error);
       return null;
     } finally {
       isGenerating.value = false;
@@ -88,7 +111,7 @@ export const useAiRecommendationStore = defineStore("aiRecommendation", () => {
   }
 
   function clearRecommendation(): void {
-    errorMessage.value = null;
+    errorState.value = null;
     lastResponse.value = null;
   }
 
@@ -97,30 +120,44 @@ export const useAiRecommendationStore = defineStore("aiRecommendation", () => {
     errorMessage,
     generateRecommendation,
     isGenerating,
-    lastResponse
+    lastResponse,
+    localizedResponse
   };
 });
 
-function normalizeApiError(error: unknown): string {
+function selectLocalizedResponse(response: AiRecommendationResponse, locale: LocaleCode): AiRecommendationResponse {
+  const localizedRecommendation = response.recommendations?.[locale];
+
+  if (localizedRecommendation) {
+    return {
+      ...response,
+      recommendation: localizedRecommendation
+    };
+  }
+
+  return response;
+}
+
+function normalizeApiError(error: unknown): { key: string; params?: Record<string, string | number> } | { message: string } {
   if (error instanceof ApiClientError) {
     if (error.status === 401) {
-      return "Sesi login berakhir. Silakan login ulang.";
+      return { key: "ai.errors.sessionExpired" };
     }
 
     if (error.status === 503) {
-      return "AI recommendation belum dikonfigurasi di backend.";
+      return { key: "ai.errors.notConfigured" };
     }
 
     if (error.status === 502) {
-      return error.message || "Provider AI belum merespons.";
+      return error.message ? { message: error.message } : { key: "ai.errors.providerNoResponse" };
     }
 
-    return error.message;
+    return { message: error.message };
   }
 
   if (error instanceof TypeError) {
-    return "API backend belum dapat dihubungi.";
+    return { key: "ai.errors.apiUnavailable" };
   }
 
-  return "Gagal membuat rekomendasi AI.";
+  return { key: "ai.errors.generateFailed" };
 }

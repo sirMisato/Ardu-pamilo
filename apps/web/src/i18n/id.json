@@ -1,6 +1,81 @@
 {
   "ai": {
-    "title": "Rekomendasi AI"
+    "actions": {
+      "generate": "Buat Rekomendasi"
+    },
+    "empty": {
+      "noRecommendationsInCategory": "Tidak ada rekomendasi pada kategori ini.",
+      "readyDescription": "Data tanah, cuaca, histori lahan, dan telemetry siap dianalisis."
+    },
+    "errors": {
+      "apiUnavailable": "API backend belum dapat dihubungi.",
+      "generateFailed": "Gagal membuat rekomendasi AI.",
+      "notConfigured": "AI recommendation belum dikonfigurasi di backend.",
+      "providerNoResponse": "Provider AI belum merespons.",
+      "sessionExpired": "Sesi login berakhir. Silakan login ulang."
+    },
+    "fieldNotes": {
+      "placeholder": "Gejala daun, serangan OPT, kondisi saluran irigasi, fase tanaman, target panen",
+      "title": "Catatan Lapang"
+    },
+    "filters": {
+      "allTenantZones": "Semua zona tenant",
+      "endDate": "Tanggal Akhir",
+      "rowsOption": "{count} baris",
+      "startDate": "Tanggal Mulai",
+      "telemetryRows": "Baris Telemetri",
+      "zoneArea": "Zona/Area"
+    },
+    "language": {
+      "en": "English",
+      "id": "Bahasa Indonesia"
+    },
+    "legacy": {
+      "sourceShown": "Rekomendasi lama ditampilkan dalam bahasa sumber: {language}. Terjemahan tersimpan belum tersedia.",
+      "variantMissing": "Varian {language} belum tersedia untuk rekomendasi ini. Gunakan aksi terjemahan eksplisit saat fitur riwayat sudah tersedia."
+    },
+    "level": {
+      "high": "Tinggi",
+      "low": "Rendah",
+      "medium": "Sedang"
+    },
+    "result": {
+      "confidenceWithLevel": "Keyakinan {level}",
+      "devices": "Perangkat",
+      "generated": "Dibuat",
+      "metrics": "Metrik",
+      "summaryTitle": "Ringkasan Rekomendasi",
+      "telemetry": "Telemetri"
+    },
+    "sections": {
+      "dataGaps": "Kesenjangan Data",
+      "fertilization": "Pemupukan",
+      "harvestOptimization": "Optimalisasi Panen",
+      "irrigation": "Irigasi",
+      "pestManagement": "Penanganan OPT",
+      "riskAlerts": "Peringatan Risiko"
+    },
+    "status": {
+      "analyzingFieldData": "Menganalisis data lahan.",
+      "processing": "Menganalisis"
+    },
+    "title": "Rekomendasi AI",
+    "validation": {
+      "dateRequired": "Tanggal mulai dan tanggal akhir wajib diisi.",
+      "invalidDateRange": "Tanggal mulai tidak boleh lebih baru dari tanggal akhir.",
+      "telemetryRowsInvalid": "Jumlah baris telemetri tidak valid."
+    },
+    "weatherContext": {
+      "bmkgNotConfigured": "BMKG belum diatur",
+      "current": "Saat Ini",
+      "fallback": "BMKG fallback: {message}",
+      "humidityValue": "Kelembapan {value}",
+      "rainChance": "Peluang Hujan",
+      "refresh": "Refresh cuaca",
+      "temperatureValue": "{value} C",
+      "title": "Konteks Cuaca",
+      "usingSampleData": "menggunakan data contoh."
+    }
   },
   "api": {
     "requestFailed": "Permintaan API gagal dengan status HTTP {status}."
@@ -252,10 +327,38 @@
   "masterData": {
     "actions": {
       "deleteCrop": "Hapus {name}",
+      "deleteArea": "Hapus {name}",
+      "editArea": "Edit {name}",
       "editCrop": "Edit {name}"
     },
     "area": {
-      "addArea": "Tambah Area"
+      "addArea": "Tambah Area",
+      "addTitle": "Tambah Zona / Area",
+      "areaHectares": "Luas (ha)",
+      "areaValue": "{value} ha",
+      "bmkgAdm4": "BMKG ADM4",
+      "closeModal": "Tutup modal zona dan area",
+      "columns": {
+        "area": "Luas",
+        "bmkgAdm4": "BMKG ADM4",
+        "crop": "Tanaman",
+        "zoneArea": "Zona / Area"
+      },
+      "created": "Zona/area {name} ditambahkan.",
+      "crop": "Tanaman",
+      "cropUnselected": "Belum dipilih",
+      "deleted": "Zona/area {name} dihapus.",
+      "deleteConfirm": "Hapus zona/area {name}?",
+      "editTitle": "Edit Zona / Area",
+      "empty": "Belum ada zona atau area.",
+      "locationPolygon": "Poligon Lokasi",
+      "modalSubtitle": "Hubungkan zona dengan tanaman tenant dan kode wilayah BMKG.",
+      "name": "Nama Zona / Area",
+      "saveArea": "Simpan Area",
+      "updated": "Zona/area {name} diperbarui.",
+      "validationAreaInvalid": "Luas area harus berupa angka 0 atau lebih.",
+      "validationNameRequired": "Nama zona/area wajib diisi.",
+      "validationPolygonMinPoints": "Tentukan minimal 3 titik poligon pada peta."
     },
     "crop": {
       "addCrop": "Tambah Tanaman",
@@ -295,6 +398,33 @@
     },
     "description": "Jenis tanaman, zona area, dan ambang batas tenant dari API.",
     "loading": "Memuat data.",
+    "errors": {
+      "apiUnavailable": "API backend belum dapat dihubungi. Pastikan Fastify lokal sedang berjalan.",
+      "createAreaFailed": "Gagal menambahkan zona/area.",
+      "createCropFailed": "Gagal menambahkan tanaman.",
+      "deleteAreaFailed": "Gagal menghapus zona/area.",
+      "deleteCropFailed": "Gagal menghapus tanaman.",
+      "loadAreasFailed": "Gagal mengambil zona dan area.",
+      "loadCropsFailed": "Gagal mengambil master tanaman.",
+      "sessionExpired": "Sesi login berakhir. Silakan login ulang.",
+      "updateAreaFailed": "Gagal memperbarui zona/area.",
+      "updateCropFailed": "Gagal memperbarui tanaman."
+    },
+    "polygon": {
+      "cancelTitle": "Kembali tanpa menyimpan poligon",
+      "clear": "Hapus",
+      "clearTitle": "Hapus semua titik poligon",
+      "completeInstruction": "Poligon siap disimpan. Klik peta untuk menambah titik lain bila diperlukan.",
+      "drawInstruction": "Klik peta untuk menambahkan titik. Minimal 3 titik diperlukan.",
+      "layerLoadFailed": "Gagal memuat layer peta. Coba ganti layer atau periksa koneksi.",
+      "pointCount": "{count} titik",
+      "save": "Simpan Poligon",
+      "saveTitle": "Simpan poligon lokasi",
+      "undo": "Urungkan",
+      "undoTitle": "Hapus titik terakhir",
+      "zoomIn": "Perbesar peta",
+      "zoomOut": "Perkecil peta"
+    },
     "status": {
       "active": "Aktif",
       "archived": "Diarsipkan",

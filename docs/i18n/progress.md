@@ -494,3 +494,80 @@ Keterbatasan verifikasi:
 - Pesan backend Crop/Plot API lengkap tetap menjadi Batch 13; Batch 10 melokalisasi validasi dan feedback client yang tersedia.
 
 Batch berikutnya yang siap dikerjakan bila diminta: Master Data Zona & Area.
+
+## Batch 11 Status
+
+Status: completed for Master Data Zona & Area and the available location polygon editor.
+
+Perubahan Batch 11:
+
+- Melokalisasi tab Zona & Area di `apps/web/src/views/tenant/MasterData.vue`: header tabel, label tanaman tidak dipilih, empty/loading state, aria label edit/hapus, konfirmasi hapus, feedback tambah/edit/hapus, dan format luas hektare memakai locale aktif.
+- Melokalisasi modal Tambah/Edit Zona / Area: Nama Zona / Area, Luas (ha), Tanaman/Crop, BMKG ADM4, Poligon Lokasi/Location Polygon, Kembali/Back, Simpan Area/Save Area, teks bantuan relasi zona-tanaman-BMKG, validasi nama/luas/poligon, dan tombol tutup.
+- Melokalisasi `apps/web/src/components/maps/PolygonMapEditor.vue`: Peta/Map, Satelit/Satellite, tooltip layer, tooltip zoom Leaflet, petunjuk menggambar/menyelesaikan poligon, Kembali/Back, Urungkan/Undo, Hapus/Clear, jumlah titik, Simpan Poligon/Save Polygon, dan error gagal memuat layer peta.
+- Mengubah kontrol zoom Leaflet menjadi `L.control.zoom()` dengan title dari katalog dan memperbaruinya saat locale berubah tanpa membuat map instance kedua. Atribusi OpenStreetMap/Esri dan nama tempat pada tiles tetap dipertahankan.
+- Memperbarui `apps/web/src/stores/masterDataStore.ts` agar fallback error master data memakai translation key reaktif, sehingga pesan client ikut berubah saat locale diganti.
+- Menjaga payload area tetap canonical: `name`, `areaHectares` number/null, `cropId`, `bmkgAdm4Code`, dan `polygonGeojson`. Nama area/tanaman milik user, ID, ADM4, koordinat, urutan vertex, dan GeoJSON tidak diterjemahkan.
+
+Pemeriksaan aktual Batch 11:
+
+| Pemeriksaan | Hasil aktual |
+| --- | --- |
+| `npm run i18n:check` di `apps/web` | Lulus: 573 keys, 405 used keys |
+| `npm run typecheck` di `apps/web` | Lulus |
+| `npm run build` di `apps/web` | Lulus, tetap ada warning baseline chunk JS > 500 kB |
+| Pencarian literal Zona/Area dan Polygon utama dengan `rg` | Tidak menemukan literal lama utama sebagai teks user-facing di `MasterData.vue`, `PolygonMapEditor.vue`, atau `masterDataStore.ts`; hasil tersisa adalah nama tipe/variabel seperti `ApiCrop`/`CropPayload` |
+
+Verifikasi perilaku Batch 11:
+
+- Locale switch memperbarui label Zona & Area, modal, validasi, feedback, layer button, dan zoom tooltip dari computed/template tanpa fetch ulang dan tanpa mengubah `activeTab`, draft form, modal terbuka, crop terpilih, BMKG ADM4, luas, atau draft polygon.
+- `PolygonMapEditor` hanya mengganti zoom control Leaflet pada perubahan locale; map instance, base layer aktif, titik polygon, center, dan zoom tidak dibuat ulang. `renderPolygon()` tidak dipanggil oleh watcher locale.
+- Submit area dari tombol form atau tombol Simpan Poligon menjalankan validasi yang sama dan mengirim polygon GeoJSON yang sama dari draft saat ini. Nilai luas tampilan diformat dari `areaHectares`, tetapi payload tetap number/null.
+- Tidak ditemukan Leaflet Draw atau plugin editor geometri pihak ketiga di repo. Fitur edit/hapus poligon yang tersedia adalah kontrol aplikasi `Undo` dan `Clear`; keduanya dilokalisasi. Tidak ada aturan geometri/agronomi baru yang ditambahkan.
+
+Keterbatasan verifikasi:
+
+- Tidak menjalankan browser end-to-end dengan akun/database fixture aktif, sehingga create/update/delete plot tidak ditembakkan ke backend lokal. Verifikasi dilakukan lewat jalur kode, i18n check, typecheck, build, diff, dan pemeriksaan payload transform.
+- Pesan backend Plot/Crop API seperti `Crop not found`, `Empty update`, dan konflik perangkat masih menjadi Batch 13. Batch 11 melokalisasi fallback dan validasi client yang tersedia.
+
+Batch berikutnya yang siap dikerjakan bila diminta: Pengguna Tenant atau Pengaturan, sesuai urutan batch aktif berikutnya yang dikirim.
+
+## Batch 12 Status
+
+Status: completed for AI Recommendations UI and new bilingual AI recommendation content contract.
+
+Perubahan Batch 12:
+
+- Melokalisasi `apps/web/src/views/tenant/AiRecommendation.vue` untuk filter Zona/Area, Tanggal Mulai/Start Date, Tanggal Akhir/End Date, jumlah baris telemetri, tombol Buat Rekomendasi/Generate Recommendations, status pemrosesan, validasi tanggal/baris telemetry, error state, empty state, dan formatter waktu/angka.
+- Melokalisasi Konteks Cuaca/Weather Context, Saat Ini/Current, peluang hujan, kelembapan, refresh weather, Catatan Lapang/Field Notes, placeholder catatan, Ringkasan Rekomendasi/Recommendation Summary, Peringatan Risiko/Risk Alerts, Pemupukan/Fertilization, Penanganan OPT/Pest and Disease Management, Irigasi/Irrigation, Optimalisasi Panen/Harvest Optimization, Kesenjangan Data/Data Gaps, serta label Rendah/Sedang/Tinggi dan Low/Medium/High.
+- Menggunakan adapter cuaca bersama `apps/web/src/i18n/weather.ts` untuk memilih `condition` atau `conditionEn` tanpa menerjemahkan ulang teks BMKG, dan memakai formatter bersama untuk persen, angka, suhu, serta waktu dibuat.
+- Memperbarui `apps/web/src/stores/aiRecommendationStore.ts` agar request Generate mengirim `locale` eksplisit, error fallback memakai katalog reaktif, dan `localizedResponse` memilih varian `recommendations.id` atau `recommendations.en` dari respons yang sudah tersimpan saat dropdown berubah. Pergantian bahasa tidak memanggil AI lagi.
+- Memperbarui `apps/api/src/routes/aiRecommendationRoutes.ts` agar satu panggilan provider menghasilkan satu analisis dengan dua varian terstruktur `recommendations.id` dan `recommendations.en`. Field lama `recommendation` tetap dikembalikan berisi varian sesuai locale request untuk kompatibilitas klien lama.
+- Menambahkan metadata respons: `contentLocales`, `contentVersion`, dan `generatedLocale`. Parser backend memvalidasi kesetaraan struktur dasar: confidence sama, jumlah data gaps sama, jumlah risk alerts sama, severity sama, jumlah item rekomendasi sama, priority/confidence/action count sama.
+- Melokalisasi pesan API AI untuk provider belum dikonfigurasi, plot tidak ditemukan, timeout provider, dan provider gagal. `error` code tetap stabil.
+- Menaikkan default `AI_RECOMMENDATION_MAX_TOKENS` dari 1600 ke 3200 agar output bilingual JSON tidak mudah terpotong; tetap bisa dioverride env dan tetap dibatasi maksimum existing 4000.
+
+Pemeriksaan aktual Batch 12:
+
+| Pemeriksaan | Hasil aktual |
+| --- | --- |
+| `npm run i18n:check` di `apps/web` | Lulus: 622 keys, 445 used keys |
+| `npm run typecheck` di `apps/web` | Lulus |
+| `npm run build` di `apps/web` | Lulus, tetap ada warning baseline chunk JS > 500 kB |
+| `npm run typecheck` di `apps/api` | Lulus |
+| `npm run build` di `apps/api` | Lulus |
+| Pencarian literal AI utama dengan `rg` | Tidak menemukan literal UI lama utama di `AiRecommendation.vue`/`aiRecommendationStore.ts`; hasil `rows` hanya bagian key `rowsOption` |
+
+Verifikasi perilaku Batch 12:
+
+- Locale switch memperbarui label AI dari computed/template dan memilih varian rekomendasi tersimpan dari `lastResponse`; tidak mengubah `filters.plotId`, tanggal mulai/akhir, `telemetryLimit`, `farmerNotes`, weather config aktif, auth state, atau memanggil endpoint AI.
+- Generate mengirim payload canonical yang sama untuk data agronomi, ditambah `locale` aditif. Nama model/provider, nama lahan, crop/varietas/nama ilmiah, ADM4, metric key, catatan user, ID, timestamp, unit, dan angka sumber tetap dipertahankan.
+- Backend meminta output bilingual dalam satu panggilan provider dan menolak respons tanpa varian English atau respons bilingual yang struktur/enum pentingnya berbeda. Tidak ada dua analisis agronomi independen.
+- Respons lama single-locale yang mungkin masih berada di memory client tetap dapat ditampilkan dengan penanda bahasa sumber/varian belum tersedia, bukan disamarkan sebagai terjemahan lengkap.
+
+Keterbatasan verifikasi dan riwayat:
+
+- Repo ini tidak memiliki tabel, endpoint, cache, atau UI riwayat rekomendasi AI. Karena itu inventaris/backfill riwayat lama dan aksi `Terjemahkan rekomendasi/Translate recommendation` untuk arsip tersimpan tidak bisa dijalankan di repo ini dan dicatat not_applicable/blocked sampai storage riwayat ada.
+- Tidak menjalankan panggilan AI nyata atau penerjemahan massal berbayar. Verifikasi provider dilakukan melalui schema/prompt/parser/typecheck/build, bukan request eksternal.
+- Tidak ada test runner unit di manifest. Fixture mocked provider untuk bilingual valid, ID-only, EN-only, angka berbeda, dan timeout belum diotomasi sebagai test; validasi parser dan kontrak dicek lewat typecheck/build dan inspeksi jalur kode.
+
+Batch berikutnya yang siap dikerjakan bila diminta: Pengguna Tenant, Pengaturan, Super Admin, atau Backend API messages sesuai instruksi batch aktif berikutnya.

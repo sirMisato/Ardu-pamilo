@@ -3,11 +3,13 @@ import { z } from "zod";
 import { env } from "../config/env.js";
 import { db } from "../db/client.js";
 import type { JsonValue } from "../db/schema.js";
+import { defaultLocale, type LocaleCode } from "../i18n/locale.js";
 import { requireTenantContext, verifyTenant } from "../middleware/verifyTenant.js";
 
 const recommendationRequestSchema = z.object({
   end: z.string().datetime().optional(),
   farmerNotes: z.string().trim().max(3000).optional(),
+  locale: z.enum(["id", "en"]).optional(),
   plotId: z.string().trim().max(36).optional().nullable(),
   start: z.string().datetime().optional(),
   telemetryLimit: z.coerce.number().int().min(10).max(500).default(180),
@@ -54,6 +56,8 @@ interface AiRecommendation {
   riskAlerts: RiskAlert[];
   yieldOptimization: RecommendationItem[];
 }
+
+type LocalizedAiRecommendations = Record<LocaleCode, AiRecommendation>;
 
 interface PlotContextRow {
   area_hectares: number | string | null;
@@ -176,7 +180,7 @@ export const aiRecommendationRoutes: FastifyPluginAsync = async (app) => {
     if (!env.aiRecommendation.apiKey) {
       return reply.code(503).send({
         error: "AI recommendation is not configured",
-        message: "Set AI_RECOMMENDATION_API_KEY pada backend untuk mengaktifkan rekomendasi AI."
+        message: aiMessage(request.locale, "notConfigured")
       });
     }
 
@@ -190,6 +194,7 @@ export const aiRecommendationRoutes: FastifyPluginAsync = async (app) => {
 
     const tenant = requireTenantContext(request);
     const requestBody = parsed.data;
+    const requestedLocale = requestBody.locale ?? request.locale;
     const { endDate, startDate } = normalizeAnalysisWindow(requestBody);
     const [plots, devices, telemetryRows] = await Promise.all([
       selectPlotsForAiContext(tenant.tenantId, requestBody.plotId),
@@ -200,7 +205,7 @@ export const aiRecommendationRoutes: FastifyPluginAsync = async (app) => {
     if (requestBody.plotId && plots.length === 0) {
       return reply.code(404).send({
         error: "Plot not found",
-        message: "Zona/area tidak tersedia untuk tenant ini."
+        message: aiMessage(request.locale, "plotNotFound")
       });
     }
 
@@ -213,18 +218,20 @@ export const aiRecommendationRoutes: FastifyPluginAsync = async (app) => {
       telemetryRows,
       tenantId: tenant.tenantId
     });
-    let recommendation: AiRecommendation;
+    let recommendations: LocalizedAiRecommendations;
     try {
-      recommendation = await requestAiRecommendation(context);
+      recommendations = await requestAiRecommendations(context);
     } catch (error) {
       request.log.error({ err: error }, "AI recommendation request failed");
       return reply.code(502).send({
         error: "AI recommendation failed",
         message: error instanceof Error && error.name === "AbortError"
-          ? "Provider AI melewati batas waktu respons."
-          : "Provider AI belum dapat menghasilkan rekomendasi. Coba lagi setelah beberapa saat."
+          ? aiMessage(request.locale, "timeout")
+          : aiMessage(request.locale, "providerFailed")
       });
     }
+
+    const recommendation = recommendations[requestedLocale] ?? recommendations[defaultLocale];
 
     return {
       analysisWindow: {
@@ -239,9 +246,13 @@ export const aiRecommendationRoutes: FastifyPluginAsync = async (app) => {
         selectedPlotId: requestBody.plotId ?? null
       },
       generatedAt: new Date().toISOString(),
+      contentLocales: ["id", "en"],
+      contentVersion: "ai-recommendation-bilingual-v1",
+      generatedLocale: requestedLocale,
       model: env.aiRecommendation.model,
       provider: env.aiRecommendation.provider,
-      recommendation
+      recommendation,
+      recommendations
     };
   });
 };
@@ -581,7 +592,7 @@ function readMetricUnitCandidate(
   return undefined;
 }
 
-async function requestAiRecommendation(context: ReturnType<typeof buildAiContext>): Promise<AiRecommendation> {
+async function requestAiRecommendations(context: ReturnType<typeof buildAiContext>): Promise<LocalizedAiRecommendations> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), env.aiRecommendation.timeoutMs);
   const messages = buildRecommendationMessages(context);
@@ -608,7 +619,7 @@ async function requestAiRecommendation(context: ReturnType<typeof buildAiContext
       throw new Error("AI provider did not return message content.");
     }
 
-    return normalizeRecommendation(parseRecommendationJson(content));
+    return normalizeLocalizedRecommendations(parseRecommendationJson(content));
   } finally {
     clearTimeout(timeoutId);
   }
@@ -620,11 +631,14 @@ function buildRecommendationMessages(context: ReturnType<typeof buildAiContext>)
       content: [
         "Anda adalah agronom AI untuk PAMILO Smart Farming.",
         "Analisis data tanah, cuaca, histori lahan, crop, perangkat, dan telemetry yang diberikan.",
-        "Jawab dalam Bahasa Indonesia, ringkas, praktis, dan berbasis data.",
+        "Buat satu analisis agronomi yang sama, lalu tuliskan hasilnya dalam dua bahasa: Bahasa Indonesia dan English.",
+        "Jangan menjalankan dua analisis berbeda. Versi id dan en harus setara: angka, dosis, unit, target, rentang, waktu, prioritas, confidence, severity, jumlah item, dan kehati-hatian harus sama.",
+        "Bahasa Indonesia harus mudah dipahami petani. English harus natural untuk agronomy.",
+        "Pertahankan nama lahan, tanaman, varietas, nama ilmiah, ID, ADM4, metric key, unit, timestamp, dan catatan pengguna apa adanya.",
         "Jangan mengarang angka dosis spesifik jika data tidak cukup; beri rentang tindakan, prioritas, waktu, dan data yang perlu dilengkapi.",
         "Untuk OPT, berikan prinsip pengamatan dan pengendalian terpadu; penggunaan pestisida harus mengikuti label produk dan rekomendasi petugas/POPT setempat.",
         "Batasi maksimal 3 rekomendasi per kategori, 5 data gaps, 5 risk alerts, dan 3 action items per rekomendasi.",
-        "Kembalikan JSON valid saja sesuai schema tanpa markdown."
+        "Kembalikan JSON valid saja sesuai schema tanpa markdown. Gunakan key JSON dan enum tetap dalam English."
       ].join(" "),
       role: "system"
     },
@@ -632,52 +646,341 @@ function buildRecommendationMessages(context: ReturnType<typeof buildAiContext>)
       content: JSON.stringify({
         context,
         outputSchema: {
-          confidence: "low|medium|high",
-          dataGaps: ["string"],
-          executiveSummary: "string",
-          fertilizer: [{
-            actions: ["string"],
+          recommendations: {
+            id: {
+              confidence: "low|medium|high",
+              dataGaps: ["string"],
+              executiveSummary: "string",
+              fertilizer: [{
+                actions: ["string"],
+                confidence: "low|medium|high",
+                priority: "low|medium|high",
+                rationale: "string",
+                timing: "string",
+                title: "string"
+              }],
+              irrigation: [{
+                actions: ["string"],
+                confidence: "low|medium|high",
+                priority: "low|medium|high",
+                rationale: "string",
+                timing: "string",
+                title: "string"
+              }],
+              pestManagement: [{
+                actions: ["string"],
+                confidence: "low|medium|high",
+                priority: "low|medium|high",
+                rationale: "string",
+                timing: "string",
+                title: "string"
+              }],
+              riskAlerts: [{
+                action: "string",
+                rationale: "string",
+                severity: "low|medium|high",
+                title: "string"
+              }],
+              yieldOptimization: [{
+                actions: ["string"],
+                confidence: "low|medium|high",
+                priority: "low|medium|high",
+                rationale: "string",
+                timing: "string",
+                title: "string"
+              }]
+            },
+            en: {
+              confidence: "low|medium|high",
+              dataGaps: ["string"],
+              executiveSummary: "string",
+              fertilizer: [{
+                actions: ["string"],
+                confidence: "low|medium|high",
+                priority: "low|medium|high",
+                rationale: "string",
+                timing: "string",
+                title: "string"
+              }],
+              irrigation: [{
+                actions: ["string"],
+                confidence: "low|medium|high",
+                priority: "low|medium|high",
+                rationale: "string",
+                timing: "string",
+                title: "string"
+              }],
+              pestManagement: [{
+                actions: ["string"],
+                confidence: "low|medium|high",
+                priority: "low|medium|high",
+                rationale: "string",
+                timing: "string",
+                title: "string"
+              }],
+              riskAlerts: [{
+                action: "string",
+                rationale: "string",
+                severity: "low|medium|high",
+                title: "string"
+              }],
+              yieldOptimization: [{
+                actions: ["string"],
+                confidence: "low|medium|high",
+                priority: "low|medium|high",
+                rationale: "string",
+                timing: "string",
+                title: "string"
+              }]
+            }
+          },
+          equivalenceRules: {
+            confidence: "id and en must use the same enum",
+            dataGaps: "same item count and same facts",
+            recommendationItems: "same item count, priorities, confidence, timings, units, quantities, and action meaning",
+            riskAlerts: "same item count, severity, mitigation, and uncertainty"
+          },
+          legacyFallbackAcceptedButNotPreferred: {
             confidence: "low|medium|high",
-            priority: "low|medium|high",
-            rationale: "string",
-            timing: "string",
-            title: "string"
-          }],
-          irrigation: [{
-            actions: ["string"],
-            confidence: "low|medium|high",
-            priority: "low|medium|high",
-            rationale: "string",
-            timing: "string",
-            title: "string"
-          }],
-          pestManagement: [{
-            actions: ["string"],
-            confidence: "low|medium|high",
-            priority: "low|medium|high",
-            rationale: "string",
-            timing: "string",
-            title: "string"
-          }],
-          riskAlerts: [{
-            action: "string",
-            rationale: "string",
-            severity: "low|medium|high",
-            title: "string"
-          }],
-          yieldOptimization: [{
-            actions: ["string"],
-            confidence: "low|medium|high",
-            priority: "low|medium|high",
-            rationale: "string",
-            timing: "string",
-            title: "string"
-          }]
+            dataGaps: ["string"],
+            executiveSummary: "string",
+            fertilizer: [{
+              actions: ["string"],
+              confidence: "low|medium|high",
+              priority: "low|medium|high",
+              rationale: "string",
+              timing: "string",
+              title: "string"
+            }],
+            irrigation: [{
+              actions: ["string"],
+              confidence: "low|medium|high",
+              priority: "low|medium|high",
+              rationale: "string",
+              timing: "string",
+              title: "string"
+            }],
+            pestManagement: [{
+              actions: ["string"],
+              confidence: "low|medium|high",
+              priority: "low|medium|high",
+              rationale: "string",
+              timing: "string",
+              title: "string"
+            }],
+            riskAlerts: [{
+              action: "string",
+              rationale: "string",
+              severity: "low|medium|high",
+              title: "string"
+            }],
+            yieldOptimization: [{
+              actions: ["string"],
+              confidence: "low|medium|high",
+              priority: "low|medium|high",
+              rationale: "string",
+              timing: "string",
+              title: "string"
+            }]
+          }
         }
       }),
       role: "user"
     }
   ];
+}
+
+function normalizeLocalizedRecommendations(value: unknown): LocalizedAiRecommendations {
+  if (!isRecord(value)) {
+    throw new Error("AI recommendation payload must be an object.");
+  }
+
+  const recommendationsRoot = isRecord(value.recommendations) ? value.recommendations : null;
+  const idSource = recommendationsRoot && isRecord(recommendationsRoot.id) ? recommendationsRoot.id : value;
+  const enSource = recommendationsRoot && isRecord(recommendationsRoot.en) ? recommendationsRoot.en : null;
+
+  if (!enSource) {
+    throw new Error("AI recommendation response did not include an English variant.");
+  }
+
+  const recommendations: LocalizedAiRecommendations = {
+    en: normalizeRecommendation(enSource, "en"),
+    id: normalizeRecommendation(idSource, "id")
+  };
+
+  validateLocalizedEquivalence(recommendations);
+
+  return recommendations;
+}
+
+function validateLocalizedEquivalence(recommendations: LocalizedAiRecommendations): void {
+  const idRecommendation = recommendations.id;
+  const enRecommendation = recommendations.en;
+  const sectionKeys: Array<keyof Pick<AiRecommendation, "fertilizer" | "irrigation" | "pestManagement" | "yieldOptimization">> = [
+    "fertilizer",
+    "irrigation",
+    "pestManagement",
+    "yieldOptimization"
+  ];
+
+  if (idRecommendation.confidence !== enRecommendation.confidence) {
+    throw new Error("AI recommendation bilingual confidence mismatch.");
+  }
+
+  if (idRecommendation.dataGaps.length !== enRecommendation.dataGaps.length) {
+    throw new Error("AI recommendation bilingual data gap count mismatch.");
+  }
+
+  if (idRecommendation.riskAlerts.length !== enRecommendation.riskAlerts.length) {
+    throw new Error("AI recommendation bilingual risk alert count mismatch.");
+  }
+
+  for (const [index, idAlert] of idRecommendation.riskAlerts.entries()) {
+    const enAlert = enRecommendation.riskAlerts[index];
+    if (!enAlert || idAlert.severity !== enAlert.severity) {
+      throw new Error("AI recommendation bilingual risk severity mismatch.");
+    }
+  }
+
+  for (const sectionKey of sectionKeys) {
+    const idItems = idRecommendation[sectionKey];
+    const enItems = enRecommendation[sectionKey];
+    if (idItems.length !== enItems.length) {
+      throw new Error(`AI recommendation bilingual ${sectionKey} count mismatch.`);
+    }
+
+    for (const [index, idItem] of idItems.entries()) {
+      const enItem = enItems[index];
+      if (!enItem || idItem.priority !== enItem.priority || idItem.confidence !== enItem.confidence || idItem.actions.length !== enItem.actions.length) {
+        throw new Error(`AI recommendation bilingual ${sectionKey} metadata mismatch.`);
+      }
+    }
+  }
+}
+
+function normalizeRecommendation(value: unknown, locale: LocaleCode): AiRecommendation {
+  if (!isRecord(value)) {
+    throw new Error("AI recommendation payload must be an object.");
+  }
+
+  const fallbackText = recommendationFallbackText(locale);
+  const root = isRecord(value.recommendation) ? value.recommendation : value;
+  const sectionsRoot = isRecord(root.recommendations) ? root.recommendations : root;
+
+  return {
+    confidence: normalizeConfidence(readFirstAliasedValue([root], ["confidence", "confidenceLevel", "tingkatKeyakinan"])),
+    dataGaps: readAliasedStringArray(root, ["dataGaps", "data_gaps", "gaps", "missingData", "kekuranganData"]),
+    executiveSummary: readAliasedString(
+      root,
+      ["executiveSummary", "executive_summary", "summary", "ringkasan", "ringkasanEksekutif"],
+      fallbackText.summaryUnavailable
+    ),
+    fertilizer: normalizeRecommendationItems(readFirstAliasedValue([root, sectionsRoot], ["fertilizer", "fertilization", "pemupukan"]), locale),
+    irrigation: normalizeRecommendationItems(readFirstAliasedValue([root, sectionsRoot], ["irrigation", "pengairan", "irigasi"]), locale),
+    pestManagement: normalizeRecommendationItems(readFirstAliasedValue([root, sectionsRoot], ["pestManagement", "pest_management", "pest", "opt", "pengendalianOPT"]), locale),
+    riskAlerts: normalizeRiskAlerts(readFirstAliasedValue([root, sectionsRoot], ["riskAlerts", "risk_alerts", "risks", "alerts", "peringatanRisiko"]), locale),
+    yieldOptimization: normalizeRecommendationItems(readFirstAliasedValue([root, sectionsRoot], ["yieldOptimization", "yield_optimization", "yield", "panen", "optimalisasiPanen"]), locale)
+  };
+}
+
+function normalizeRecommendationItems(value: unknown, locale: LocaleCode): RecommendationItem[] {
+  const fallbackText = recommendationFallbackText(locale);
+  const items = Array.isArray(value)
+    ? value
+    : isRecord(value)
+      ? [value]
+      : typeof value === "string" && value.trim().length > 0
+        ? [{ title: value }]
+        : [];
+
+  return items
+    .filter(isRecord)
+    .map((item) => {
+      const actions = readAliasedStringArray(item, ["actions", "actionItems", "action_items", "steps", "langkah"]);
+      const fallbackAction = readOptionalString(readFirstAliasedValue([item], ["action", "recommendation", "rekomendasi"]));
+
+      return {
+        actions: actions.length > 0 ? actions : fallbackAction ? [fallbackAction] : [],
+        confidence: normalizeConfidence(readFirstAliasedValue([item], ["confidence", "confidenceLevel", "tingkatKeyakinan"])),
+        priority: normalizePriority(readFirstAliasedValue([item], ["priority", "prioritas"])),
+        rationale: readAliasedString(item, ["rationale", "reason", "alasan", "note", "catatan", "description", "deskripsi"], fallbackText.emptyValue),
+        timing: readAliasedString(item, ["timing", "time", "when", "waktu"], fallbackText.timingFallback),
+        title: readAliasedString(item, ["title", "judul", "recommendation", "rekomendasi"], fallbackText.recommendationTitle)
+      };
+    })
+    .slice(0, 8);
+}
+
+function normalizeRiskAlerts(value: unknown, locale: LocaleCode): RiskAlert[] {
+  const fallbackText = recommendationFallbackText(locale);
+  const items = Array.isArray(value)
+    ? value
+    : isRecord(value)
+      ? [value]
+      : typeof value === "string" && value.trim().length > 0
+        ? [{ title: value }]
+        : [];
+
+  return items
+    .filter(isRecord)
+    .map((item) => ({
+      action: readAliasedString(item, ["action", "mitigation", "recommendation", "rekomendasi"], fallbackText.emptyValue),
+      rationale: readAliasedString(item, ["rationale", "reason", "alasan", "note", "catatan", "description", "deskripsi"], fallbackText.emptyValue),
+      severity: normalizeSeverity(readFirstAliasedValue([item], ["severity", "level", "tingkatRisiko"])),
+      title: readAliasedString(item, ["title", "judul", "risk", "risiko"], fallbackText.riskTitle)
+    }))
+    .slice(0, 8);
+}
+
+function recommendationFallbackText(locale: LocaleCode): {
+  emptyValue: string;
+  recommendationTitle: string;
+  riskTitle: string;
+  summaryUnavailable: string;
+  timingFallback: string;
+} {
+  if (locale === "en") {
+    return {
+      emptyValue: "-",
+      recommendationTitle: "Recommendation",
+      riskTitle: "Risk alert",
+      summaryUnavailable: "The recommendation was generated, but the summary is unavailable.",
+      timingFallback: "As soon as field conditions allow."
+    };
+  }
+
+  return {
+    emptyValue: "-",
+    recommendationTitle: "Rekomendasi",
+    riskTitle: "Peringatan risiko",
+    summaryUnavailable: "Rekomendasi berhasil dibuat, namun ringkasan tidak tersedia.",
+    timingFallback: "Segera saat kondisi lapang memungkinkan."
+  };
+}
+
+type AiMessageKey = "notConfigured" | "plotNotFound" | "providerFailed" | "timeout";
+
+function aiMessage(locale: LocaleCode, key: AiMessageKey): string {
+  const messages: Record<AiMessageKey, Record<LocaleCode, string>> = {
+    notConfigured: {
+      en: "Set AI_RECOMMENDATION_API_KEY on the backend to enable AI recommendations.",
+      id: "Set AI_RECOMMENDATION_API_KEY pada backend untuk mengaktifkan rekomendasi AI."
+    },
+    plotNotFound: {
+      en: "The selected zone or area is not available for this tenant.",
+      id: "Zona/area tidak tersedia untuk tenant ini."
+    },
+    providerFailed: {
+      en: "The AI provider could not generate recommendations yet. Try again in a moment.",
+      id: "Provider AI belum dapat menghasilkan rekomendasi. Coba lagi setelah beberapa saat."
+    },
+    timeout: {
+      en: "The AI provider exceeded the response time limit.",
+      id: "Provider AI melewati batas waktu respons."
+    }
+  };
+
+  return messages[key][locale];
 }
 
 function buildChatCompletionBody(messages: ChatMessage[]): Record<string, unknown> {
@@ -730,77 +1033,6 @@ function parseRecommendationJson(content: string): unknown {
 
     return JSON.parse(match[0]) as unknown;
   }
-}
-
-function normalizeRecommendation(value: unknown): AiRecommendation {
-  if (!isRecord(value)) {
-    throw new Error("AI recommendation payload must be an object.");
-  }
-
-  const root = isRecord(value.recommendation) ? value.recommendation : value;
-  const sectionsRoot = isRecord(root.recommendations) ? root.recommendations : root;
-
-  return {
-    confidence: normalizeConfidence(readFirstAliasedValue([root], ["confidence", "confidenceLevel", "tingkatKeyakinan"])),
-    dataGaps: readAliasedStringArray(root, ["dataGaps", "data_gaps", "gaps", "missingData", "kekuranganData"]),
-    executiveSummary: readAliasedString(
-      root,
-      ["executiveSummary", "executive_summary", "summary", "ringkasan", "ringkasanEksekutif"],
-      "Rekomendasi berhasil dibuat, namun ringkasan tidak tersedia."
-    ),
-    fertilizer: normalizeRecommendationItems(readFirstAliasedValue([root, sectionsRoot], ["fertilizer", "fertilization", "pemupukan"])),
-    irrigation: normalizeRecommendationItems(readFirstAliasedValue([root, sectionsRoot], ["irrigation", "pengairan", "irigasi"])),
-    pestManagement: normalizeRecommendationItems(readFirstAliasedValue([root, sectionsRoot], ["pestManagement", "pest_management", "pest", "opt", "pengendalianOPT"])),
-    riskAlerts: normalizeRiskAlerts(readFirstAliasedValue([root, sectionsRoot], ["riskAlerts", "risk_alerts", "risks", "alerts", "peringatanRisiko"])),
-    yieldOptimization: normalizeRecommendationItems(readFirstAliasedValue([root, sectionsRoot], ["yieldOptimization", "yield_optimization", "yield", "panen", "optimalisasiPanen"]))
-  };
-}
-
-function normalizeRecommendationItems(value: unknown): RecommendationItem[] {
-  const items = Array.isArray(value)
-    ? value
-    : isRecord(value)
-      ? [value]
-      : typeof value === "string" && value.trim().length > 0
-        ? [{ title: value }]
-        : [];
-
-  return items
-    .filter(isRecord)
-    .map((item) => {
-      const actions = readAliasedStringArray(item, ["actions", "actionItems", "action_items", "steps", "langkah"]);
-      const fallbackAction = readOptionalString(readFirstAliasedValue([item], ["action", "recommendation", "rekomendasi"]));
-
-      return {
-        actions: actions.length > 0 ? actions : fallbackAction ? [fallbackAction] : [],
-        confidence: normalizeConfidence(readFirstAliasedValue([item], ["confidence", "confidenceLevel", "tingkatKeyakinan"])),
-        priority: normalizePriority(readFirstAliasedValue([item], ["priority", "prioritas"])),
-        rationale: readAliasedString(item, ["rationale", "reason", "alasan", "note", "catatan", "description", "deskripsi"], "-"),
-        timing: readAliasedString(item, ["timing", "time", "when", "waktu"], "Segera saat kondisi lapang memungkinkan."),
-        title: readAliasedString(item, ["title", "judul", "recommendation", "rekomendasi"], "Rekomendasi")
-      };
-    })
-    .slice(0, 8);
-}
-
-function normalizeRiskAlerts(value: unknown): RiskAlert[] {
-  const items = Array.isArray(value)
-    ? value
-    : isRecord(value)
-      ? [value]
-      : typeof value === "string" && value.trim().length > 0
-        ? [{ title: value }]
-        : [];
-
-  return items
-    .filter(isRecord)
-    .map((item) => ({
-      action: readAliasedString(item, ["action", "mitigation", "recommendation", "rekomendasi"], "-"),
-      rationale: readAliasedString(item, ["rationale", "reason", "alasan", "note", "catatan", "description", "deskripsi"], "-"),
-      severity: normalizeSeverity(readFirstAliasedValue([item], ["severity", "level", "tingkatRisiko"])),
-      title: readAliasedString(item, ["title", "judul", "risk", "risiko"], "Peringatan risiko")
-    }))
-    .slice(0, 8);
 }
 
 function normalizeConfidence(value: unknown): RecommendationConfidence {
