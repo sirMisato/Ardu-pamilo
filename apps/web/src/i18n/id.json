@@ -33,7 +33,33 @@
     "verifying": "Memverifikasi..."
   },
   "charts": {
-    "title": "Grafik"
+    "actual": "Aktual",
+    "chartForMetric": "Grafik {metric}",
+    "dataCapped": "Grafik dibatasi {count} data dalam {hours} jam terakhir.",
+    "dataPoints": {
+      "one": "{count} titik data",
+      "other": "{count} titik data"
+    },
+    "deviceName": "Nama Perangkat",
+    "emptyDescription": "Menunggu parameter numerik dari perangkat terpilih.",
+    "emptyDevice": "Belum ada perangkat",
+    "emptyTitle": "Belum ada parameter numerik",
+    "everyMinutes": "Setiap {minutes} menit",
+    "highThreshold": "Batas Atas",
+    "interval": "Interval",
+    "intervalAria": "Interval grafik",
+    "lastHours": "{hours} jam terakhir",
+    "loadFailed": "Gagal mengambil histori telemetry MQTT.",
+    "loading": "Memuat...",
+    "lowThreshold": "Batas Bawah",
+    "noUnit": "Tanpa unit",
+    "sessionExpired": "Sesi login berakhir. Silakan login ulang untuk melihat grafik telemetry.",
+    "telemetryUnavailable": "API telemetry belum dapat dihubungi.",
+    "thresholdRange": "{low} / {high}",
+    "timeAxis": "Waktu",
+    "title": "Grafik",
+    "unit": "Unit",
+    "valueAxis": "Nilai"
   },
   "common": {
     "add": "Tambah",

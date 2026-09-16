@@ -50,7 +50,8 @@ for (const file of sourceFiles) {
 
 for (const key of usedKeys) {
   for (const locale of locales) {
-    if (!(key in flattened[locale])) {
+    const hasKey = key in flattened[locale] || `${key}.other` in flattened[locale];
+    if (!hasKey) {
       failures.push(`used key ${key} missing in ${locale}`);
     }
   }

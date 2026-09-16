@@ -5,14 +5,14 @@
         <label class="space-y-2">
           <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
             <TabletSmartphone class="h-4 w-4 text-emerald-500" />
-            Nama Device
+            {{ t("charts.deviceName") }}
           </span>
           <select
             v-model="activeDeviceUid"
-            aria-label="Nama Device"
+            :aria-label="t('charts.deviceName')"
             class="min-h-12 w-full rounded-full border border-white bg-slate-50 px-4 text-sm font-medium text-slate-600 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
           >
-            <option v-if="deviceOptions.length === 0" value="">Belum ada device</option>
+            <option v-if="deviceOptions.length === 0" value="">{{ t("charts.emptyDevice") }}</option>
             <option v-for="device in deviceOptions" :key="device.deviceUid" :value="device.deviceUid">
               {{ device.label }}
             </option>
@@ -22,11 +22,11 @@
         <label class="space-y-2">
           <span class="flex items-center gap-2 text-sm font-bold text-slate-800">
             <Clock class="h-4 w-4 text-teal-500" />
-            Interval
+            {{ t("charts.interval") }}
           </span>
           <select
             v-model="filters.intervalMinutes"
-            aria-label="Interval grafik"
+            :aria-label="t('charts.intervalAria')"
             class="min-h-12 w-full rounded-full border border-white bg-slate-50 px-4 text-sm font-medium text-slate-600 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
           >
             <option v-for="option in intervalOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
@@ -40,7 +40,7 @@
           @click="refreshTelemetryHistory"
         >
           <RefreshCw class="h-4 w-4" :class="isLoading ? 'animate-spin' : ''" />
-          {{ isLoading ? "Memuat..." : "Refresh" }}
+          {{ isLoading ? t("charts.loading") : t("common.refresh") }}
         </button>
       </div>
 
@@ -60,9 +60,10 @@
       >
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div class="min-w-0">
-            <p class="truncate text-sm font-medium text-slate-400">{{ card.pointCount }} points{{ card.thresholdLabel ? ` / ${card.thresholdLabel}` : "" }}</p>
+            <p class="truncate text-sm font-medium text-slate-400">{{ pointCountLabel(card.pointCount) }}{{ card.thresholdLabel ? ` / ${card.thresholdLabel}` : "" }}</p>
             <h3 class="mt-2 truncate text-xl font-bold tracking-normal text-slate-800">{{ card.label }}</h3>
             <p class="mt-3 text-3xl font-bold tracking-normal text-slate-800">{{ card.currentValueLabel }}</p>
+            <p class="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t("charts.unit") }}: {{ card.unitLabel }}</p>
           </div>
           <div class="flex flex-wrap items-center justify-end gap-2">
             <span class="rounded-full bg-slate-50 px-4 py-1.5 text-sm font-medium text-slate-600">{{ chartRangeLabel }}</span>
@@ -80,9 +81,9 @@
       <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50">
         <span class="h-5 w-5 rounded-full bg-emerald-400 shadow-[0_0_24px_rgba(16,185,129,0.28)]"></span>
       </div>
-      <h2 class="mt-4 text-lg font-bold tracking-normal text-slate-800">Belum ada parameter numerik</h2>
+      <h2 class="mt-4 text-lg font-bold tracking-normal text-slate-800">{{ t("charts.emptyTitle") }}</h2>
       <p class="mx-auto mt-2 max-w-xl text-sm font-medium text-slate-400">
-        Menunggu parameter numerik dari device terpilih.
+        {{ t("charts.emptyDescription") }}
       </p>
     </section>
   </div>
@@ -97,6 +98,7 @@ import {
   LinearScale,
   LineElement,
   PointElement,
+  Title,
   Tooltip,
   type ChartData,
   type ChartOptions,
@@ -106,11 +108,14 @@ import { Clock, RefreshCw, TabletSmartphone } from "@lucide/vue";
 import { storeToRefs } from "pinia";
 import { Line } from "vue-chartjs";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { t, tn, type TranslationParams } from "../../i18n";
+import { formatDataCount, formatDateTime as formatLocalizedDateTime, formatNumber } from "../../i18n/formatters";
+import { getMetricLabel, getMetricUnit, normalizeMetricKey } from "../../i18n/metrics";
 import { ApiClientError, apiGet } from "../../services/apiClient";
 import { useDeviceStore } from "../../stores/deviceStore";
 import { useMasterDataStore, type ThresholdKey, type ThresholdRange } from "../../stores/masterDataStore";
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Legend, Tooltip);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Legend, Title, Tooltip);
 
 type TelemetryPayload = Record<string, unknown>;
 type ChartInterval = "15" | "60";
@@ -169,6 +174,7 @@ interface MetricChartCard {
   currentValueLabel: string;
   pointCount: number;
   thresholdLabel: string | null;
+  unitLabel: string;
 }
 
 interface MetricPoint {
@@ -182,6 +188,12 @@ interface MetricThreshold {
   unit: string;
 }
 
+interface ChartMessage {
+  fallback?: string;
+  key: string;
+  params?: TranslationParams;
+}
+
 const chartHistoryWindowMs = 24 * 60 * 60 * 1000;
 const telemetryHistoryPageSize = 1000;
 const telemetryHistoryMaxRows = 100_000;
@@ -191,10 +203,10 @@ const masterDataStore = useMasterDataStore();
 const { devices } = storeToRefs(deviceStore);
 const { crops, plots } = storeToRefs(masterDataStore);
 const activeDeviceUid = ref("");
-const errorMessage = ref<string | null>(null);
+const chartError = ref<ChartMessage | null>(null);
 const historyWindow = ref<TelemetryHistoryWindow>(createTelemetryHistoryWindow());
 const historyItems = ref<TelemetryHistoryItem[]>([]);
-const infoMessage = ref<string | null>(null);
+const isHistoryCapped = ref(false);
 const isLoading = ref(false);
 let refreshTimer: number | undefined;
 let telemetryHistoryRequestId = 0;
@@ -203,10 +215,10 @@ const filters = ref({
   intervalMinutes: "15" as ChartInterval
 });
 
-const intervalOptions: Array<{ label: string; value: ChartInterval }> = [
-  { label: "Per 15 menit", value: "15" },
-  { label: "Per jam", value: "60" }
-];
+const intervalOptions = computed<Array<{ label: string; value: ChartInterval }>>(() => [
+  { label: t("charts.everyMinutes", { minutes: formatDataCount(15) }), value: "15" },
+  { label: t("charts.everyMinutes", { minutes: formatDataCount(60) }), value: "60" }
+]);
 const chartXAxisGrid = {
   display: false,
   drawBorder: false,
@@ -243,7 +255,7 @@ const deviceSummaries = computed<DeviceSummary[]>(() => {
     .map(([deviceUid, rows]) => {
       const metricKeys = Array.from(new Set(rows.flatMap((row) => row.metricKeys)))
         .filter((metricKey) => hasNumericValue(rows, metricKey))
-        .sort((left, right) => formatMetricLabel(left).localeCompare(formatMetricLabel(right)));
+        .sort((left, right) => getMetricLabel(left).localeCompare(getMetricLabel(right)));
       const lastSeenAt = rows[rows.length - 1]?.receivedAt ?? "";
 
       return {
@@ -280,28 +292,39 @@ const selectedCrop = computed(() => crops.value.find((crop) => crop.id === selec
 const selectedMetricKeys = computed(() => {
   return Array.from(new Set(selectedDeviceRows.value.flatMap((row) => row.metricKeys)))
     .filter((metricKey) => hasNumericValue(selectedDeviceRows.value, metricKey))
-    .sort((left, right) => formatMetricLabel(left).localeCompare(formatMetricLabel(right)));
+    .sort((left, right) => getMetricLabel(left).localeCompare(getMetricLabel(right)));
 });
 
 const chartCards = computed<MetricChartCard[]>(() => selectedMetricKeys.value.map((metricKey, index) => {
   const points = sampleMetricPoints(selectedDeviceRows.value, metricKey);
   const color = colorForMetric(metricKey, index);
   const threshold = thresholdForMetric(metricKey);
+  const unitLabel = metricUnitLabel(metricKey, threshold?.unit ?? null);
 
   return {
     id: `${activeDeviceUid.value}:${metricKey}`,
-    label: formatMetricLabel(metricKey),
+    label: getMetricLabel(metricKey),
     color,
     chartData: createChartData(points, color, threshold),
     chartOptions: createChartOptions(metricKey, color, threshold),
-    currentValueLabel: formatCurrentMetricValue(points),
+    currentValueLabel: formatCurrentMetricValue(points, unitLabel),
     pointCount: points.length,
-    thresholdLabel: formatThresholdLabel(threshold)
+    thresholdLabel: formatThresholdLabel(threshold, metricKey),
+    unitLabel
   };
 }));
 
-const selectedIntervalLabel = computed(() => intervalOptions.find((option) => option.value === filters.value.intervalMinutes)?.label ?? "Per 15 menit");
-const chartRangeLabel = computed(() => "24 jam terakhir");
+const selectedIntervalLabel = computed(() => intervalOptions.value.find((option) => option.value === filters.value.intervalMinutes)?.label ?? t("charts.everyMinutes", { minutes: formatDataCount(15) }));
+const chartRangeLabel = computed(() => t("charts.lastHours", { hours: formatDataCount(chartHistoryWindowMs / 3_600_000) }));
+const errorMessage = computed(() => chartError.value
+  ? chartError.value.fallback ?? t(chartError.value.key, chartError.value.params ?? {})
+  : null);
+const infoMessage = computed(() => isHistoryCapped.value
+  ? t("charts.dataCapped", {
+      count: formatDataCount(telemetryHistoryMaxRows),
+      hours: formatDataCount(chartHistoryWindowMs / 3_600_000)
+    })
+  : null);
 
 onMounted(() => {
   void initializeChart();
@@ -347,8 +370,8 @@ async function refreshTelemetryHistory(): Promise<void> {
   const historyRequest = createTelemetryHistoryRequest();
 
   isLoading.value = true;
-  errorMessage.value = null;
-  infoMessage.value = null;
+  chartError.value = null;
+  isHistoryCapped.value = false;
 
   try {
     const result = await fetchTelemetryHistoryItems(historyRequest);
@@ -359,12 +382,10 @@ async function refreshTelemetryHistory(): Promise<void> {
 
     historyItems.value = result.items;
 
-    if (result.isCapped) {
-      infoMessage.value = `Grafik dibatasi ${telemetryHistoryMaxRows.toLocaleString("id-ID")} records dalam 24 jam terakhir.`;
-    }
+    isHistoryCapped.value = result.isCapped;
   } catch (error) {
     if (requestId === telemetryHistoryRequestId) {
-      errorMessage.value = normalizeError(error);
+      chartError.value = normalizeError(error);
     }
   } finally {
     if (requestId === telemetryHistoryRequestId) {
@@ -473,7 +494,7 @@ function createChartData(points: MetricPoint[], color: string, threshold: Metric
       borderWidth: 3,
       data: points.map((point) => point.value),
       fill: true,
-      label: "Actual",
+      label: t("charts.actual"),
       pointHoverBackgroundColor: "#ffffff",
       pointHoverBorderColor: color,
       pointHoverBorderWidth: 3,
@@ -485,11 +506,11 @@ function createChartData(points: MetricPoint[], color: string, threshold: Metric
   ];
 
   if (threshold && threshold.min !== null) {
-    datasets.push(createThresholdDataset("Low", threshold.min, "#f59e0b", labels.length));
+    datasets.push(createThresholdDataset(t("charts.lowThreshold"), threshold.min, "#f59e0b", labels.length));
   }
 
   if (threshold && threshold.max !== null) {
-    datasets.push(createThresholdDataset("High", threshold.max, "#f43f5e", labels.length));
+    datasets.push(createThresholdDataset(t("charts.highThreshold"), threshold.max, "#f43f5e", labels.length));
   }
 
   return {
@@ -519,6 +540,18 @@ function createChartOptions(metricKey: string, color: string, threshold: MetricT
           usePointStyle: false
         }
       },
+      title: {
+        color: "#0f172a",
+        display: true,
+        font: {
+          size: 13,
+          weight: 600
+        },
+        padding: {
+          bottom: 12
+        },
+        text: t("charts.chartForMetric", { metric: getMetricLabel(metricKey) })
+      },
       tooltip: {
         backgroundColor: "#ffffff",
         borderColor: withAlpha(color, 0.24),
@@ -527,8 +560,8 @@ function createChartOptions(metricKey: string, color: string, threshold: MetricT
         callbacks: {
           label: (context) => {
             const value = context.parsed.y;
-            const label = context.dataset.label ?? formatMetricLabel(metricKey);
-            return `${label}: ${value === null ? "-" : formatValue(value)}`;
+            const label = context.dataset.label ?? getMetricLabel(metricKey);
+            return `${label}: ${value === null ? t("format.nullValue") : formatMetricValue(value, metricUnitLabel(metricKey, threshold?.unit ?? null))}`;
           }
         },
         displayColors: true,
@@ -548,6 +581,14 @@ function createChartOptions(metricKey: string, color: string, threshold: MetricT
             weight: 500
           },
           maxRotation: 0
+        },
+        title: {
+          color: "#94a3b8",
+          display: true,
+          font: {
+            weight: 600
+          },
+          text: t("charts.timeAxis")
         }
       },
       y: {
@@ -557,18 +598,27 @@ function createChartOptions(metricKey: string, color: string, threshold: MetricT
         grid: chartYAxisGrid,
         ticks: {
           color: "#94a3b8",
+          callback: (value) => typeof value === "number" ? formatNumber(value, { maximumFractionDigits: 2 }) : String(value),
           font: {
             weight: 500
           }
+        },
+        title: {
+          color: "#94a3b8",
+          display: true,
+          font: {
+            weight: 600
+          },
+          text: axisLabel(metricKey, threshold?.unit ?? null)
         }
       }
     }
   };
 }
 
-function formatCurrentMetricValue(points: MetricPoint[]): string {
+function formatCurrentMetricValue(points: MetricPoint[], unit: string): string {
   const latestPoint = [...points].reverse().find((point) => point.value !== null);
-  return latestPoint?.value === null || latestPoint?.value === undefined ? "-" : formatValue(latestPoint.value);
+  return latestPoint?.value === null || latestPoint?.value === undefined ? t("format.nullValue") : formatMetricValue(latestPoint.value, unit);
 }
 
 function createMetricChartGradient(context: ScriptableContext<"line">, color: string): string | CanvasGradient {
@@ -633,19 +683,13 @@ function thresholdForMetric(metricKey: string): MetricThreshold | null {
 }
 
 function thresholdKeyForMetric(metricKey: string): ThresholdKey | null {
-  const normalized = metricKey
-    .replace(/^metrics\./, "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-  const compact = normalized.replace(/_/g, "");
+  const normalized = normalizeMetricKey(metricKey);
 
-  if (normalized === "ph" || compact === "ph") return "ph";
-  if (normalized === "n" || normalized === "nitrogen") return "nitrogen";
-  if (normalized === "p" || normalized === "phosphorus" || normalized === "phosphor") return "phosphorus";
-  if (normalized === "k" || normalized === "potassium") return "potassium";
-  if (normalized === "moisture" || normalized === "soil_moisture" || compact === "soilmoisture") return "moisture";
+  if (normalized === "ph") return "ph";
+  if (normalized === "nitrogen") return "nitrogen";
+  if (normalized === "phosphorus") return "phosphorus";
+  if (normalized === "potassium") return "potassium";
+  if (normalized === "moisture") return "moisture";
 
   return null;
 }
@@ -660,23 +704,25 @@ function normalizeThresholdValue(value: ThresholdRange["min"]): number | null {
   return Number.isFinite(numericValue) ? numericValue : null;
 }
 
-function formatThresholdLabel(threshold: MetricThreshold | null): string | null {
+function formatThresholdLabel(threshold: MetricThreshold | null, metricKey: string): string | null {
   if (!threshold) {
     return null;
   }
 
-  const unit = threshold.unit && threshold.unit !== "range" ? ` ${threshold.unit}` : "";
+  const unit = metricUnitLabel(metricKey, threshold.unit);
   const parts: string[] = [];
 
   if (threshold.min !== null) {
-    parts.push(`Low ${formatValue(threshold.min)}${unit}`);
+    parts.push(`${t("charts.lowThreshold")} ${formatMetricValue(threshold.min, unit)}`);
   }
 
   if (threshold.max !== null) {
-    parts.push(`High ${formatValue(threshold.max)}${unit}`);
+    parts.push(`${t("charts.highThreshold")} ${formatMetricValue(threshold.max, unit)}`);
   }
 
-  return parts.join(" / ");
+  return parts.length === 2
+    ? t("charts.thresholdRange", { high: parts[1], low: parts[0] })
+    : parts.join("");
 }
 
 function readMetricValue(payload: TelemetryPayload, metricKey: string): unknown {
@@ -725,17 +771,30 @@ function coerceNumericValue(value: unknown): number | null {
   return null;
 }
 
-function formatMetricLabel(metricKey: string): string {
-  return metricKey
-    .replace(/^metrics\./, "")
-    .replace(/[-_.]+/g, " ")
-    .replace(/\b\w/g, (character) => character.toUpperCase());
+function pointCountLabel(count: number): string {
+  return tn("charts.dataPoints", count, {
+    count: formatDataCount(count)
+  });
 }
 
-function formatValue(value: number): string {
-  return new Intl.NumberFormat("id-ID", {
+function metricUnitLabel(metricKey: string, sourceUnit?: string | null): string {
+  const unit = sourceUnit === "range" ? "" : getMetricUnit(metricKey, sourceUnit);
+  return unit || t("charts.noUnit");
+}
+
+function axisLabel(metricKey: string, sourceUnit?: string | null): string {
+  const unit = metricUnitLabel(metricKey, sourceUnit);
+  return unit === t("charts.noUnit")
+    ? t("charts.valueAxis")
+    : `${t("charts.valueAxis")} (${unit})`;
+}
+
+function formatMetricValue(value: number, unit: string): string {
+  const formattedValue = formatNumber(Math.round(value * 100) / 100, {
     maximumFractionDigits: 2
-  }).format(Math.round(value * 100) / 100);
+  });
+
+  return unit === t("charts.noUnit") ? formattedValue : `${formattedValue} ${unit}`;
 }
 
 function formatChartTime(value: string): string {
@@ -746,18 +805,18 @@ function formatChartTime(value: string): string {
 
   const spansMultipleDates = !isSameLocalDate(historyWindow.value.startTime, historyWindow.value.endTime);
   if (spansMultipleDates) {
-    return new Intl.DateTimeFormat("id-ID", {
+    return formatLocalizedDateTime(date, {
       day: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
       month: "short"
-    }).format(date);
+    });
   }
 
-  return new Intl.DateTimeFormat("id-ID", {
+  return formatLocalizedDateTime(date, {
     hour: "2-digit",
     minute: "2-digit"
-  }).format(date);
+  });
 }
 
 function isSameLocalDate(leftTime: number, rightTime: number): boolean {
@@ -784,18 +843,18 @@ function withAlpha(hexColor: string, alpha: number): string {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
-function normalizeError(error: unknown): string {
+function normalizeError(error: unknown): ChartMessage {
   if (error instanceof ApiClientError) {
     return error.status === 401
-      ? "Sesi login berakhir. Silakan login ulang untuk melihat grafik telemetry."
-      : error.message;
+      ? { key: "charts.sessionExpired" }
+      : { fallback: error.message, key: "charts.loadFailed" };
   }
 
   if (error instanceof TypeError) {
-    return "API telemetry belum dapat dihubungi.";
+    return { key: "charts.telemetryUnavailable" };
   }
 
-  return "Gagal mengambil history telemetry MQTT.";
+  return { key: "charts.loadFailed" };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

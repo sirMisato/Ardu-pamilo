@@ -33,7 +33,33 @@
     "verifying": "Verifying..."
   },
   "charts": {
-    "title": "Charts"
+    "actual": "Actual",
+    "chartForMetric": "{metric} Chart",
+    "dataCapped": "Chart is capped at {count} records over the last {hours} hours.",
+    "dataPoints": {
+      "one": "{count} data point",
+      "other": "{count} data points"
+    },
+    "deviceName": "Device Name",
+    "emptyDescription": "Waiting for numeric parameters from the selected device.",
+    "emptyDevice": "No devices yet",
+    "emptyTitle": "No numeric parameters yet",
+    "everyMinutes": "Every {minutes} minutes",
+    "highThreshold": "High Threshold",
+    "interval": "Interval",
+    "intervalAria": "Chart interval",
+    "lastHours": "Last {hours} hours",
+    "loadFailed": "Failed to load MQTT telemetry history.",
+    "loading": "Loading...",
+    "lowThreshold": "Low Threshold",
+    "noUnit": "No unit",
+    "sessionExpired": "The login session has ended. Please sign in again to view telemetry charts.",
+    "telemetryUnavailable": "Telemetry API cannot be reached yet.",
+    "thresholdRange": "{low} / {high}",
+    "timeAxis": "Time",
+    "title": "Charts",
+    "unit": "Unit",
+    "valueAxis": "Value"
   },
   "common": {
     "add": "Add",

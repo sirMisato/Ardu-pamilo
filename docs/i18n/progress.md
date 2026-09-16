@@ -295,3 +295,39 @@ Keterbatasan verifikasi:
 - Browser native month picker memiliki dukungan locale berbeda antar browser; aplikasi sudah memberi `lang` aktif dan document language dari fondasi Batch 01.
 
 Batch berikutnya yang siap dikerjakan bila diminta: AI Rekomendasi dan strategi prompt/hasil AI berbasis locale.
+
+## Batch 06 Status
+
+Status: completed for Grafik and sensor visualization localization.
+
+Perubahan Batch 06:
+
+- Melokalisasi `apps/web/src/views/tenant/Chart.vue` untuk filter Nama Perangkat/Device Name, interval, Refresh/Loading, capped info, error lokal, empty state, rentang 24 jam terakhir, jumlah titik data, dan label unit.
+- Mengganti kamus label metric lokal di halaman Grafik dengan registry bersama `apps/web/src/i18n/metrics.ts` melalui `getMetricLabel`, `getMetricUnit`, dan `normalizeMetricKey`.
+- Melokalisasi konfigurasi Chart.js: judul chart, dataset `Aktual/Actual`, legenda `Batas Bawah/Low Threshold` dan `Batas Atas/High Threshold`, tooltip, label sumbu waktu/nilai, tick tanggal/jam, dan nilai tooltip dengan formatter angka locale aktif.
+- Menambahkan pluralization untuk `{count} titik data/{count} data points`, interpolation untuk `{hours} jam terakhir/Last {hours} hours`, dan `Setiap {minutes} menit/Every {minutes} minutes`.
+- Memperbaiki `apps/web/scripts/check-i18n.mjs` agar key plural parent yang dipakai lewat `tn()` dikenali bila katalog memiliki `.other`.
+- Menjaga metric key, dataset `id`, parameter API, agregasi bucket, nilai numerik dataset, threshold min/max, perangkat terpilih, interval, dan history window tetap tidak berubah oleh locale.
+- Tidak ditemukan fitur ekspor chart pada halaman Grafik, sehingga lokalisasi kontrol ekspor chart tidak berlaku untuk Batch 06.
+
+Pemeriksaan aktual Batch 06:
+
+| Pemeriksaan | Hasil aktual |
+| --- | --- |
+| `npm run i18n:check` di `apps/web` | Lulus: 294 keys, 198 used keys |
+| `npm run typecheck` di `apps/web` | Lulus |
+| `npm run build` di `apps/web` | Lulus, tetap ada warning baseline chunk JS > 500 kB |
+| Pencarian literal Chart dengan `rg` | Tidak menemukan literal lama utama seperti `Nama Device`, `Per 15 menit`, `Actual`, `Low`, `High`, `id-ID`, atau pesan error lokal sebagai teks user-facing di `Chart.vue` |
+
+Verifikasi perilaku Batch 06:
+
+- Chart data tetap berupa number/null dan label terjemahan tidak dipakai sebagai API parameter atau identifier dataset.
+- Computed `chartCards` membangun ulang `chartData` dan `chartOptions` saat locale berubah, sehingga tooltip/legend/tick callback memakai bahasa terbaru tanpa refetch atau subscription baru.
+- Formatter bersama menangani nilai pecahan, 0, null, tanggal lintas hari, dan jumlah titik data; threshold tetap memakai nilai min/max asli.
+- Custom metric tetap diberi fallback label dari metric key tanpa mengubah key mentah.
+
+Keterbatasan verifikasi:
+
+- Tidak menjalankan browser end-to-end untuk membuka tooltip Chart.js setelah language switch karena tidak ada akun/API telemetry test aktif dalam konteks kerja. Verifikasi dilakukan lewat jalur kode, i18n check, typecheck, build, dan pencarian literal.
+
+Batch berikutnya yang siap dikerjakan bila diminta: Report dan ekspor.
