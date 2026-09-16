@@ -134,6 +134,91 @@
     "weatherFallbackDefault": "menggunakan data cadangan."
   },
   "devices": {
+    "actions": {
+      "copyId": "Salin Device UID",
+      "copyIdAria": "Salin Device UID {deviceUid}",
+      "copyTopic": "Salin telemetry topic",
+      "copyTopicAria": "Salin telemetry topic {topic}",
+      "delete": "Hapus perangkat",
+      "deleteAria": "Hapus perangkat {deviceUid}",
+      "view": "Lihat detail",
+      "viewAria": "Lihat detail perangkat {deviceUid}"
+    },
+    "addDevice": "Tambah Perangkat",
+    "batteryPercent": "{value}%",
+    "batteryUnavailable": "-",
+    "columns": {
+      "assignedPlot": "Plot atau Area Terpasang",
+      "battery": "Baterai",
+      "deviceId": "ID Perangkat",
+      "lastSeen": "Terakhir Terhubung",
+      "sensorProfile": "Profil Sensor"
+    },
+    "confirm": {
+      "deleteDevice": "Hapus perangkat {deviceUid}?"
+    },
+    "detail": {
+      "close": "Tutup detail perangkat",
+      "title": "Detail Perangkat"
+    },
+    "empty": {
+      "noDevices": "Belum ada perangkat yang terdaftar.",
+      "noFilterResults": "Tidak ada perangkat sesuai filter."
+    },
+    "errors": {
+      "apiUnavailable": "API backend belum dapat dihubungi. Pastikan Fastify lokal sedang berjalan.",
+      "createFailed": "Gagal menambahkan perangkat.",
+      "deleteFailed": "Gagal menghapus perangkat.",
+      "loadFailed": "Gagal mengambil daftar perangkat.",
+      "sessionExpired": "Sesi login berakhir. Silakan login ulang."
+    },
+    "feedback": {
+      "copyFailed": "Gagal menyalin. Periksa izin clipboard browser.",
+      "deviceDeleted": "Perangkat {deviceUid} dihapus.",
+      "deviceSaved": "Perangkat {deviceUid} ditambahkan.",
+      "idCopied": "Device UID {deviceUid} berhasil disalin.",
+      "topicCopied": "Telemetry topic {topic} berhasil disalin."
+    },
+    "loading": "Memuat perangkat dari API.",
+    "modal": {
+      "addSubtitle": "Registrasi node ESP32 baru lewat API tenant.",
+      "addTitle": "Tambah Perangkat",
+      "autoMainField": "Field utama otomatis",
+      "close": "Tutup modal",
+      "deviceUidHelper": "Device UID harus sama dengan ID yang dikirim perangkat.",
+      "displayName": "Nama Tampilan",
+      "displayNameHelper": "Nama tampilan hanya untuk membantu petani mengenali perangkat.",
+      "initialStatus": "Status Awal",
+      "plotId": "Plot ID",
+      "sensorProfile": "Profil Sensor",
+      "topicHelper": "Topic otomatis mengikuti tenant ID dan Device UID."
+    },
+    "neverSeen": "Belum pernah terhubung",
+    "searchAria": "Cari device ID, plot, atau profil",
+    "searchPlaceholder": "Cari device ID, plot, atau profil",
+    "sensorProfiles": {
+      "customPayload": "Payload Kustom",
+      "soilNpkPh": "Soil NPK + pH",
+      "waterLevel": "Water Level",
+      "weatherStation": "Weather Station"
+    },
+    "status": {
+      "maintenance": "Perawatan",
+      "offline": "Offline",
+      "online": "Online"
+    },
+    "summary": {
+      "activePlots": "Plot Aktif",
+      "online": "Terhubung",
+      "total": "Total Perangkat"
+    },
+    "unassignedPlot": "Belum dipasang ke plot",
+    "validation": {
+      "deviceUidRequired": "Device UID wajib diisi.",
+      "displayNameRequired": "Nama tampilan wajib diisi.",
+      "topicDeviceMismatch": "Telemetry topic harus memuat Device UID yang sama.",
+      "topicRequired": "Telemetry topic wajib diisi."
+    },
     "title": "Perangkat"
   },
   "format": {

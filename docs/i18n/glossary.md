@@ -108,6 +108,8 @@ Metric key mentah dari payload tetap dipertahankan untuk data/ekspor teknis. Lab
 | warning | Waspada | Warning | Alert/metric status |
 | critical | Kritis | Critical | Alert/metric status |
 
+Catatan Perangkat: kartu ringkasan memakai `Terhubung` / `Online` untuk jumlah perangkat dengan status `online`. Badge status perangkat tetap memakai `Online`, `Offline`, dan `Perawatan` / `Maintenance` agar nilai enum `online`, `offline`, dan `maintenance` tidak berubah.
+
 ## UI Umum
 
 | ID | EN |

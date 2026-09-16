@@ -409,3 +409,46 @@ Keterbatasan verifikasi:
 - Halaman `/devices` tetap belum dimigrasikan pada batch ini karena instruksi aktif memfokuskan seluruh modul MQTT. Baris Devices di coverage tetap `not_started` untuk batch berikut yang sesuai.
 
 Batch berikutnya yang siap dikerjakan bila diminta: Perangkat atau Master Data, sesuai urutan batch yang ingin dilanjutkan.
+
+## Batch 09 Status
+
+Status: completed for Perangkat page and available sensor profile flows.
+
+Catatan penomoran: instruksi aktif pengguna menamai pekerjaan ini `BATCH 09: Perangkat dan profil sensor`. Roadmap awal di dokumen audit menempatkan Master Data pada Batch 09; pekerjaan Master Data belum dijalankan dan tetap menunggu instruksi batch berikutnya.
+
+Perubahan Batch 09:
+
+- Melokalisasi `apps/web/src/views/tenant/Devices.vue` untuk ringkasan Total Perangkat/Total Devices, Terhubung/Online, Plot Aktif/Active Plots, pencarian, filter Semua Status/All Statuses, tombol Tambah Perangkat/Add Device, loading/error/empty state, header tabel, status badge, baterai, dan waktu terakhir terhubung.
+- Menambahkan namespace `devices.*` di `apps/web/src/i18n/id.json` dan `apps/web/src/i18n/en.json` untuk form tambah perangkat, helper, validasi, status, profil sensor sistem, detail perangkat, copy Device UID/topic, konfirmasi hapus, serta feedback berhasil/gagal.
+- Menambahkan detail modal read-only untuk perangkat yang menampilkan Device UID, status, plot/area terpasang, profil sensor, terakhir terhubung, baterai, dan telemetry topic tanpa mengubah data atau memanggil API tambahan.
+- Menambahkan tombol salin Device UID dan telemetry topic. Nilai yang disalin tetap string asli, bukan label terjemahan.
+- Menambahkan konfirmasi hapus lokal sebelum memanggil `deleteDevice`; pengujian tidak menyentuh data produksi.
+- Memakai formatter bersama untuk jumlah perangkat/plot, tanggal terakhir terhubung, dan angka persentase baterai. Nilai baterai `0` tetap tampil `0%`, `100` tetap `100%`, dan nilai null/tidak valid tampil `-`.
+- Memisahkan label profil sensor sistem dari nilai canonical. Nilai `Custom Payload` tampil sebagai `Payload Kustom` / `Custom Payload`, sementara nama profil custom pengguna tetap ditampilkan apa adanya.
+- Memperbarui `apps/web/src/stores/deviceStore.ts` agar fallback error lokal memakai key terjemahan reaktif dan hitungan Plot Aktif tidak menghitung perangkat tanpa plot.
+- Memperbarui `docs/i18n/glossary.md` untuk konsistensi status perangkat: ringkasan memakai `Terhubung` / `Online`, badge status memakai `Online`, `Offline`, dan `Perawatan` / `Maintenance`.
+
+Pemeriksaan aktual Batch 09:
+
+| Pemeriksaan | Hasil aktual |
+| --- | --- |
+| `npm run i18n:check` di `apps/web` | Lulus: 468 keys, 328 used keys |
+| `npm run typecheck` di `apps/web` | Lulus |
+| `npm run build` di `apps/web` | Lulus, tetap ada warning baseline chunk JS > 500 kB |
+| Pencarian literal Devices utama dengan `rg` | Tidak menemukan literal lama utama di `Devices.vue`/`deviceStore.ts` seperti `Total Perangkat`, `Cari device`, `Tambah Perangkat`, `Assigned Plot`, `Sensor Profile`, `Last Seen`, `Memuat perangkat`, atau formatter hard-coded `id-ID` sebagai teks user-facing |
+
+Verifikasi perilaku Batch 09:
+
+- Locale switch memperbarui label Devices dari computed/template dan tidak mengubah `searchQuery`, `statusFilter`, `selectedDeviceId`, `deviceForm`, `plotId`, pilihan profil sensor, status enum, atau telemetry topic draft.
+- Submit tambah perangkat tetap mengirim nilai canonical yang sama: `deviceUid`, `displayName`, `plotId`, `status` (`online`/`offline`/`maintenance`), `metadata.sensorProfile`, `metadata.batteryPercent`, dan `telemetryTopic`.
+- Status online/offline/maintenance dipetakan dari enum tersimpan; enum tidak diterjemahkan atau dikirim sebagai label.
+- Device UID, telemetry topic, plot ID/nama plot, timestamp, dan nama profil custom pengguna tetap dipertahankan. Profil sistem yang dikenal hanya diberi label tampil bilingual.
+- Tidak ada operasi edit perangkat di active UI/API (`deviceRoutes.ts` hanya menyediakan GET/POST/DELETE), sehingga edit flow dicatat tidak tersedia pada batch ini.
+
+Keterbatasan verifikasi:
+
+- Tidak menjalankan browser end-to-end dengan akun nyata atau database fixture aktif. Skenario online/offline, baterai 0/100/null, perangkat tanpa plot, profil custom, dan validasi gagal diverifikasi lewat jalur kode, i18n check, typecheck, build, dan inspeksi transform payload.
+- Tombol hapus tidak diuji terhadap data produksi. Handler hanya memanggil DELETE setelah konfirmasi user.
+- Pesan backend Device API lengkap tetap menjadi Batch 13; Batch 09 melokalisasi fallback client dan mempertahankan pesan API mentah bila backend mengembalikan `message`.
+
+Batch berikutnya yang siap dikerjakan bila diminta: Master Data.

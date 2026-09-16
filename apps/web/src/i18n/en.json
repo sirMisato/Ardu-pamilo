@@ -134,6 +134,91 @@
     "weatherFallbackDefault": "using backup data."
   },
   "devices": {
+    "actions": {
+      "copyId": "Copy Device UID",
+      "copyIdAria": "Copy Device UID {deviceUid}",
+      "copyTopic": "Copy telemetry topic",
+      "copyTopicAria": "Copy telemetry topic {topic}",
+      "delete": "Delete device",
+      "deleteAria": "Delete device {deviceUid}",
+      "view": "View details",
+      "viewAria": "View details for device {deviceUid}"
+    },
+    "addDevice": "Add Device",
+    "batteryPercent": "{value}%",
+    "batteryUnavailable": "-",
+    "columns": {
+      "assignedPlot": "Assigned Plot or Area",
+      "battery": "Battery",
+      "deviceId": "Device ID",
+      "lastSeen": "Last Connected",
+      "sensorProfile": "Sensor Profile"
+    },
+    "confirm": {
+      "deleteDevice": "Delete device {deviceUid}?"
+    },
+    "detail": {
+      "close": "Close device details",
+      "title": "Device Details"
+    },
+    "empty": {
+      "noDevices": "No devices have been registered yet.",
+      "noFilterResults": "No devices match these filters."
+    },
+    "errors": {
+      "apiUnavailable": "The backend API cannot be reached yet. Make sure the local Fastify server is running.",
+      "createFailed": "Failed to add the device.",
+      "deleteFailed": "Failed to delete the device.",
+      "loadFailed": "Failed to load the device list.",
+      "sessionExpired": "The login session has ended. Please sign in again."
+    },
+    "feedback": {
+      "copyFailed": "Copy failed. Check the browser clipboard permission.",
+      "deviceDeleted": "Device {deviceUid} deleted.",
+      "deviceSaved": "Device {deviceUid} added.",
+      "idCopied": "Device UID {deviceUid} copied.",
+      "topicCopied": "Telemetry topic {topic} copied."
+    },
+    "loading": "Loading devices from the API.",
+    "modal": {
+      "addSubtitle": "Register a new ESP32 node through the tenant API.",
+      "addTitle": "Add Device",
+      "autoMainField": "Use main field automatically",
+      "close": "Close modal",
+      "deviceUidHelper": "Device UID must match the ID sent by the device.",
+      "displayName": "Display Name",
+      "displayNameHelper": "The display name only helps farmers recognize the device.",
+      "initialStatus": "Initial Status",
+      "plotId": "Plot ID",
+      "sensorProfile": "Sensor Profile",
+      "topicHelper": "The topic is generated from the tenant ID and Device UID."
+    },
+    "neverSeen": "Never connected",
+    "searchAria": "Search device IDs, plots, or profiles",
+    "searchPlaceholder": "Search device IDs, plots, or profiles",
+    "sensorProfiles": {
+      "customPayload": "Custom Payload",
+      "soilNpkPh": "Soil NPK + pH",
+      "waterLevel": "Water Level",
+      "weatherStation": "Weather Station"
+    },
+    "status": {
+      "maintenance": "Maintenance",
+      "offline": "Offline",
+      "online": "Online"
+    },
+    "summary": {
+      "activePlots": "Active Plots",
+      "online": "Online",
+      "total": "Total Devices"
+    },
+    "unassignedPlot": "Not assigned to a plot",
+    "validation": {
+      "deviceUidRequired": "Device UID is required.",
+      "displayNameRequired": "Display name is required.",
+      "topicDeviceMismatch": "Telemetry topic must contain the same Device UID.",
+      "topicRequired": "Telemetry topic is required."
+    },
     "title": "Devices"
   },
   "format": {
