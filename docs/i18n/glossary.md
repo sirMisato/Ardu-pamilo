@@ -70,16 +70,16 @@ Gunakan istilah ini secara konsisten di katalog `id` dan `en`. Brand, kode, dan 
 
 | Metric key | ID label | EN label | Unit |
 | --- | --- | --- | --- |
-| ph | pH | pH | range |
-| moisture | Kelembapan Tanah | Soil Moisture | % |
+| ph | pH tanah | Soil pH | range |
+| moisture | Kelembapan tanah | Soil moisture | % |
 | nitrogen | Nitrogen | Nitrogen | mg/kg |
 | phosphorus | Fosfor | Phosphorus | mg/kg |
 | potassium | Kalium | Potassium | mg/kg |
 | temperature | Suhu | Temperature | C |
-| soil_temperature | Suhu Tanah | Soil Temperature | C |
+| soil_temperature | Suhu tanah | Soil temperature | C |
 | humidity | Kelembapan | Humidity | % |
 | rainfall | Curah Hujan | Rainfall | mm |
-| conductivity | Konduktivitas | Conductivity | source unit |
+| conductivity | Konduktivitas listrik | Electrical conductivity | source unit |
 | battery | Baterai | Battery | % |
 
 Metric key mentah dari payload tetap dipertahankan untuk data/ekspor teknis. Label tampil boleh diterjemahkan jika key dikenali.

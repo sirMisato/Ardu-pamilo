@@ -60,7 +60,50 @@
     "thisMonth": "This Month"
   },
   "dashboard": {
-    "title": "Dashboard"
+    "area": "Area",
+    "areaMonitored": "{area} ha monitored",
+    "cropDetails": "Crop Details",
+    "cropAge": "Crop Age",
+    "cropNotSelected": "No crop selected",
+    "cropType": "Crop Type",
+    "customMetric": "Custom Metric",
+    "dashboardStatusSummary": "Dashboard status summary",
+    "deltaFromYesterday": "{value} from yesterday",
+    "dynamicMqttFields": "Dynamic MQTT payload fields",
+    "estimatedHarvest": "Harvest Estimate",
+    "field": "Field",
+    "fieldMapMonitoring": "Field Map Monitoring",
+    "fieldMonitoring": "Field Monitoring",
+    "growthProgress": "Growth Progress",
+    "harvest": "Harvest",
+    "latestMetricSet": "Latest Metric Set",
+    "liveNodes": "{count} live nodes",
+    "metricCount": "{count} metrics",
+    "metricStatus": {
+      "critical": "Critical",
+      "normal": "Normal",
+      "warning": "Warning"
+    },
+    "monitoredZonesFromMasterData": "Zones from Master Data",
+    "noTelemetryYet": "No telemetry yet",
+    "plantingDate": "Planting Date",
+    "region": "Region",
+    "reproductive": "Reproductive",
+    "sensorRealtime": "Realtime Sensors",
+    "statusConnecting": "Connecting",
+    "statusError": "Error",
+    "statusOffline": "Offline",
+    "statusReconnecting": "Reconnect",
+    "statusStandby": "Standby",
+    "streamCheckNeeded": "Check the stream",
+    "syncTelemetryNodes": "{count} telemetry nodes",
+    "title": "Dashboard",
+    "updatedAt": "Last updated {time}",
+    "vegetative": "Vegetative",
+    "waitingLatestSensorTelemetry": "Waiting for the latest sensor telemetry.",
+    "waitingTelemetry": "Waiting for telemetry",
+    "weatherFallback": "BMKG fallback: {message}",
+    "weatherFallbackDefault": "using backup data."
   },
   "devices": {
     "title": "Devices"
@@ -98,16 +141,37 @@
   },
   "metric": {
     "battery": "Battery",
-    "conductivity": "Conductivity",
+    "conductivity": "Electrical conductivity",
     "humidity": "Humidity",
-    "moisture": "Soil Moisture",
+    "moisture": "Soil moisture",
     "nitrogen": "Nitrogen",
-    "ph": "pH",
+    "ph": "Soil pH",
     "phosphorus": "Phosphorus",
     "potassium": "Potassium",
     "rainfall": "Rainfall",
-    "soil_temperature": "Soil Temperature",
+    "soil_temperature": "Soil temperature",
     "temperature": "Temperature"
+  },
+  "fieldMap": {
+    "connection": {
+      "connected": "Realtime backend active",
+      "connecting": "Backend stream connecting",
+      "error": "Backend stream error",
+      "history": "Telemetry synced",
+      "offline": "Backend stream offline",
+      "reconnecting": "Backend stream reconnecting",
+      "standby": "Realtime standby",
+      "waiting": "Waiting for telemetry"
+    },
+    "details": "Details",
+    "layerSatellite": "Satellite",
+    "layerSatelliteTitle": "Show satellite imagery",
+    "layerStreet": "Map",
+    "layerStreetTitle": "Show street map",
+    "offline": "Offline",
+    "online": "Online",
+    "reports": "Reports",
+    "waitingMqttTelemetry": "Waiting for MQTT telemetry."
   },
   "mqtt": {
     "title": "MQTT"

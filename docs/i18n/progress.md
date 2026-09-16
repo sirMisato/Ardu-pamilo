@@ -176,3 +176,42 @@ Keterbatasan verifikasi:
 - Halaman isi fitur seperti Dashboard, Weather, AI, Chart, Report, MQTT, Devices, Master Data, Tenant Users, Settings, dan Super Admin detail tetap menunggu batch masing-masing; Batch 02 hanya menutup kerangka/shared shell dan auth aktif.
 
 Batch berikutnya yang siap dikerjakan: Batch 03, fokus Dashboard dan FieldMap.
+
+## Batch 03 Status
+
+Status: completed for Dashboard, realtime sensor cards, and FieldMap UI text.
+
+Perubahan Batch 03:
+
+- Melokalisasi `apps/web/src/views/tenant/Dashboard.vue` untuk ringkasan status, detail tanaman, progress/fase tanaman, kartu cuaca/realtime, pemantauan lahan, kartu metrik terbaru, delta terhadap kemarin, dan empty state.
+- Melokalisasi `apps/web/src/components/dashboard/FieldMap.vue` untuk kontrol Peta/Map dan Satelit/Satellite, indikator koneksi, popup marker, status online/offline, update terakhir, empty telemetry, tombol Detail/Reports, dan label metrik popup.
+- Memperbarui `apps/web/src/i18n/metrics.ts` agar label metrik memakai registry bersama, menormalisasi alias seperti `soil_moisture`, `soil_temperature`, `ec`, dan tetap memberi fallback aman untuk metric custom tanpa mengubah metric key payload.
+- Menambahkan `apps/web/src/i18n/weather.ts` sebagai adapter kondisi cuaca bersama awal; Dashboard memakai `conditionEn` saat bahasa aktif `en` dan mempertahankan teks sumber saat tidak tersedia.
+- Memakai formatter bersama untuk count, area hektare, suhu, persen progress/delta, tanggal, waktu popup, dan HST/DAP.
+- Memastikan perubahan locale pada popup peta memanggil `refreshPopup()` dan update tooltip, tanpa menginisialisasi ulang Leaflet map, mengganti layer aktif, atau menjalankan ulang subscription.
+- Memperbarui `docs/i18n/coverage.csv` dan `docs/i18n/glossary.md`.
+
+Pemeriksaan aktual Batch 03:
+
+| Pemeriksaan | Hasil aktual |
+| --- | --- |
+| `npm run i18n:check` di `apps/web` | Lulus: 189 keys, 109 used keys |
+| `npm run typecheck` di `apps/web` | Lulus |
+| `npm run build` di `apps/web` | Lulus, tetap ada warning baseline chunk JS > 500 kB |
+| Pencarian string Dashboard/FieldMap dengan `rg` | Tidak menemukan string UI lama utama seperti `Detail Tanaman`, `Field Map Monitoring`, `Latest Metric`, `Waiting for MQTT`, `Details`, atau `Laporan` sebagai teks literal user-facing baru |
+
+Verifikasi perilaku Batch 03:
+
+- Metric key mentah tetap dipakai untuk threshold dan identitas payload; label tampilan memakai registry/fallback.
+- Nilai sensor `null` tampil `-`, nilai `0` tetap angka valid, dan custom metric tidak dihapus dari kartu/popup.
+- Locale change memperbarui teks Dashboard secara reaktif dari computed values.
+- Popup Leaflet diperbarui melalui content refresh saat locale berubah; map instance, polygon, active layer, dan posisi tidak dibuat ulang oleh perubahan bahasa.
+- AppLayout realtime connect/refresh interval tidak diubah, sehingga perubahan bahasa tidak menambah subscription dari Batch 03.
+
+Keterbatasan verifikasi:
+
+- Tidak menjalankan skenario Dashboard dengan API/data nyata karena kredensial demo dan layanan backend lokal tidak tersedia dari konteks aktif. Skenario data normal/kosong/offline/null/0/custom diverifikasi lewat jalur kode, formatter, dan build/typecheck, bukan sesi browser end-to-end.
+- Pesan error internal `telemetryStore.ts` masih dicatat untuk Batch 13 karena itu pesan store/API/SSE lintas fitur.
+- Cuaca dinamis lengkap tetap menjadi Batch 04; Batch 03 hanya memakai adapter bersama awal untuk ringkasan Dashboard.
+
+Batch berikutnya yang siap dikerjakan: Batch 04, fokus Weather Station.

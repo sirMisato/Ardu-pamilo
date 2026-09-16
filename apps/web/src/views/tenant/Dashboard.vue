@@ -5,8 +5,8 @@
         <div>
           <div class="flex items-center justify-between gap-3">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">Detail Tanaman</p>
-              <h2 class="mt-1 text-lg font-semibold tracking-normal text-slate-800">{{ tenantProfileStore.activeField?.cropLabel ?? "Crop belum dipilih" }}</h2>
+              <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">{{ t("dashboard.cropDetails") }}</p>
+              <h2 class="mt-1 text-lg font-semibold tracking-normal text-slate-800">{{ tenantProfileStore.activeField?.cropLabel ?? t("dashboard.cropNotSelected") }}</h2>
             </div>
             <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-field-green/40 text-teal-700 shadow-glass-soft">
               <Sprout class="h-6 w-6" />
@@ -23,23 +23,23 @@
 
         <div class="mt-6">
           <div class="flex items-center justify-between text-sm">
-            <span class="font-medium text-slate-600">Growth Progress</span>
+            <span class="font-medium text-slate-600">{{ t("dashboard.growthProgress") }}</span>
             <span class="font-semibold text-teal-700">{{ growthProgressLabel }}</span>
           </div>
           <div class="mt-3 h-4 overflow-hidden rounded-full bg-slate-200/70">
             <div class="h-full rounded-full bg-emerald-400 transition-[width]" :style="{ width: growthProgressBarWidth }"></div>
           </div>
           <div class="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-semibold">
-            <span class="rounded-full py-2" :class="growthStageClass('vegetatif')">Vegetatif</span>
-            <span class="rounded-full py-2" :class="growthStageClass('generatif')">Generatif</span>
-            <span class="rounded-full py-2" :class="growthStageClass('panen')">Panen</span>
+            <span class="rounded-full py-2" :class="growthStageClass('vegetatif')">{{ t("dashboard.vegetative") }}</span>
+            <span class="rounded-full py-2" :class="growthStageClass('generatif')">{{ t("dashboard.reproductive") }}</span>
+            <span class="rounded-full py-2" :class="growthStageClass('panen')">{{ t("dashboard.harvest") }}</span>
           </div>
         </div>
       </article>
     </aside>
 
     <section class="order-2 w-full lg:order-1 lg:col-span-8">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" aria-label="Ringkasan status dashboard">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" :aria-label="t('dashboard.dashboardStatusSummary')">
         <article v-for="stat in topStats" :key="stat.label" class="flex items-center justify-between gap-4 rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-md">
           <div class="min-w-0">
             <p class="truncate text-sm text-slate-500">{{ stat.label }}</p>
@@ -55,8 +55,8 @@
       <div class="glass-panel overflow-hidden bg-white/60 backdrop-blur-lg">
         <div class="flex flex-wrap items-center justify-between gap-3 px-2 py-3 sm:px-3">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">Pemantauan Lahan</p>
-            <h2 class="mt-1 text-xl font-semibold tracking-normal text-slate-800">Field Map Monitoring</h2>
+            <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">{{ t("dashboard.fieldMonitoring") }}</p>
+            <h2 class="mt-1 text-xl font-semibold tracking-normal text-slate-800">{{ t("dashboard.fieldMapMonitoring") }}</h2>
             <p class="mt-1 text-sm text-slate-500">{{ tenantProfileStore.activeFieldLabel }}</p>
           </div>
           <div class="flex items-center gap-2 rounded-full border border-white/80 bg-white/70 px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-md">
@@ -74,12 +74,12 @@
     <section class="order-4 glass-panel border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-5 lg:order-4 lg:col-span-12">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">Sensor Realtime</p>
-          <h2 class="mt-1 text-xl font-semibold tracking-normal text-slate-800">Latest Metric Set</h2>
-          <p class="mt-1 text-sm text-slate-500">Dynamic MQTT payload fields</p>
+          <p class="text-xs font-semibold uppercase tracking-wide text-teal-700">{{ t("dashboard.sensorRealtime") }}</p>
+          <h2 class="mt-1 text-xl font-semibold tracking-normal text-slate-800">{{ t("dashboard.latestMetricSet") }}</h2>
+          <p class="mt-1 text-sm text-slate-500">{{ t("dashboard.dynamicMqttFields") }}</p>
         </div>
         <span class="rounded-full bg-field-mint/10 px-3 py-1.5 text-xs font-semibold text-teal-700">
-          {{ latestMetricCards.length }} metrics
+          {{ t("dashboard.metricCount", { count: formatDataCount(latestMetricCards.length) }) }}
         </span>
       </div>
 
@@ -102,7 +102,7 @@
           <div class="mt-6">
             <p class="text-3xl font-bold tracking-normal text-slate-800">{{ metric.displayValue }}</p>
             <p class="mt-2" :class="metricTrendClass(metric.trend.status)">
-              {{ metricTrendArrow(metric.trend.status) }} {{ formatMetricTrendPercent(metric.trend.percentageChange) }} dari kemarin
+              {{ metricTrendArrow(metric.trend.status) }} {{ t("dashboard.deltaFromYesterday", { value: formatMetricTrendPercent(metric.trend.percentageChange) }) }}
             </p>
           </div>
 
@@ -114,7 +114,7 @@
         </article>
 
         <div v-if="latestMetricCards.length === 0" class="rounded-[1.5rem] border border-dashed border-white/70 bg-white/40 p-4 text-sm font-medium text-slate-500 md:p-5 sm:col-span-2 xl:col-span-4">
-          Menunggu telemetry sensor terbaru.
+          {{ t("dashboard.waitingLatestSensorTelemetry") }}
         </div>
       </div>
     </section>
@@ -140,6 +140,10 @@ import { Line } from "vue-chartjs";
 import { computed, onMounted, ref, watch } from "vue";
 import FieldMap from "../../components/dashboard/FieldMap.vue";
 import { appEnvironment } from "../../config/environment";
+import { formatCropAge, formatDataCount, formatDateTime, formatNumber, formatPercent } from "../../i18n/formatters";
+import { getMetricLabel, getMetricUnit, normalizeMetricKey } from "../../i18n/metrics";
+import { useI18n } from "../../i18n";
+import { getWeatherConditionLabel } from "../../i18n/weather";
 import { fetchBmkgForecast, type BmkgForecastResult } from "../../services/bmkgService";
 import { type ApiCrop, type ThresholdKey, type ThresholdRange, useMasterDataStore } from "../../stores/masterDataStore";
 import { useTenantProfileStore } from "../../stores/tenantProfileStore";
@@ -150,12 +154,13 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, 
 const telemetryStore = useTelemetryStore();
 const tenantProfileStore = useTenantProfileStore();
 const masterDataStore = useMasterDataStore();
+const { t } = useI18n();
 const dashboardForecast = ref<BmkgForecastResult | null>(null);
 const weatherError = ref<string | null>(null);
 
 type MetricStatus = {
   badgeClass: string;
-  label: "Kritis" | "Normal" | "Waspada";
+  label: string;
 };
 
 type MetricThreshold = {
@@ -177,20 +182,20 @@ type LatestMetricCard = DynamicMetric & {
   trend: MetricTrendComparison;
 };
 
-const metricStatuses = {
+const metricStatuses = computed(() => ({
   critical: {
     badgeClass: "text-rose-700 bg-rose-100",
-    label: "Kritis"
+    label: t("dashboard.metricStatus.critical")
   },
   normal: {
     badgeClass: "text-emerald-700 bg-emerald-100",
-    label: "Normal"
+    label: t("dashboard.metricStatus.normal")
   },
   warning: {
     badgeClass: "text-amber-700 bg-amber-100",
-    label: "Waspada"
+    label: t("dashboard.metricStatus.warning")
   }
-} satisfies Record<"critical" | "normal" | "warning", MetricStatus>;
+}) satisfies Record<"critical" | "normal" | "warning", MetricStatus>);
 
 const sparklinePointCount = 12;
 const sparklineLabels = Array.from({ length: sparklinePointCount }, (_, index) => String(index + 1));
@@ -248,31 +253,31 @@ watch(() => tenantProfileStore.activeBmkgAdm4Code, () => {
 
 const topStats = computed(() => [
   {
-    label: "Total Devices",
-    value: telemetryStore.deviceCount.toLocaleString("id-ID"),
-    detail: `${telemetryStore.onlineDeviceCount.toLocaleString("id-ID")} online`,
+    label: t("devices.title"),
+    value: formatDataCount(telemetryStore.deviceCount),
+    detail: t("dashboard.liveNodes", { count: formatDataCount(telemetryStore.onlineDeviceCount) }),
     icon: Cpu,
     iconClass: "bg-field-mint/20 text-teal-700",
     detailClass: "text-teal-700"
   },
   {
-    label: "Active Fields",
-    value: tenantProfileStore.fields.length.toLocaleString("id-ID"),
+    label: t("dashboard.field"),
+    value: formatDataCount(tenantProfileStore.fields.length),
     detail: activeAreaLabel.value,
     icon: Sprout,
     iconClass: "bg-field-green/30 text-emerald-700",
     detailClass: "text-emerald-700"
   },
   {
-    label: "Weather",
+    label: t("weather.title"),
     value: dashboardForecast.value ? formatTemperature(dashboardForecast.value.current.temperatureC) : "BMKG",
-    detail: dashboardForecast.value?.current.condition ?? bmkgHost.value,
+    detail: dashboardForecast.value ? getWeatherConditionLabel(dashboardForecast.value.current) : bmkgHost.value,
     icon: CloudSun,
     iconClass: "bg-amber-300/25 text-amber-700",
     detailClass: "text-amber-700"
   },
   {
-    label: "Realtime Status",
+    label: t("dashboard.sensorRealtime"),
     value: mqttStatusCard.value.value,
     detail: mqttStatusCard.value.detail,
     icon: Waves,
@@ -283,18 +288,18 @@ const topStats = computed(() => [
 
 const telemetryNodeLabel = computed(() => {
   if (telemetryStore.connectionState === "connected") {
-    return `${telemetryStore.onlineDeviceCount.toLocaleString("id-ID")} live nodes`;
+    return t("dashboard.liveNodes", { count: formatDataCount(telemetryStore.onlineDeviceCount) });
   }
 
   if (telemetryStore.connectionState === "error" || telemetryStore.connectionState === "offline") {
-    return "Stream perlu dicek";
+    return t("dashboard.streamCheckNeeded");
   }
 
   if (telemetryStore.deviceCount > 0) {
-    return `${telemetryStore.deviceCount.toLocaleString("id-ID")} telemetry nodes`;
+    return t("dashboard.syncTelemetryNodes", { count: formatDataCount(telemetryStore.deviceCount) });
   }
 
-  return "Menunggu telemetry";
+  return t("dashboard.waitingTelemetry");
 });
 
 const telemetryNodeToneClass = computed(() => {
@@ -313,71 +318,73 @@ const mqttStatusCard = computed(() => {
   switch (telemetryStore.connectionState) {
     case "connected":
       return {
-        detail: `${telemetryStore.onlineDeviceCount.toLocaleString("id-ID")} live nodes via backend`,
+        detail: t("dashboard.liveNodes", { count: formatDataCount(telemetryStore.onlineDeviceCount) }),
         detailClass: "text-teal-700",
         iconClass: "bg-field-mint/20 text-teal-700",
-        value: "Normal"
+        value: t("dashboard.metricStatus.normal")
       };
     case "connecting":
       return {
-        detail: "Membuka stream backend",
+        detail: t("fieldMap.connection.connecting"),
         detailClass: "text-amber-700",
         iconClass: "bg-amber-300/25 text-amber-700",
-        value: "Connecting"
+        value: t("dashboard.statusConnecting")
       };
     case "reconnecting":
       return {
-        detail: "Menyambung ulang stream",
+        detail: t("fieldMap.connection.reconnecting"),
         detailClass: "text-amber-700",
         iconClass: "bg-amber-300/25 text-amber-700",
-        value: "Reconnect"
+        value: t("dashboard.statusReconnecting")
       };
     case "history":
       return {
-        detail: telemetryStore.deviceCount > 0 ? "Telemetry DB tersinkron" : "Belum ada data live",
+        detail: telemetryStore.deviceCount > 0 ? t("fieldMap.connection.history") : t("dashboard.noTelemetryYet"),
         detailClass: telemetryStore.onlineDeviceCount > 0 ? "text-teal-700" : "text-amber-700",
         iconClass: telemetryStore.onlineDeviceCount > 0 ? "bg-field-mint/20 text-teal-700" : "bg-amber-300/25 text-amber-700",
-        value: telemetryStore.onlineDeviceCount > 0 ? "Normal" : "Standby"
+        value: telemetryStore.onlineDeviceCount > 0 ? t("dashboard.metricStatus.normal") : t("dashboard.statusStandby")
       };
     case "offline":
       return {
-        detail: "Stream backend terputus",
+        detail: t("fieldMap.connection.offline"),
         detailClass: "text-rose-700",
         iconClass: "bg-rose-300/20 text-rose-700",
-        value: "Offline"
+        value: t("dashboard.statusOffline")
       };
     case "error":
       return {
         detail: telemetryStore.errorMessage ?? "Periksa API stream/backend ingestor",
         detailClass: "text-rose-700",
         iconClass: "bg-rose-300/20 text-rose-700",
-        value: "Error"
+        value: t("dashboard.statusError")
       };
     case "idle":
     default:
       return {
-        detail: "Menunggu telemetry",
+        detail: t("dashboard.waitingTelemetry"),
         detailClass: "text-slate-500",
         iconClass: "bg-slate-300/30 text-slate-600",
-        value: "Standby"
+        value: t("dashboard.statusStandby")
       };
   }
 });
 
 const activeAreaLabel = computed(() => {
   const totalArea = tenantProfileStore.fields.reduce((total, field) => total + (field.areaHectares ?? 0), 0);
-  return totalArea > 0 ? `${totalArea.toLocaleString("id-ID")} ha monitored` : "Zona dari Master Data";
+  return totalArea > 0
+    ? t("dashboard.areaMonitored", { area: formatNumber(totalArea, { maximumFractionDigits: 2 }) })
+    : t("dashboard.monitoredZonesFromMasterData");
 });
 
 const cropInfo = computed(() => [
-  { label: "Crop Type", value: tenantProfileStore.activeField?.cropLabel ?? "-" },
-  { label: "Tanggal Tanam", value: plantingDateLabel.value },
-  { label: "Umur Tanaman", value: hstLabel.value },
-  { label: "Estimasi Panen", value: harvestEstimateLabel.value },
-  { label: "Area", value: tenantProfileStore.activeField?.areaLabel ?? "-" },
+  { label: t("dashboard.cropType"), value: tenantProfileStore.activeField?.cropLabel ?? "-" },
+  { label: t("dashboard.plantingDate"), value: plantingDateLabel.value },
+  { label: t("dashboard.cropAge"), value: hstLabel.value },
+  { label: t("dashboard.estimatedHarvest"), value: harvestEstimateLabel.value },
+  { label: t("dashboard.area"), value: tenantProfileStore.activeField?.areaLabel ?? "-" },
   { label: "BMKG ADM4", value: tenantProfileStore.activeField?.bmkgAdm4Code || "-" },
-  { label: "Region", value: tenantProfileStore.activeField?.regionLabel ?? "-" },
-  { label: "Field", value: tenantProfileStore.activeField?.name ?? "-" }
+  { label: t("dashboard.region"), value: tenantProfileStore.activeField?.regionLabel ?? "-" },
+  { label: t("dashboard.field"), value: tenantProfileStore.activeField?.name ?? "-" }
 ]);
 
 const dashboardDailyForecast = computed(() => dashboardForecast.value?.daily.slice(0, 3) ?? []);
@@ -395,6 +402,9 @@ const activeCropData = computed<ApiCrop | null>(() => {
 });
 const latestMetricCards = computed<LatestMetricCard[]>(() => telemetryStore.latestMetrics.slice(0, 8).map((metric, index) => ({
   ...metric,
+  displayValue: formatMetricDisplayValue(metric),
+  label: getMetricLabel(metric.key),
+  unit: getMetricUnit(metric.key, metric.unit),
   sparklineData: createSparklineData(metric, index),
   status: getMetricStatus(metric.key, metric.value, activeCropData.value),
   trend: calculateTodayVsYesterdayTrend(metric)
@@ -409,7 +419,7 @@ const activeCropProgressPercent = computed(() => {
 
   return Math.min(100, Math.max(0, Math.round((hst / periodDays) * 100)));
 });
-const growthProgressLabel = computed(() => activeCropProgressPercent.value === null ? "-" : `${activeCropProgressPercent.value}%`);
+const growthProgressLabel = computed(() => activeCropProgressPercent.value === null ? "-" : formatPercent(activeCropProgressPercent.value, { maximumFractionDigits: 0, valueKind: "percent" }));
 const growthProgressBarWidth = computed(() => `${activeCropProgressPercent.value ?? 0}%`);
 const activeGrowthStage = computed<"generatif" | "panen" | "unknown" | "vegetatif">(() => {
   const progress = activeCropProgressPercent.value;
@@ -427,7 +437,7 @@ const plantingDateLabel = computed(() => {
   const plantingDate = tenantProfileStore.activeField?.cropPlantingDate;
   return plantingDate ? formatDateOnly(plantingDate) : "-";
 });
-const hstLabel = computed(() => activeCropHst.value === null ? "-" : `${activeCropHst.value} HST`);
+const hstLabel = computed(() => activeCropHst.value === null ? "-" : formatCropAge(activeCropHst.value));
 const harvestEstimateLabel = computed(() => {
   const plantingDate = parseDateOnly(tenantProfileStore.activeField?.cropPlantingDate ?? null);
   const periodDays = tenantProfileStore.activeField?.cropPlantingPeriodDays;
@@ -449,12 +459,12 @@ async function refreshDashboardForecast(): Promise<void> {
 
   dashboardForecast.value = result;
   weatherError.value = result.isMock
-    ? `BMKG fallback: ${result.errorMessage ?? "menggunakan data cadangan."}`
+    ? t("dashboard.weatherFallback", { message: result.errorMessage ?? t("dashboard.weatherFallbackDefault") })
     : null;
 }
 
 function formatTemperature(value: number | null): string {
-  return value === null ? "-" : `${value} C`;
+  return value === null ? "-" : `${formatNumber(value, { maximumFractionDigits: 1 })} C`;
 }
 
 function calculateTodayVsYesterdayTrend(metric: DynamicMetric): MetricTrendComparison {
@@ -480,10 +490,11 @@ function metricTrendClass(status: MetricTrendStatus): string {
 }
 
 function formatMetricTrendPercent(value: number): string {
-  return `${value.toLocaleString("en-US", {
+  return formatPercent(value, {
     maximumFractionDigits: 2,
-    minimumFractionDigits: 2
-  })}%`;
+    minimumFractionDigits: 2,
+    valueKind: "percent"
+  });
 }
 
 function createSparklineData(metric: DynamicMetric, index: number): ChartData<"line", number[], string> {
@@ -571,6 +582,20 @@ function normalizeTrendMetricValue(value: DynamicMetric["value"]): number | null
   return normalizeMetricValue(value);
 }
 
+function formatMetricDisplayValue(metric: DynamicMetric): string {
+  const unit = getMetricUnit(metric.key, metric.unit);
+
+  if (metric.value === null) {
+    return "-";
+  }
+
+  if (typeof metric.value === "number") {
+    return `${formatNumber(metric.value, { maximumFractionDigits: 2 })} ${unit}`.trim();
+  }
+
+  return `${String(metric.value)} ${unit}`.trim();
+}
+
 function metricHash(metric: DynamicMetric, salt: string): number {
   const input = `${metric.source}:${metric.key}:${salt}`;
   let hash = 0;
@@ -600,27 +625,27 @@ function growthStageClass(stage: "generatif" | "panen" | "vegetatif"): string {
 
 function getMetricStatus(metricKey: string, currentValue: DynamicMetric["value"], cropData: ApiCrop | null): MetricStatus {
   if (typeof currentValue === "boolean") {
-    return currentValue ? metricStatuses.normal : metricStatuses.critical;
+    return currentValue ? metricStatuses.value.normal : metricStatuses.value.critical;
   }
 
   const numericValue = normalizeMetricValue(currentValue);
   const threshold = thresholdForMetric(metricKey, cropData);
 
   if (numericValue === null || !threshold) {
-    return metricStatuses.warning;
+    return metricStatuses.value.warning;
   }
 
   const isBelowLow = threshold.min !== null && numericValue < threshold.min;
   const isAboveHigh = threshold.max !== null && numericValue > threshold.max;
 
   if (isBelowLow || isAboveHigh) {
-    return metricStatuses.critical;
+    return metricStatuses.value.critical;
   }
 
   const isNearLow = threshold.min !== null && numericValue <= threshold.min + thresholdTolerance("min", threshold);
   const isNearHigh = threshold.max !== null && numericValue >= threshold.max - thresholdTolerance("max", threshold);
 
-  return isNearLow || isNearHigh ? metricStatuses.warning : metricStatuses.normal;
+  return isNearLow || isNearHigh ? metricStatuses.value.warning : metricStatuses.value.normal;
 }
 
 function thresholdForMetric(metricKey: string, cropData: ApiCrop | null): MetricThreshold | null {
@@ -648,19 +673,13 @@ function thresholdForMetric(metricKey: string, cropData: ApiCrop | null): Metric
 }
 
 function thresholdKeyForMetric(metricKey: string): ThresholdKey | null {
-  const normalized = metricKey
-    .replace(/^metrics\./, "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-  const compact = normalized.replace(/_/g, "");
+  const normalized = normalizeMetricKey(metricKey);
 
-  if (normalized === "ph" || compact === "ph") return "ph";
-  if (normalized === "n" || normalized === "nitrogen") return "nitrogen";
-  if (normalized === "p" || normalized === "phosphorus" || normalized === "phosphor") return "phosphorus";
-  if (normalized === "k" || normalized === "potassium") return "potassium";
-  if (normalized === "moisture" || normalized === "soil_moisture" || compact === "soilmoisture") return "moisture";
+  if (normalized === "ph") return "ph";
+  if (normalized === "nitrogen") return "nitrogen";
+  if (normalized === "phosphorus") return "phosphorus";
+  if (normalized === "potassium") return "potassium";
+  if (normalized === "moisture") return "moisture";
 
   return null;
 }
@@ -725,11 +744,11 @@ function formatDateOnly(value: string): string {
     return value;
   }
 
-  return new Intl.DateTimeFormat("id-ID", {
+  return formatDateTime(date, {
     day: "2-digit",
     month: "short",
     year: "numeric"
-  }).format(date);
+  });
 }
 
 function toDateInputValue(value: Date): string {

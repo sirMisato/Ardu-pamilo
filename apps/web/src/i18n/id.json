@@ -60,7 +60,50 @@
     "thisMonth": "Bulan Ini"
   },
   "dashboard": {
-    "title": "Dasbor"
+    "area": "Luas",
+    "areaMonitored": "{area} ha dipantau",
+    "cropDetails": "Detail Tanaman",
+    "cropAge": "Umur Tanaman",
+    "cropNotSelected": "Tanaman belum dipilih",
+    "cropType": "Jenis Tanaman",
+    "customMetric": "Metrik Custom",
+    "dashboardStatusSummary": "Ringkasan status dashboard",
+    "deltaFromYesterday": "{value} dari kemarin",
+    "dynamicMqttFields": "Field payload MQTT dinamis",
+    "estimatedHarvest": "Estimasi Panen",
+    "field": "Lahan",
+    "fieldMapMonitoring": "Pemantauan Peta Lahan",
+    "fieldMonitoring": "Pemantauan Lahan",
+    "growthProgress": "Progres Pertumbuhan",
+    "harvest": "Panen",
+    "latestMetricSet": "Kumpulan Metrik Terbaru",
+    "liveNodes": "{count} node aktif",
+    "metricCount": "{count} metrik",
+    "metricStatus": {
+      "critical": "Kritis",
+      "normal": "Normal",
+      "warning": "Waspada"
+    },
+    "monitoredZonesFromMasterData": "Zona dari Data Induk",
+    "noTelemetryYet": "Belum ada telemetry",
+    "plantingDate": "Tanggal Tanam",
+    "region": "Wilayah",
+    "reproductive": "Generatif",
+    "sensorRealtime": "Sensor Realtime",
+    "statusConnecting": "Menghubungkan",
+    "statusError": "Error",
+    "statusOffline": "Offline",
+    "statusReconnecting": "Menyambung ulang",
+    "statusStandby": "Standby",
+    "streamCheckNeeded": "Stream perlu dicek",
+    "syncTelemetryNodes": "{count} node telemetry",
+    "title": "Dasbor",
+    "updatedAt": "Update terakhir {time}",
+    "vegetative": "Vegetatif",
+    "waitingLatestSensorTelemetry": "Menunggu telemetry sensor terbaru.",
+    "waitingTelemetry": "Menunggu telemetry",
+    "weatherFallback": "BMKG fallback: {message}",
+    "weatherFallbackDefault": "menggunakan data cadangan."
   },
   "devices": {
     "title": "Perangkat"
@@ -98,16 +141,37 @@
   },
   "metric": {
     "battery": "Baterai",
-    "conductivity": "Konduktivitas",
+    "conductivity": "Konduktivitas Listrik",
     "humidity": "Kelembapan",
-    "moisture": "Kelembapan Tanah",
+    "moisture": "Kelembapan tanah",
     "nitrogen": "Nitrogen",
-    "ph": "pH",
+    "ph": "pH tanah",
     "phosphorus": "Fosfor",
     "potassium": "Kalium",
     "rainfall": "Curah Hujan",
-    "soil_temperature": "Suhu Tanah",
+    "soil_temperature": "Suhu tanah",
     "temperature": "Suhu"
+  },
+  "fieldMap": {
+    "connection": {
+      "connected": "Realtime backend aktif",
+      "connecting": "Stream backend terhubung",
+      "error": "Stream backend error",
+      "history": "Telemetry tersinkron",
+      "offline": "Stream backend offline",
+      "reconnecting": "Stream backend menyambung ulang",
+      "standby": "Realtime standby",
+      "waiting": "Menunggu telemetry"
+    },
+    "details": "Detail",
+    "layerSatellite": "Satelit",
+    "layerSatelliteTitle": "Tampilkan citra satelit",
+    "layerStreet": "Peta",
+    "layerStreetTitle": "Tampilkan peta jalan",
+    "offline": "Offline",
+    "online": "Online",
+    "reports": "Laporan",
+    "waitingMqttTelemetry": "Menunggu telemetry MQTT."
   },
   "mqtt": {
     "title": "MQTT"

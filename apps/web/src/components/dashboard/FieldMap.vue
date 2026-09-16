@@ -39,6 +39,9 @@
 import L, { type LatLngExpression, type Map, type Marker, type Polygon, type TileLayer } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { formatDateTime, formatNumber } from "../../i18n/formatters";
+import { getMetricLabel, getMetricUnit } from "../../i18n/metrics";
+import { useI18n } from "../../i18n";
 import { useTenantProfileStore } from "../../stores/tenantProfileStore";
 import { useTelemetryStore } from "../../stores/telemetryStore";
 
@@ -46,6 +49,7 @@ type MapLayerKey = "street" | "satellite";
 
 const telemetryStore = useTelemetryStore();
 const tenantProfileStore = useTenantProfileStore();
+const { locale, t } = useI18n();
 const mapElement = ref<HTMLDivElement | null>(null);
 const activeMapLayer = ref<MapLayerKey>("street");
 const defaultCenter: LatLngExpression = [-7.5666, 110.8167];
@@ -68,46 +72,46 @@ const activeSensorPosition = computed<LatLngExpression | null>(() => {
   return activePolygonCenter.value;
 });
 
-const mapLayerOptions: Array<{ key: MapLayerKey; label: string; title: string }> = [
+const mapLayerOptions = computed<Array<{ key: MapLayerKey; label: string; title: string }>>(() => [
   {
     key: "street",
-    label: "Peta",
-    title: "Tampilkan peta jalan"
+    label: t("fieldMap.layerStreet"),
+    title: t("fieldMap.layerStreetTitle")
   },
   {
     key: "satellite",
-    label: "Satelit",
-    title: "Tampilkan citra satelit"
+    label: t("fieldMap.layerSatellite"),
+    title: t("fieldMap.layerSatelliteTitle")
   }
-];
+]);
 
 const connectionLabel = computed(() => {
   const state = telemetryStore.connectionState;
   if (state === "connected") {
-    return "Realtime backend aktif";
+    return t("fieldMap.connection.connected");
   }
 
   if (state === "reconnecting") {
-    return "Stream backend reconnecting";
+    return t("fieldMap.connection.reconnecting");
   }
 
   if (state === "connecting") {
-    return "Stream backend connecting";
+    return t("fieldMap.connection.connecting");
   }
 
   if (state === "history") {
-    return telemetryStore.deviceCount > 0 ? "Telemetry tersinkron" : "Menunggu telemetry";
+    return telemetryStore.deviceCount > 0 ? t("fieldMap.connection.history") : t("fieldMap.connection.waiting");
   }
 
   if (state === "error") {
-    return telemetryStore.errorMessage ?? "Stream backend error";
+    return telemetryStore.errorMessage ?? t("fieldMap.connection.error");
   }
 
   if (state === "offline") {
-    return "Stream backend offline";
+    return t("fieldMap.connection.offline");
   }
 
-  return "Realtime standby";
+  return t("fieldMap.connection.standby");
 });
 
 const connectionToneClass = computed(() => {
@@ -136,6 +140,7 @@ onBeforeUnmount(() => {
 
 watch(
   () => [
+    locale.value,
     telemetryStore.connectionState,
     activeDeviceId.value,
     activeSensorPosition.value?.toString() ?? "",
@@ -150,6 +155,11 @@ watch(
 
 watch(fieldTooltip, (value) => {
   polygon?.setTooltipContent(value);
+});
+
+watch(locale, () => {
+  polygon?.setTooltipContent(fieldTooltip.value);
+  refreshPopup();
 });
 
 watch(activeFieldPolygon, () => {
@@ -285,17 +295,19 @@ function createSensorIcon(deviceId = activeDeviceId.value): L.DivIcon {
 function createPopupHtml(deviceId: string): string {
   const device = telemetryStore.deviceById(deviceId);
   const metrics = telemetryStore.latestMetricsForDevice(deviceId);
-  const statusText = device?.online ? "Online" : "Offline";
+  const statusText = device?.online ? t("fieldMap.online") : t("fieldMap.offline");
   const statusClass = device?.online ? "bg-field-mint/10 text-teal-700" : "bg-rose-100 text-rose-600";
-  const lastSeen = device?.lastSeenAt ? `Update terakhir ${formatTime(device.lastSeenAt)}` : "No telemetry yet";
+  const lastSeen = device?.lastSeenAt
+    ? t("dashboard.updatedAt", { time: formatTime(device.lastSeenAt) })
+    : t("dashboard.noTelemetryYet");
   const metricRows = metrics.length > 0
     ? metrics.map((metric) => `
       <div class="flex items-center justify-between gap-3 rounded-xl border border-white/80 bg-white/60 px-3 py-2">
-        <span class="truncate text-xs font-medium text-slate-500">${escapeHtml(metric.label)}</span>
-        <strong class="shrink-0 text-xs font-semibold text-slate-800">${escapeHtml(metric.displayValue)}</strong>
+        <span class="truncate text-xs font-medium text-slate-500">${escapeHtml(getMetricLabel(metric.key))}</span>
+        <strong class="shrink-0 text-xs font-semibold text-slate-800">${escapeHtml(formatMetricDisplayValue(metric))}</strong>
       </div>
     `).join("")
-    : `<p class="rounded-xl border border-dashed border-white/80 bg-white/50 px-3 py-2 text-xs font-medium text-slate-500">Waiting for MQTT telemetry.</p>`;
+    : `<p class="rounded-xl border border-dashed border-white/80 bg-white/50 px-3 py-2 text-xs font-medium text-slate-500">${escapeHtml(t("fieldMap.waitingMqttTelemetry"))}</p>`;
 
   return `
     <section class="z-[400] w-72 rounded-2xl border border-white/80 bg-white/85 p-4 text-slate-700 shadow-xl backdrop-blur-lg md:p-5">
@@ -308,18 +320,32 @@ function createPopupHtml(deviceId: string): string {
       </div>
       <div class="mt-4 grid gap-2">${metricRows}</div>
       <div class="mt-4 flex gap-2">
-        <button class="min-h-9 flex-1 rounded-xl border border-field-mint/30 bg-field-mint/10 text-xs font-semibold text-teal-700" type="button">Details</button>
-        <button class="min-h-9 flex-1 rounded-xl border border-field-mint/30 bg-field-mint/10 text-xs font-semibold text-teal-700" type="button">Laporan</button>
+        <button class="min-h-9 flex-1 rounded-xl border border-field-mint/30 bg-field-mint/10 text-xs font-semibold text-teal-700" type="button">${escapeHtml(t("fieldMap.details"))}</button>
+        <button class="min-h-9 flex-1 rounded-xl border border-field-mint/30 bg-field-mint/10 text-xs font-semibold text-teal-700" type="button">${escapeHtml(t("fieldMap.reports"))}</button>
       </div>
     </section>
   `;
 }
 
 function formatTime(value: string): string {
-  return new Intl.DateTimeFormat("id-ID", {
+  return formatDateTime(value, {
     dateStyle: "short",
     timeStyle: "medium"
-  }).format(new Date(value));
+  });
+}
+
+function formatMetricDisplayValue(metric: { key: string; unit: string; value: boolean | number | string | null }): string {
+  const unit = getMetricUnit(metric.key, metric.unit);
+
+  if (metric.value === null) {
+    return "-";
+  }
+
+  if (typeof metric.value === "number") {
+    return `${formatNumber(metric.value, { maximumFractionDigits: 2 })} ${unit}`.trim();
+  }
+
+  return `${String(metric.value)} ${unit}`.trim();
 }
 
 function escapeHtml(value: string): string {
