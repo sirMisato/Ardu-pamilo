@@ -10,7 +10,7 @@
           <p class="text-xs text-amber-700">License Control</p>
         </div>
       </div>
-      <nav class="space-y-1 px-3 py-4" aria-label="Super admin navigation">
+      <nav class="space-y-1 px-3 py-4" :aria-label="t('layout.superAdminNav')">
         <RouterLink
           v-for="item in adminItems"
           :key="item.to"
@@ -19,7 +19,7 @@
           :class="route.path === item.to ? 'bg-amber-300/20 text-amber-700 ring-1 ring-amber-300/40' : ''"
         >
           <component :is="item.icon" class="h-5 w-5" />
-          <span>{{ item.label }}</span>
+          <span>{{ t(item.labelKey) }}</span>
         </RouterLink>
       </nav>
     </aside>
@@ -31,9 +31,12 @@
             <h1 class="text-xl font-semibold tracking-normal text-slate-800">{{ title }}</h1>
             <p class="mt-1 text-sm text-slate-500">{{ subtitle }}</p>
           </div>
-          <button class="rounded-2xl border border-field-mint/40 bg-white/60 px-4 py-2 text-sm font-semibold text-teal-700 shadow-glass-soft hover:bg-field-mint/10" type="button" @click="logoutToTenant">
-            Tenant Portal
-          </button>
+          <div class="flex items-center gap-2">
+            <LanguageSelect />
+            <button class="rounded-2xl border border-field-mint/40 bg-white/60 px-4 py-2 text-sm font-semibold text-teal-700 shadow-glass-soft hover:bg-field-mint/10" type="button" @click="logoutToTenant">
+              {{ t("layout.tenantPortal") }}
+            </button>
+          </div>
         </div>
       </header>
       <main class="px-4 pb-8 pt-4 sm:px-6 lg:px-8">
@@ -47,16 +50,19 @@
 import { BadgeCheck, LayoutDashboard, ShieldCheck } from "@lucide/vue";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { routeMetaText, useI18n } from "../../i18n";
 import { useAuthStore } from "../../stores/authStore";
+import LanguageSelect from "../i18n/LanguageSelect.vue";
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
-const title = computed(() => typeof route.meta.title === "string" ? route.meta.title : "Super Admin");
-const subtitle = computed(() => typeof route.meta.subtitle === "string" ? route.meta.subtitle : "SaaS control plane");
+const { t } = useI18n();
+const title = computed(() => routeMetaText(route, "title"));
+const subtitle = computed(() => routeMetaText(route, "subtitle"));
 const adminItems = [
-  { to: "/superadmin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/superadmin/licenses", label: "License Management", icon: BadgeCheck }
+  { to: "/superadmin/dashboard", labelKey: "navigation.dashboard", icon: LayoutDashboard },
+  { to: "/superadmin/licenses", labelKey: "navigation.licenses", icon: BadgeCheck }
 ];
 
 async function logoutToTenant(): Promise<void> {

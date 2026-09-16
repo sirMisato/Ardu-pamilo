@@ -1,0 +1,161 @@
+{
+  "ai": {
+    "title": "AI Rekomendasi"
+  },
+  "auth": {
+    "adminEmail": "Admin Email",
+    "adminLoginFailed": "Login admin gagal. Periksa kembali akun dan kata sandi.",
+    "adminLoginSubtitle": "Silakan masuk ke control plane PAMILO",
+    "adminSignIn": "Masuk Admin",
+    "apiUnavailable": "API {target} belum dapat dihubungi.",
+    "backToTenantPortal": "Kembali ke Tenant Portal",
+    "createAccount": "Daftar Sekarang",
+    "emailOrUsername": "Email atau Username",
+    "forgotPassword": "Lupa Kata Sandi?",
+    "hidePassword": "Sembunyikan password",
+    "loginFailed": "Login gagal. Periksa kembali akun dan kata sandi.",
+    "noAccount": "Belum punya akun?",
+    "password": "Kata Sandi",
+    "showPassword": "Tampilkan password",
+    "superAdminPortal": "Portal Super Admin",
+    "tenantLoginSubtitle": "Silakan masuk ke akun tenant Anda",
+    "verifying": "Memverifikasi..."
+  },
+  "charts": {
+    "title": "Grafik"
+  },
+  "common": {
+    "add": "Tambah",
+    "allDevices": "Semua Device",
+    "allStatuses": "Semua Status",
+    "allZones": "Semua Zona",
+    "apply": "Terapkan",
+    "back": "Kembali",
+    "cancel": "Batal",
+    "delete": "Hapus",
+    "deleting": "Menghapus",
+    "edit": "Edit",
+    "failed": "Gagal",
+    "loading": "Memuat",
+    "logout": "Logout",
+    "noData": "Belum ada data",
+    "refresh": "Refresh",
+    "save": "Simpan",
+    "saving": "Menyimpan",
+    "search": "Cari",
+    "signIn": "Masuk",
+    "signingIn": "Masuk...",
+    "success": "Berhasil",
+    "thisMonth": "Bulan Ini"
+  },
+  "dashboard": {
+    "title": "Dashboard"
+  },
+  "devices": {
+    "title": "Perangkat"
+  },
+  "format": {
+    "cropAgeUnavailable": "HST belum tersedia",
+    "dayAfterPlanting": "{count} HST",
+    "dayAfterPlantingShort": "HST",
+    "durationDay": "{count} hari",
+    "durationHour": "{count} jam",
+    "durationMinute": "{count} menit",
+    "nullValue": "-"
+  },
+  "i18n": {
+    "ariaLabel": "Pilih bahasa",
+    "optionEn": "EN - English",
+    "optionId": "ID - Indonesia"
+  },
+  "layout": {
+    "collapseSidebar": "Sembunyikan sidebar",
+    "licenseControl": "License Control",
+    "notifications": "Notifikasi",
+    "openNavigation": "Buka navigasi",
+    "profileSettings": "Profil & Pengaturan",
+    "search": "Cari",
+    "showSidebar": "Tampilkan sidebar",
+    "superAdminNav": "Navigasi super admin",
+    "tenantNav": "Navigasi utama",
+    "tenantOwner": "Tenant Owner",
+    "tenantPortal": "Tenant Portal"
+  },
+  "masterData": {
+    "title": "Master Data"
+  },
+  "metric": {
+    "battery": "Baterai",
+    "conductivity": "Konduktivitas",
+    "humidity": "Kelembapan",
+    "moisture": "Kelembapan Tanah",
+    "nitrogen": "Nitrogen",
+    "ph": "pH",
+    "phosphorus": "Fosfor",
+    "potassium": "Kalium",
+    "rainfall": "Curah Hujan",
+    "soil_temperature": "Suhu Tanah",
+    "temperature": "Suhu"
+  },
+  "mqtt": {
+    "title": "MQTT"
+  },
+  "navigation": {
+    "ai": "AI Rekomendasi",
+    "aiShort": "AI",
+    "charts": "Grafik",
+    "chartsShort": "Grafik",
+    "dashboard": "Dashboard",
+    "dashboardShort": "Home",
+    "devices": "Perangkat",
+    "devicesShort": "Device",
+    "licenses": "License Management",
+    "masterData": "Master Data",
+    "masterDataShort": "Master",
+    "mqtt": "MQTT",
+    "report": "Report",
+    "settings": "Pengaturan",
+    "settingsShort": "Setelan",
+    "tenantUsers": "User Tenant",
+    "tenantUsersShort": "User",
+    "weather": "Weather Station",
+    "weatherShort": "Cuaca"
+  },
+  "notifications": {
+    "title": "Notifikasi"
+  },
+  "reports": {
+    "title": "Report"
+  },
+  "routes": {
+    "aiSubtitle": "Analisis lahan, cuaca, telemetry, dan histori panen",
+    "chartSubtitle": "Dynamic charts from MQTT metric keys",
+    "dashboardSubtitle": "Realtime smart farming overview",
+    "devicesSubtitle": "Tambah dan kelola daftar perangkat",
+    "masterDataSubtitle": "Crop type, zona area, dan threshold tanaman",
+    "mqttSubtitle": "Tambah topic dan daftar koneksi sensor",
+    "reportSubtitle": "Exportable telemetry and field logs",
+    "settingsSubtitle": "Profil, tampilan, notifikasi, keamanan",
+    "superadminDashboardSubtitle": "Total tenants, active licenses, system health",
+    "superadminDashboardTitle": "System Overview",
+    "tenantUsersSubtitle": "Create user read-only untuk akses dashboard dan report",
+    "weatherSubtitle": "Prakiraan cuaca, laporan bulanan, konfigurasi"
+  },
+  "settings": {
+    "displayPreferenceSaved": "Preferensi tampilan berhasil disimpan.",
+    "displayPreferenceUpdateFailed": "Gagal memperbarui preferensi tampilan.",
+    "title": "Pengaturan"
+  },
+  "superadmin": {
+    "title": "Super Admin"
+  },
+  "tenantUsers": {
+    "title": "User Tenant"
+  },
+  "validation": {
+    "invalidLocale": "Bahasa tidak didukung. Menggunakan Bahasa Indonesia."
+  },
+  "weather": {
+    "title": "Weather Station"
+  }
+}

@@ -44,6 +44,8 @@ const routes: RouteRecordRaw[] = [
         name: "tenant-dashboard",
         component: Dashboard,
         meta: {
+          titleKey: "dashboard.title",
+          subtitleKey: "routes.dashboardSubtitle",
           title: "Dashboard",
           subtitle: "Realtime smart farming overview"
         }
@@ -53,6 +55,8 @@ const routes: RouteRecordRaw[] = [
         name: "tenant-chart",
         component: Chart,
         meta: {
+          titleKey: "charts.title",
+          subtitleKey: "routes.chartSubtitle",
           title: "Grafik",
           subtitle: "Dynamic charts from MQTT metric keys"
         }
@@ -62,6 +66,8 @@ const routes: RouteRecordRaw[] = [
         name: "tenant-report",
         component: Report,
         meta: {
+          titleKey: "reports.title",
+          subtitleKey: "routes.reportSubtitle",
           title: "Report",
           subtitle: "Exportable telemetry and field logs"
         }
@@ -71,6 +77,8 @@ const routes: RouteRecordRaw[] = [
         name: "tenant-ai-recommendation",
         component: AiRecommendation,
         meta: {
+          titleKey: "ai.title",
+          subtitleKey: "routes.aiSubtitle",
           title: "AI Rekomendasi",
           subtitle: "Analisis lahan, cuaca, telemetry, dan histori panen"
         }
@@ -80,6 +88,8 @@ const routes: RouteRecordRaw[] = [
         name: "tenant-weather",
         component: Weather,
         meta: {
+          titleKey: "weather.title",
+          subtitleKey: "routes.weatherSubtitle",
           title: "Weather Station",
           subtitle: "Prakiraan cuaca, laporan bulanan, konfigurasi"
         }
@@ -89,6 +99,8 @@ const routes: RouteRecordRaw[] = [
         name: "tenant-mqtt",
         component: MQTT,
         meta: {
+          titleKey: "mqtt.title",
+          subtitleKey: "routes.mqttSubtitle",
           title: "MQTT",
           subtitle: "Tambah topic dan daftar koneksi sensor"
         }
@@ -98,6 +110,8 @@ const routes: RouteRecordRaw[] = [
         name: "tenant-devices",
         component: Devices,
         meta: {
+          titleKey: "devices.title",
+          subtitleKey: "routes.devicesSubtitle",
           title: "Perangkat",
           subtitle: "Tambah dan kelola daftar perangkat"
         }
@@ -107,6 +121,8 @@ const routes: RouteRecordRaw[] = [
         name: "tenant-master-data",
         component: MasterData,
         meta: {
+          titleKey: "masterData.title",
+          subtitleKey: "routes.masterDataSubtitle",
           title: "Master Data",
           subtitle: "Crop type, zona area, dan threshold tanaman"
         }
@@ -116,6 +132,8 @@ const routes: RouteRecordRaw[] = [
         name: "tenant-users",
         component: TenantUsers,
         meta: {
+          titleKey: "tenantUsers.title",
+          subtitleKey: "routes.tenantUsersSubtitle",
           title: "User Tenant",
           subtitle: "Create user read-only untuk akses dashboard dan report"
         }
@@ -125,6 +143,8 @@ const routes: RouteRecordRaw[] = [
         name: "tenant-settings",
         component: Settings,
         meta: {
+          titleKey: "settings.title",
+          subtitleKey: "routes.settingsSubtitle",
           title: "Pengaturan",
           subtitle: "Profil, tampilan, notifikasi, keamanan"
         }
@@ -153,6 +173,8 @@ const routes: RouteRecordRaw[] = [
         name: "superadmin-dashboard",
         component: SuperAdminDashboard,
         meta: {
+          titleKey: "routes.superadminDashboardTitle",
+          subtitleKey: "routes.superadminDashboardSubtitle",
           title: "System Overview",
           subtitle: "Total tenants, active licenses, system health"
         }
@@ -162,6 +184,8 @@ const routes: RouteRecordRaw[] = [
         name: "superadmin-licenses",
         component: SuperAdminLicenses,
         meta: {
+          titleKey: "navigation.licenses",
+          subtitleKey: "routes.superadminDashboardSubtitle",
           title: "License Management",
           subtitle: "Create, revoke, and set SaaS quotas"
         }

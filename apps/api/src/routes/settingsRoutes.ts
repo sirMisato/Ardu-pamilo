@@ -7,6 +7,7 @@ import { requireTenantContext, verifyTenant, verifyTenantAdmin } from "../middle
 
 const displayPreferencesSchema = z.object({
   compactMode: z.boolean().optional(),
+  language: z.enum(["id", "en"]).optional(),
   reduceMotion: z.boolean().optional(),
   theme: z.enum(["dark", "light", "system"]).optional()
 });
@@ -36,6 +37,7 @@ const resetSchema = z.object({
 
 interface DisplayPreferences {
   compactMode: boolean;
+  language?: "id" | "en";
   reduceMotion: boolean;
   theme: "dark" | "light" | "system";
 }
@@ -51,6 +53,7 @@ interface NotificationPreferences {
 
 const defaultDisplayPreferences: DisplayPreferences = {
   compactMode: false,
+  language: undefined,
   reduceMotion: false,
   theme: "dark"
 };
@@ -336,6 +339,7 @@ function normalizeDisplayPreferences(value: JsonValue | string): DisplayPreferen
 
   return {
     compactMode: typeof parsed.compactMode === "boolean" ? parsed.compactMode : defaultDisplayPreferences.compactMode,
+    language: isLanguagePreference(parsed.language) ? parsed.language : defaultDisplayPreferences.language,
     reduceMotion: typeof parsed.reduceMotion === "boolean" ? parsed.reduceMotion : defaultDisplayPreferences.reduceMotion,
     theme: isDisplayTheme(parsed.theme) ? parsed.theme : defaultDisplayPreferences.theme
   };
@@ -369,6 +373,10 @@ function parseJsonObject(value: JsonValue | string): Record<string, unknown> {
 
 function isDisplayTheme(value: unknown): value is DisplayPreferences["theme"] {
   return value === "dark" || value === "light" || value === "system";
+}
+
+function isLanguagePreference(value: unknown): value is NonNullable<DisplayPreferences["language"]> {
+  return value === "id" || value === "en";
 }
 
 function isDuplicateEntryError(error: unknown): boolean {

@@ -2,7 +2,7 @@
   <header class="sticky top-0 z-50 border-b border-white/50 bg-white/60 pt-[env(safe-area-inset-top)] text-slate-800 shadow-sm backdrop-blur-xl">
     <div class="flex min-h-14 items-center justify-between gap-3 px-3 sm:px-4 md:min-h-16 md:px-6 lg:px-8">
       <div class="flex min-w-0 items-center gap-3">
-        <button class="hidden rounded-full bg-white/50 p-2 text-slate-600 shadow-sm transition-all hover:bg-white/80 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 md:inline-flex lg:hidden" type="button" aria-label="Open navigation" @click="emit('toggleSidebar')">
+        <button class="hidden rounded-full bg-white/50 p-2 text-slate-600 shadow-sm transition-all hover:bg-white/80 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 md:inline-flex lg:hidden" type="button" :aria-label="t('layout.openNavigation')" @click="emit('toggleSidebar')">
           <Menu class="h-5 w-5" />
         </button>
         <div class="min-w-0">
@@ -12,10 +12,11 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <button class="hidden rounded-full bg-white/50 p-2 text-slate-600 shadow-sm transition-all hover:bg-white/80 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 md:inline-flex" type="button" aria-label="Search">
+        <LanguageSelect />
+        <button class="hidden rounded-full bg-white/50 p-2 text-slate-600 shadow-sm transition-all hover:bg-white/80 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 md:inline-flex" type="button" :aria-label="t('layout.search')">
           <Search class="h-5 w-5" />
         </button>
-        <button class="rounded-full bg-white/50 p-2 text-slate-600 shadow-sm transition-all hover:bg-white/80 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40" type="button" aria-label="Notifications">
+        <button class="rounded-full bg-white/50 p-2 text-slate-600 shadow-sm transition-all hover:bg-white/80 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40" type="button" :aria-label="t('layout.notifications')">
           <Bell class="h-5 w-5" />
         </button>
         <div ref="profileMenuElement" class="relative ml-1">
@@ -66,7 +67,7 @@
                   @click="openProfileSettings"
                 >
                   <Settings class="h-4 w-4 text-emerald-700" />
-                  Profil & Pengaturan
+                  {{ t("layout.profileSettings") }}
                 </button>
                 <button
                   class="flex w-full items-center gap-3 rounded-xl bg-transparent px-4 py-2.5 text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-50"
@@ -75,7 +76,7 @@
                   @click="logout"
                 >
                   <LogOut class="h-4 w-4" />
-                  Logout
+                  {{ t("common.logout") }}
                 </button>
               </div>
             </div>
@@ -91,7 +92,9 @@ import { Bell, ChevronDown, LogOut, Menu, Search, Settings } from "@lucide/vue";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { appEnvironment } from "../../config/environment";
+import { routeMetaText, useI18n } from "../../i18n";
 import { useAuthStore } from "../../stores/authStore";
+import LanguageSelect from "../i18n/LanguageSelect.vue";
 
 const emit = defineEmits<{
   toggleSidebar: [];
@@ -100,15 +103,16 @@ const emit = defineEmits<{
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const { t } = useI18n();
 const profileMenuElement = ref<HTMLDivElement | null>(null);
 const profileMenuOpen = ref(false);
-const title = computed(() => typeof route.meta.title === "string" ? route.meta.title : "PAMILO");
-const subtitle = computed(() => typeof route.meta.subtitle === "string" ? route.meta.subtitle : "Smart Farming SaaS");
+const title = computed(() => routeMetaText(route, "title"));
+const subtitle = computed(() => routeMetaText(route, "subtitle"));
 const apiHost = computed(() => {
   try {
     return new URL(appEnvironment.apiBaseUrl).host;
   } catch {
-    return "Tenant Owner";
+    return t("layout.tenantOwner");
   }
 });
 const profileName = computed(() => authStore.tenant?.accountName ?? "Pamilo Farm");

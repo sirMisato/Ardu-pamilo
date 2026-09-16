@@ -1,5 +1,6 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
+import { applyLocaleFromIdentity, resetLocaleToGuest } from "../i18n";
 import {
   clearAccessToken,
   getAccessToken,
@@ -75,6 +76,7 @@ export const useAuthStore = defineStore("auth", () => {
       id: payload.tenant_id,
       role: payload.role
     } : null);
+    applyLocaleFromCurrentAuth();
     isReady.value = true;
   }
 
@@ -88,6 +90,7 @@ export const useAuthStore = defineStore("auth", () => {
     user.value = response.user;
     tenant.value = response.tenant;
     persistProfile();
+    applyLocaleFromCurrentAuth();
     return response;
   }
 
@@ -103,6 +106,7 @@ export const useAuthStore = defineStore("auth", () => {
       role: "super_admin"
     };
     persistProfile();
+    applyLocaleFromCurrentAuth();
     return response;
   }
 
@@ -111,6 +115,7 @@ export const useAuthStore = defineStore("auth", () => {
     localStorage.removeItem(authProfileStorageKey);
     accessToken.value = null;
     clearSessionState();
+    resetLocaleToGuest();
   }
 
   function applyTenantProfile(profile: { email: string; name: string }): void {
@@ -138,6 +143,19 @@ export const useAuthStore = defineStore("auth", () => {
     }));
   }
 
+  function applyLocaleFromCurrentAuth(accountPreference?: string | null): void {
+    if (!user.value) {
+      resetLocaleToGuest();
+      return;
+    }
+
+    applyLocaleFromIdentity({
+      role: user.value.role === "super_admin" ? "superadmin" : "tenant",
+      tenantId: tenant.value?.id ?? null,
+      userKey: user.value.email
+    }, accountPreference);
+  }
+
   return {
     accessToken,
     applyTenantProfile,
@@ -150,6 +168,7 @@ export const useAuthStore = defineStore("auth", () => {
     loginSuperAdmin,
     loginTenant,
     logout,
+    applyLocaleFromCurrentAuth,
     restoreFromStorage,
     tenant,
     user

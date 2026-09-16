@@ -1,5 +1,6 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
+import type { LocaleCode } from "../i18n";
 import { ApiClientError, apiGet, apiPost, apiPut } from "../services/apiClient";
 import { useAuthStore } from "./authStore";
 
@@ -12,6 +13,7 @@ export interface TenantProfileSettings {
 
 export interface DisplayPreferences {
   compactMode: boolean;
+  language?: LocaleCode;
   reduceMotion: boolean;
   theme: DisplayTheme;
 }
@@ -44,6 +46,7 @@ export const useSettingsStore = defineStore("settings", () => {
   });
   const displayPreferences = ref<DisplayPreferences>({
     compactMode: false,
+    language: undefined,
     reduceMotion: false,
     theme: "dark"
   });
@@ -68,6 +71,7 @@ export const useSettingsStore = defineStore("settings", () => {
     try {
       const response = await apiGet<TenantSettingsResponse>("/api/v1/settings");
       applySettingsResponse(response);
+      useAuthStore().applyLocaleFromCurrentAuth(response.displayPreferences.language);
     } catch (error) {
       errorMessage.value = normalizeApiError(error, "Gagal mengambil pengaturan tenant.");
     } finally {
@@ -109,6 +113,18 @@ export const useSettingsStore = defineStore("settings", () => {
       return false;
     } finally {
       isSaving.value = false;
+    }
+  }
+
+  async function updateLanguagePreference(language: LocaleCode): Promise<boolean> {
+    try {
+      const response = await apiPut<{ displayPreferences: DisplayPreferences }>("/api/v1/settings/display", {
+        language
+      });
+      displayPreferences.value = response.displayPreferences;
+      return true;
+    } catch {
+      return false;
     }
   }
 
@@ -193,6 +209,7 @@ export const useSettingsStore = defineStore("settings", () => {
     resetSystem,
     successMessage,
     updateDisplayPreferences,
+    updateLanguagePreference,
     updateNotificationPreferences,
     updateProfile
   };

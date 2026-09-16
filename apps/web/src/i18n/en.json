@@ -1,0 +1,161 @@
+{
+  "ai": {
+    "title": "AI Recommendations"
+  },
+  "auth": {
+    "adminEmail": "Admin Email",
+    "adminLoginFailed": "Admin login failed. Check the account and password again.",
+    "adminLoginSubtitle": "Sign in to the PAMILO control plane",
+    "adminSignIn": "Admin Sign In",
+    "apiUnavailable": "API {target} cannot be reached yet.",
+    "backToTenantPortal": "Back to Tenant Portal",
+    "createAccount": "Create Account",
+    "emailOrUsername": "Email or Username",
+    "forgotPassword": "Forgot Password?",
+    "hidePassword": "Hide password",
+    "loginFailed": "Login failed. Check the account and password again.",
+    "noAccount": "Do not have an account yet?",
+    "password": "Password",
+    "showPassword": "Show password",
+    "superAdminPortal": "Super Admin Portal",
+    "tenantLoginSubtitle": "Sign in to your tenant account",
+    "verifying": "Verifying..."
+  },
+  "charts": {
+    "title": "Charts"
+  },
+  "common": {
+    "add": "Add",
+    "allDevices": "All Devices",
+    "allStatuses": "All Statuses",
+    "allZones": "All Zones",
+    "apply": "Apply",
+    "back": "Back",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleting": "Deleting",
+    "edit": "Edit",
+    "failed": "Failed",
+    "loading": "Loading",
+    "logout": "Log Out",
+    "noData": "No data yet",
+    "refresh": "Refresh",
+    "save": "Save",
+    "saving": "Saving",
+    "search": "Search",
+    "signIn": "Sign In",
+    "signingIn": "Signing in...",
+    "success": "Success",
+    "thisMonth": "This Month"
+  },
+  "dashboard": {
+    "title": "Dashboard"
+  },
+  "devices": {
+    "title": "Devices"
+  },
+  "format": {
+    "cropAgeUnavailable": "DAP not available yet",
+    "dayAfterPlanting": "{count} DAP",
+    "dayAfterPlantingShort": "DAP",
+    "durationDay": "{count} days",
+    "durationHour": "{count} hours",
+    "durationMinute": "{count} minutes",
+    "nullValue": "-"
+  },
+  "i18n": {
+    "ariaLabel": "Select language",
+    "optionEn": "EN - English",
+    "optionId": "ID - Indonesia"
+  },
+  "layout": {
+    "collapseSidebar": "Collapse sidebar",
+    "licenseControl": "License Control",
+    "notifications": "Notifications",
+    "openNavigation": "Open navigation",
+    "profileSettings": "Profile & Settings",
+    "search": "Search",
+    "showSidebar": "Show sidebar",
+    "superAdminNav": "Super admin navigation",
+    "tenantNav": "Main navigation",
+    "tenantOwner": "Tenant Owner",
+    "tenantPortal": "Tenant Portal"
+  },
+  "masterData": {
+    "title": "Master Data"
+  },
+  "metric": {
+    "battery": "Battery",
+    "conductivity": "Conductivity",
+    "humidity": "Humidity",
+    "moisture": "Soil Moisture",
+    "nitrogen": "Nitrogen",
+    "ph": "pH",
+    "phosphorus": "Phosphorus",
+    "potassium": "Potassium",
+    "rainfall": "Rainfall",
+    "soil_temperature": "Soil Temperature",
+    "temperature": "Temperature"
+  },
+  "mqtt": {
+    "title": "MQTT"
+  },
+  "navigation": {
+    "ai": "AI Recommendations",
+    "aiShort": "AI",
+    "charts": "Charts",
+    "chartsShort": "Charts",
+    "dashboard": "Dashboard",
+    "dashboardShort": "Home",
+    "devices": "Devices",
+    "devicesShort": "Devices",
+    "licenses": "License Management",
+    "masterData": "Master Data",
+    "masterDataShort": "Master",
+    "mqtt": "MQTT",
+    "report": "Reports",
+    "settings": "Settings",
+    "settingsShort": "Settings",
+    "tenantUsers": "Tenant Users",
+    "tenantUsersShort": "Users",
+    "weather": "Weather Station",
+    "weatherShort": "Weather"
+  },
+  "notifications": {
+    "title": "Notifications"
+  },
+  "reports": {
+    "title": "Reports"
+  },
+  "routes": {
+    "aiSubtitle": "Field, weather, telemetry, and harvest history analysis",
+    "chartSubtitle": "Dynamic charts from MQTT metric keys",
+    "dashboardSubtitle": "Realtime smart farming overview",
+    "devicesSubtitle": "Add and manage device lists",
+    "masterDataSubtitle": "Crop types, zones and areas, and crop thresholds",
+    "mqttSubtitle": "Add topics and review sensor connections",
+    "reportSubtitle": "Exportable telemetry and field logs",
+    "settingsSubtitle": "Profile, display, notifications, and security",
+    "superadminDashboardSubtitle": "Total tenants, active licenses, system health",
+    "superadminDashboardTitle": "System Overview",
+    "tenantUsersSubtitle": "Create read-only users for dashboard and report access",
+    "weatherSubtitle": "Weather forecasts, monthly reports, and configuration"
+  },
+  "settings": {
+    "displayPreferenceSaved": "Display preferences saved.",
+    "displayPreferenceUpdateFailed": "Failed to update display preferences.",
+    "title": "Settings"
+  },
+  "superadmin": {
+    "title": "Super Admin"
+  },
+  "tenantUsers": {
+    "title": "Tenant Users"
+  },
+  "validation": {
+    "invalidLocale": "Unsupported language. Using Indonesian."
+  },
+  "weather": {
+    "title": "Weather Station"
+  }
+}

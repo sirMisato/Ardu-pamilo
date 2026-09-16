@@ -1,4 +1,5 @@
 import { appEnvironment, resolveApiUrl } from "../config/environment";
+import { getCurrentLanguage } from "../i18n";
 
 export const accessTokenStorageKey = "pamilo.accessToken";
 
@@ -73,6 +74,8 @@ export async function apiRequest<TResponse>(
   let body: BodyInit | null | undefined = options.body as BodyInit | null | undefined;
 
   headers.set("Accept", "application/json");
+  headers.set("Accept-Language", getCurrentLanguage());
+  headers.set("X-Pamilo-Locale", getCurrentLanguage());
 
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);

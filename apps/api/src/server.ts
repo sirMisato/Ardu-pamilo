@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { env } from "./config/env.js";
 import { closeDatabase, db } from "./db/client.js";
+import { registerLocaleResolver } from "./i18n/locale.js";
 import { requireTenantContext, verifyTenant } from "./middleware/verifyTenant.js";
 import { adminRoutes } from "./routes/adminRoutes.js";
 import { aiRecommendationRoutes } from "./routes/aiRecommendationRoutes.js";
@@ -34,6 +35,7 @@ export async function buildServer(): Promise<FastifyInstance> {
     secret: env.jwtSecret
   });
 
+  registerLocaleResolver(app);
   app.decorateRequest("tenant", null);
 
   app.get("/health", async () => ({

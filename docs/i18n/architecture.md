@@ -121,6 +121,49 @@ Pilihan implementasi yang cocok dengan stack:
 - Semua key baru wajib ada di `id` dan `en` pada batch yang sama.
 - Runtime fallback ke `id` boleh ada, tetapi missing key harus terlihat pada mode dev dan CI/script.
 
+## Implementasi Fondasi Batch 01
+
+Batch 01 membuat fondasi tunggal di `apps/web/src/i18n/` tanpa dependensi baru:
+
+- Katalog: `id.json` dan `en.json`.
+- Helper: `index.ts` menyediakan `initI18n`, `setupI18nRouter`, `useI18n`, `t`, `tn`, `setLocale`, `normalizeLocale`, dan `routeMetaText`.
+- Formatter: `formatters.ts` menyediakan formatter angka, tanggal, rentang tanggal, waktu relatif, persen, jumlah data, durasi, dan HST/DAP.
+- Registry metrik/unit: `metrics.ts` menyediakan label metrik terjemahan dan normalisasi simbol unit seperti `us_cm` -> `µS/cm` dan `mg_kg` -> `mg/kg`.
+- Dropdown: `apps/web/src/components/i18n/LanguageSelect.vue` memakai label tetap `EN - English` lalu `ID - Indonesia`.
+- Pemeriksaan: `apps/web/scripts/check-i18n.mjs` memeriksa parity key, nilai kosong, placeholder mismatch, dan key literal yang dipakai lewat `t()`/`tn()`.
+
+Contoh penggunaan helper:
+
+```ts
+import { useI18n } from "../i18n";
+import { formatPercent } from "../i18n/formatters";
+import { getMetricLabel, getMetricUnit } from "../i18n/metrics";
+
+const { t, setLocale } = useI18n();
+
+t("auth.apiUnavailable", { target: "localhost:3000" });
+formatPercent(43, { valueKind: "percent" }); // 43%, bukan 4.300%
+formatPercent(0.43, { valueKind: "ratio" }); // 43%
+getMetricLabel("moisture"); // Kelembapan Tanah / Soil Moisture
+getMetricUnit("conductivity", "us_cm"); // µS/cm
+await setLocale("en", { explicit: true });
+```
+
+Persistensi Batch 01:
+
+- Tamu memakai `pamilo.locale.guest`.
+- Tenant memakai `pamilo.locale.tenant.{tenantId}.{email}`.
+- Super admin memakai `pamilo.locale.superadmin.{email}`.
+- Tenant admin juga menyinkronkan pilihan ke `display_preferences_json.language` dengan nilai `id` atau `en`.
+- Field `language` bersifat aditif di JSON settings existing; tidak ada kolom/migrasi baru. Rollback cukup menghapus properti `language` dari JSON preferensi bila diperlukan.
+- Kegagalan localStorage atau sinkronisasi server tidak mencegah perubahan bahasa in-memory.
+
+Kontrak API Batch 01:
+
+- `apiClient` mengirim `Accept-Language` dan `X-Pamilo-Locale` berisi `id` atau `en`.
+- Backend menambahkan `apps/api/src/i18n/locale.ts`; locale dinormalisasi per request ke `request.locale` dengan fallback `id`.
+- Locale tidak disimpan pada state global server dan bukan dasar otorisasi.
+
 ## Resolver Bahasa Aktif
 
 Urutan resolver yang direkomendasikan:

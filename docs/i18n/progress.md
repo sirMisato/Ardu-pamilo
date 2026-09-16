@@ -88,3 +88,49 @@ Perubahan Batch 00:
 6. Pasang dropdown di tenant topbar, super admin header, dan auth pages.
 7. Tambahkan pemeriksaan missing key untuk `id` dan `en`.
 8. Update `docs/i18n/coverage.csv` dan `progress.md` setelah Batch 01.
+
+## Batch 01 Status
+
+Status: completed for i18n foundation and small real-component integration.
+
+Perubahan Batch 01:
+
+- Membuat katalog `id` dan `en` di `apps/web/src/i18n/id.json` dan `apps/web/src/i18n/en.json`.
+- Membuat helper i18n reaktif di `apps/web/src/i18n/index.ts` untuk resolver locale, fallback `id`, interpolation, pluralization, `html lang`, document title, route meta key, dan storage per identitas.
+- Membuat formatter bersama di `apps/web/src/i18n/formatters.ts` untuk angka, tanggal, rentang tanggal, waktu relatif, persen ratio/percent, jumlah data, durasi, dan HST/DAP.
+- Membuat registry label metrik dan unit di `apps/web/src/i18n/metrics.ts`.
+- Membuat dropdown bahasa shared `apps/web/src/components/i18n/LanguageSelect.vue` dengan urutan wajib `EN - English`, lalu `ID - Indonesia`.
+- Memasang dropdown di tenant topbar, super admin header, tenant login, dan super admin login.
+- Memigrasikan contoh komponen nyata: route title/subtitle di header, navigation shell, bottom navigation, login tenant, dan login super admin.
+- Menambahkan `Accept-Language` dan `X-Pamilo-Locale` pada `apiClient`.
+- Menambahkan resolver locale backend per request di `apps/api/src/i18n/locale.ts`.
+- Menambahkan `display_preferences_json.language` opsional melalui schema settings existing, tanpa kolom/migrasi baru.
+- Menambahkan script `npm run i18n:check` di `apps/web`.
+
+Pemeriksaan aktual Batch 01:
+
+| Pemeriksaan | Hasil aktual |
+| --- | --- |
+| `npm run i18n:check` di `apps/web` | Lulus: 117 keys, 37 used keys |
+| `npm run typecheck` di `apps/web` | Lulus |
+| `npm run build` di `apps/web` | Lulus, tetap ada warning baseline chunk JS > 500 kB |
+| `npm run typecheck` di `apps/api` | Lulus |
+| `npm run build` di `apps/api` | Lulus |
+
+Verifikasi perilaku Batch 01:
+
+- Default locale adalah `id`; locale tidak valid dinormalisasi ke fallback `id`.
+- Dropdown mengubah locale reaktif tanpa navigasi route atau remount shell.
+- Preferensi guest, tenant, dan superadmin disimpan dengan key localStorage terpisah.
+- Storage browser dibungkus `try/catch`; kegagalan storage tidak mencegah perubahan bahasa in-memory.
+- Tenant admin mencoba sinkron ke `display_preferences_json.language`; kegagalan sinkronisasi tidak mengunci dropdown.
+- `apiClient` mengirim locale aktif per request; API menyimpan locale pada `request.locale` per request, tidak pada global mutable shared locale.
+- Formatter membedakan persen `43` sebagai persen dan `0.43` sebagai ratio, serta nilai null sebagai `-`.
+
+Belum diklaim selesai:
+
+- Semua halaman belum bilingual penuh. Batch 02 dan seterusnya tetap memigrasikan teks tiap fitur.
+- Validasi visual browser/manual untuk dua akun berbeda belum dijalankan karena Batch 01 hanya menjalankan pemeriksaan CLI/build.
+- Pesan API user-facing belum dilokalkan penuh; Batch 13 tetap menjadi pemilik migrasi pesan backend.
+
+Batch berikutnya yang siap dikerjakan: Batch 02, fokus layout, navigasi, auth, role guard, dan shared UI.
