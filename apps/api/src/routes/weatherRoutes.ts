@@ -3,6 +3,7 @@ import { sql } from "kysely";
 import { z } from "zod";
 import { db } from "../db/client.js";
 import type { JsonValue } from "../db/schema.js";
+import type { LocaleCode } from "../i18n/locale.js";
 import { requireTenantContext, verifyTenant } from "../middleware/verifyTenant.js";
 
 const jsonRecordSchema = z.record(z.string(), z.unknown());
@@ -31,6 +32,7 @@ const weatherHistoryQuerySchema = z.object({
 });
 
 type WeatherHistoryPayload = z.infer<typeof weatherHistoryPayloadSchema>;
+type WeatherMessageKey = "invalidPayload" | "invalidQuery" | "plotNotFound";
 
 interface WeatherHistoryRow {
   adm4_code: string;
@@ -67,6 +69,7 @@ export const weatherRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "Invalid weather history payload",
+        message: weatherMessage(request.locale, "invalidPayload"),
         issues: parsed.error.flatten().fieldErrors
       });
     }
@@ -77,7 +80,7 @@ export const weatherRoutes: FastifyPluginAsync = async (app) => {
     if (body.plotId && plotId === undefined) {
       return reply.code(404).send({
         error: "Plot not found",
-        message: "Zona/area weather tidak tersedia untuk tenant ini."
+        message: weatherMessage(request.locale, "plotNotFound")
       });
     }
 
@@ -134,6 +137,7 @@ export const weatherRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "Invalid weather history query",
+        message: weatherMessage(request.locale, "invalidQuery"),
         issues: parsed.error.flatten().fieldErrors
       });
     }
@@ -424,4 +428,23 @@ function serializeDate(value: Date | string): string {
   }
 
   return value;
+}
+
+function weatherMessage(locale: LocaleCode, key: WeatherMessageKey): string {
+  const messages: Record<WeatherMessageKey, Record<LocaleCode, string>> = {
+    invalidPayload: {
+      en: "Weather history payload is invalid.",
+      id: "Payload histori cuaca tidak valid."
+    },
+    invalidQuery: {
+      en: "Weather history filter is invalid.",
+      id: "Filter histori cuaca tidak valid."
+    },
+    plotNotFound: {
+      en: "The weather zone or area is not available for this tenant.",
+      id: "Zona atau area cuaca tidak tersedia untuk tenant ini."
+    }
+  };
+
+  return messages[key][locale];
 }

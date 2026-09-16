@@ -254,3 +254,44 @@ Keterbatasan verifikasi:
 - AI weather context dan Report weather export masih menunggu batch pemilik masing-masing, tetapi adapter cuaca bersama sudah tersedia untuk dipakai Batch 05 dan Batch 07.
 
 Batch berikutnya yang siap dikerjakan: Batch 05, fokus AI Rekomendasi dan strategi prompt/hasil AI berbasis locale.
+
+## Batch 05 Status
+
+Status: completed for Weather Station monthly report and configuration hardening.
+
+Catatan penomoran: instruksi aktif pengguna menamai pekerjaan ini `BATCH 05: Weather Station: laporan bulanan dan konfigurasi`. Roadmap awal di dokumen audit pernah menempatkan AI pada Batch 05; pekerjaan AI belum dijalankan dan tetap menunggu instruksi batch berikutnya.
+
+Perubahan Batch 05:
+
+- Memperdalam lokalisasi tab Laporan Bulanan di `apps/web/src/views/tenant/Weather.vue`: label Bulan Laporan/Report Month, tombol Apply/This Month/Refresh, kartu jumlah rekaman, suhu rata-rata, total curah hujan, rekaman hujan, kondisi terbaru, empty histori bulanan, header tabel, pagination, jumlah baris, dan kalimat `{start}-{end}` dari total data.
+- Menjaga filter bulan sebagai nilai `YYYY-MM`; batas awal/akhir bulan tetap dibuat dengan zona waktu aplikasi/browser yang sama seperti sebelumnya dan tidak berubah karena locale.
+- Menambahkan `:lang="displayLocale"` pada input `type="month"` agar widget kalender native mengikuti locale dokumen sejauh didukung browser.
+- Memperdalam tab Konfigurasi: validasi app-level untuk nama, lahan, ADM4 BMKG, endpoint wajib/URL valid; feedback berhasil/gagal untuk simpan, hapus, aktifkan, serta konfigurasi tidak ditemukan; aria label aktifkan/edit/hapus tetap memakai nama konfigurasi asli.
+- Menjaga nilai nama konfigurasi, catatan pengguna, URL endpoint, ADM4, field ID, dan ID relasi tidak diterjemahkan atau diubah.
+- Melokalisasi `message` backend Weather history di `apps/api/src/routes/weatherRoutes.ts` untuk invalid payload, invalid query, dan plot not found memakai `request.locale`; `error` code dan kontrak API tetap stabil.
+- Memperbarui `docs/i18n/coverage.csv` untuk menandai monthly report, configuration, dan backend history Weather sebagai Batch 05 implemented.
+
+Pemeriksaan aktual Batch 05:
+
+| Pemeriksaan | Hasil aktual |
+| --- | --- |
+| `npm run i18n:check` di `apps/web` | Lulus: 270 keys, 178 used keys |
+| `npm run typecheck` di `apps/web` | Lulus |
+| `npm run build` di `apps/web` | Lulus, tetap ada warning baseline chunk JS > 500 kB |
+| `npm run typecheck` di `apps/api` | Lulus |
+| `npm run build` di `apps/api` | Lulus |
+| Pencarian literal Weather monthly/config dengan `rg` | Tidak menemukan literal lama utama di `Weather.vue`; literal teknis yang dipertahankan meliputi `ADM4`, `BMKG`, `Endpoint`, URL/source, dan data storage |
+
+Verifikasi perilaku Batch 05:
+
+- Locale change memperbarui label dan feedback secara reaktif karena feedback menyimpan translation key, bukan string final; draft form `configForm` tetap berada di state reactive yang sama.
+- Tombol simpan tidak diblokir oleh browser native validation; validasi aplikasi menampilkan pesan katalog ID/EN untuk fixture invalid seperti nama kosong, lahan kosong, ADM4 kosong, endpoint kosong, dan endpoint bukan URL HTTP/HTTPS.
+- Handler edit/activate/delete menangani konfigurasi tidak ditemukan dengan pesan lokal, bukan silent return.
+- Operasi create/update/delete/activate tetap lokal ke weatherConfigStore; tidak mengubah konfigurasi BMKG produksi atau mengirim pesan eksternal.
+
+Keterbatasan verifikasi:
+
+- Tidak menjalankan browser end-to-end dengan akun nyata atau database pengujian aktif. Skenario filter bulan, pagination, tambah/edit/batal/success/error, dan locale switch saat draft diverifikasi lewat jalur kode, typecheck, build, dan pemeriksaan state reactive.
+- Browser native month picker memiliki dukungan locale berbeda antar browser; aplikasi sudah memberi `lang` aktif dan document language dari fondasi Batch 01.
+
+Batch berikutnya yang siap dikerjakan bila diminta: AI Rekomendasi dan strategi prompt/hasil AI berbasis locale.

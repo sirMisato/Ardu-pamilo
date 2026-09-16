@@ -187,6 +187,7 @@
             <input
               v-model="monthlyFilters.month"
               class="min-h-10 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
+              :lang="displayLocale"
               type="month"
             />
           </label>
@@ -271,7 +272,7 @@
           {{ t("weather.loadingHistory") }}
         </div>
         <div v-else-if="weatherHistoryTotal === 0" class="border-t border-white/60 p-8 text-center text-sm text-slate-500">
-          {{ t("weather.emptyForecast") }}
+          {{ t("weather.historyEmpty") }}
         </div>
 
         <div v-else class="flex flex-wrap items-center justify-between gap-3 border-t border-white/60 p-4 text-sm text-slate-700">
@@ -327,9 +328,18 @@
         </button>
       </div>
 
+      <p
+        v-if="configFeedback"
+        class="mt-4 rounded-xl border px-3 py-2 text-sm"
+        :class="configFeedback.kind === 'error' ? 'border-amber-200 bg-amber-100/70 text-amber-700' : 'border-emerald-200 bg-emerald-100/70 text-emerald-700'"
+      >
+        {{ configFeedbackLabel }}
+      </p>
+
       <form
         v-if="isConfigFormOpen"
         class="mt-5 rounded-2xl border border-white/80 bg-white/50 p-4 shadow-sm backdrop-blur-md"
+        novalidate
         @submit.prevent="submitWeatherConfig"
       >
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -345,8 +355,8 @@
             <input
               v-model.trim="configForm.name"
               class="min-h-11 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
-              required
               type="text"
+              @input="clearConfigFeedback"
             />
           </label>
 
@@ -355,7 +365,6 @@
             <select
               v-model="configForm.fieldId"
               class="min-h-11 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
-              required
               @change="syncConfigField"
             >
               <option v-for="field in tenantProfileStore.fields" :key="field.id" :value="field.id">
@@ -369,8 +378,8 @@
             <input
               v-model.trim="configForm.bmkgAdm4Code"
               class="min-h-11 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
-              required
               type="text"
+              @input="clearConfigFeedback"
             />
           </label>
 
@@ -379,8 +388,8 @@
             <input
               v-model.trim="configForm.baseUrl"
               class="min-h-11 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
-              required
               type="url"
+              @input="clearConfigFeedback"
             />
           </label>
 
@@ -389,11 +398,12 @@
             <textarea
               v-model.trim="configForm.notes"
               class="min-h-20 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
+              @input="clearConfigFeedback"
             ></textarea>
           </label>
 
           <label class="inline-flex items-center gap-3 rounded-xl border border-white/80 bg-white/50 px-3 py-3 text-sm font-medium text-slate-700">
-            <input v-model="configForm.isEnabled" class="h-4 w-4 accent-[#a7e8af]" type="checkbox" />
+            <input v-model="configForm.isEnabled" class="h-4 w-4 accent-[#a7e8af]" type="checkbox" @change="clearConfigFeedback" />
             {{ t("weather.configStatusActive") }}
           </label>
         </div>
@@ -408,7 +418,7 @@
           </button>
           <button
             class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-300 px-4 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 disabled:opacity-60"
-            :disabled="!canSubmitConfig"
+            :aria-disabled="!canSubmitConfig"
             type="submit"
           >
             <Save class="h-4 w-4" />
@@ -454,7 +464,7 @@
                   <button
                     class="icon-button"
                     type="button"
-                    :aria-label="t('weather.configStatusActive') + ' ' + config.name"
+                    :aria-label="t('weather.activateConfigLabel', { name: config.name })"
                     :disabled="!config.isEnabled"
                     @click="activateWeatherConfig(config.id)"
                   >
@@ -503,7 +513,7 @@ import {
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { appEnvironment } from "../../config/environment";
 import { formatDataCount, formatDateTime as formatLocalizedDateTime, formatNumber, formatPercent as formatLocalizedPercent } from "../../i18n/formatters";
-import { t } from "../../i18n";
+import { t, useI18n, type TranslationParams } from "../../i18n";
 import {
   formatWindLabel,
   getWeatherConditionDetail,
@@ -522,6 +532,13 @@ import { useAuthStore } from "../../stores/authStore";
 import { useWeatherConfigStore, type WeatherConfigInput } from "../../stores/weatherConfigStore";
 
 type WeatherTab = "forecast" | "monthly" | "config";
+type FeedbackKind = "error" | "success";
+
+interface FeedbackMessage {
+  kind: FeedbackKind;
+  key: string;
+  params?: TranslationParams;
+}
 
 interface WeatherHistoryItem {
   adm4Code: string;
@@ -595,6 +612,7 @@ const errorMessage = ref<string | null>(null);
 const authStore = useAuthStore();
 const tenantProfileStore = useTenantProfileStore();
 const weatherConfigStore = useWeatherConfigStore();
+const { displayLocale } = useI18n();
 
 const fallbackBaseUrl = computed(() => appEnvironment.bmkgForecastBaseUrl || "https://api.bmkg.go.id/publik/prakiraan-cuaca");
 const configuredBaseUrl = computed(() => weatherConfigStore.activeBaseUrl || fallbackBaseUrl.value);
@@ -644,6 +662,7 @@ const monthlyPaginationStart = computed(() => weatherHistoryTotal.value === 0 ? 
 const monthlyPaginationEnd = computed(() => Math.min((monthlyActivePage.value - 1) * monthlyPageSize.value + weatherHistory.value.length, weatherHistoryTotal.value));
 const isConfigFormOpen = ref(false);
 const editingConfigId = ref<string | null>(null);
+const configFeedback = ref<FeedbackMessage | null>(null);
 const configForm = reactive<WeatherConfigInput>({
   baseUrl: "",
   bmkgAdm4Code: "",
@@ -654,12 +673,15 @@ const configForm = reactive<WeatherConfigInput>({
   notes: ""
 });
 const configFormTitle = computed(() => editingConfigId.value ? t("weather.editConfig") : t("weather.addConfig"));
+const configFeedbackLabel = computed(() => configFeedback.value
+  ? t(configFeedback.value.key, configFeedback.value.params ?? {})
+  : "");
 const canSubmitConfig = computed(() => {
   return configForm.name.trim().length > 0
     && configForm.fieldId.length > 0
     && configForm.fieldName.trim().length > 0
     && configForm.bmkgAdm4Code.trim().length > 0
-    && configForm.baseUrl.trim().length > 0;
+    && isValidUrl(configForm.baseUrl.trim());
 });
 
 const currentWeatherMetrics = computed(() => {
@@ -905,6 +927,7 @@ function openCreateConfigForm(): void {
     return;
   }
 
+  clearConfigFeedback();
   const field = activeField.value ?? tenantProfileStore.fields[0] ?? null;
   editingConfigId.value = null;
   Object.assign(configForm, {
@@ -926,9 +949,11 @@ function openEditConfigForm(configId: string): void {
 
   const config = weatherConfigStore.configs.find((item) => item.id === configId);
   if (!config) {
+    setConfigFeedback("error", "weather.configNotFound");
     return;
   }
 
+  clearConfigFeedback();
   editingConfigId.value = config.id;
   Object.assign(configForm, {
     baseUrl: config.baseUrl,
@@ -948,6 +973,7 @@ function closeConfigForm(): void {
 }
 
 function syncConfigField(): void {
+  clearConfigFeedback();
   const field = tenantProfileStore.fields.find((item) => item.id === configForm.fieldId);
   if (!field) {
     return;
@@ -963,17 +989,30 @@ function submitWeatherConfig(): void {
     return;
   }
 
-  if (!canSubmitConfig.value) {
+  const validationKey = validateConfigForm();
+  if (validationKey) {
+    setConfigFeedback("error", validationKey);
     return;
   }
 
-  if (editingConfigId.value) {
-    weatherConfigStore.updateConfig(editingConfigId.value, { ...configForm });
-  } else {
-    weatherConfigStore.createConfig({ ...configForm });
-  }
+  try {
+    if (editingConfigId.value) {
+      const existing = weatherConfigStore.configs.find((item) => item.id === editingConfigId.value);
+      if (!existing) {
+        setConfigFeedback("error", "weather.configNotFound");
+        return;
+      }
 
-  closeConfigForm();
+      weatherConfigStore.updateConfig(editingConfigId.value, { ...configForm });
+    } else {
+      weatherConfigStore.createConfig({ ...configForm });
+    }
+
+    setConfigFeedback("success", "weather.configSaved", { name: configForm.name.trim() });
+    closeConfigForm();
+  } catch {
+    setConfigFeedback("error", "weather.configSaveFailed");
+  }
 }
 
 function activateWeatherConfig(configId: string): void {
@@ -983,11 +1022,17 @@ function activateWeatherConfig(configId: string): void {
 
   const config = weatherConfigStore.configs.find((item) => item.id === configId);
   if (!config) {
+    setConfigFeedback("error", "weather.configNotFound");
     return;
   }
 
-  weatherConfigStore.setActiveConfig(configId);
-  tenantProfileStore.setActiveField(config.fieldId);
+  try {
+    weatherConfigStore.setActiveConfig(configId);
+    tenantProfileStore.setActiveField(config.fieldId);
+    setConfigFeedback("success", "weather.configActivated", { name: config.name });
+  } catch {
+    setConfigFeedback("error", "weather.configActivationFailed");
+  }
 }
 
 function deleteWeatherConfig(configId: string): void {
@@ -996,11 +1041,62 @@ function deleteWeatherConfig(configId: string): void {
   }
 
   const config = weatherConfigStore.configs.find((item) => item.id === configId);
-  if (!config || !window.confirm(t("weather.deleteConfigConfirm", { name: config.name }))) {
+  if (!config) {
+    setConfigFeedback("error", "weather.configNotFound");
     return;
   }
 
-  weatherConfigStore.deleteConfig(configId);
+  if (!window.confirm(t("weather.deleteConfigConfirm", { name: config.name }))) {
+    return;
+  }
+
+  try {
+    weatherConfigStore.deleteConfig(configId);
+    setConfigFeedback("success", "weather.configDeleted", { name: config.name });
+  } catch {
+    setConfigFeedback("error", "weather.configDeleteFailed");
+  }
+}
+
+function validateConfigForm(): string | null {
+  if (configForm.name.trim().length === 0) {
+    return "weather.configNameRequired";
+  }
+
+  if (configForm.fieldId.length === 0 || configForm.fieldName.trim().length === 0) {
+    return "weather.configFieldRequired";
+  }
+
+  if (configForm.bmkgAdm4Code.trim().length === 0) {
+    return "weather.configAdm4Required";
+  }
+
+  if (configForm.baseUrl.trim().length === 0) {
+    return "weather.configEndpointRequired";
+  }
+
+  if (!isValidUrl(configForm.baseUrl.trim())) {
+    return "weather.configEndpointInvalid";
+  }
+
+  return null;
+}
+
+function setConfigFeedback(kind: FeedbackKind, key: string, params?: TranslationParams): void {
+  configFeedback.value = { kind, key, params };
+}
+
+function clearConfigFeedback(): void {
+  configFeedback.value = null;
+}
+
+function isValidUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function dailyConditionSource(day: { summary: string; summaryEn: string }): WeatherConditionSource {
