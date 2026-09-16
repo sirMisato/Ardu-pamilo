@@ -1,5 +1,5 @@
 import { appEnvironment, resolveApiUrl } from "../config/environment";
-import { getCurrentLanguage } from "../i18n";
+import { getCurrentLanguage, t } from "../i18n";
 
 export const accessTokenStorageKey = "pamilo.accessToken";
 
@@ -107,7 +107,7 @@ export async function apiRequest<TResponse>(
     }
 
     throw new ApiClientError(
-      errorPayload?.message || errorPayload?.error || `API request failed with HTTP ${response.status}`,
+      errorPayload?.message || errorPayload?.error || t("api.requestFailed", { status: response.status }),
       response.status,
       errorPayload
     );

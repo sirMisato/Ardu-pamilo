@@ -23,9 +23,11 @@
           <button
             type="button"
             class="flex cursor-pointer items-center justify-center rounded-full border border-white/60 bg-white/50 p-1.5 text-left text-slate-700 shadow-sm backdrop-blur-md transition-all hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 md:gap-3 md:px-4 md:py-2"
+            :aria-label="t('layout.accountMenu')"
             aria-haspopup="menu"
             :aria-expanded="profileMenuOpen"
             @click.stop="toggleProfileMenu"
+            @keydown.escape.prevent="closeProfileMenu"
           >
             <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-300 text-xs font-bold text-emerald-950">{{ initials }}</span>
             <span class="hidden min-w-0 md:block">
@@ -47,6 +49,7 @@
               v-if="profileMenuOpen"
               class="absolute right-0 z-[100] mt-3 w-56 rounded-2xl border border-white/80 bg-white/95 p-2 shadow-2xl backdrop-blur-xl"
               role="menu"
+              @keydown.escape.prevent="closeProfileMenu"
             >
               <div class="border-b border-slate-200/70 px-2 pb-3 pt-2">
                 <div class="flex items-center gap-3">
@@ -121,7 +124,15 @@ const initials = computed(() => profileName.value.split(/\s+/).slice(0, 2).map((
 const canOpenProfileSettings = computed(() => !authStore.isReadOnlyTenant);
 const profileRoleLabel = computed(() => {
   const role = authStore.user?.role ?? authStore.tenant?.role ?? "tenant_user";
-  return role.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
+  if (role === "tenant_admin") {
+    return t("roles.tenantAdmin");
+  }
+
+  if (role === "super_admin") {
+    return t("roles.superAdmin");
+  }
+
+  return t("roles.tenantUser");
 });
 
 onMounted(() => {
@@ -136,10 +147,14 @@ function toggleProfileMenu(): void {
   profileMenuOpen.value = !profileMenuOpen.value;
 }
 
+function closeProfileMenu(): void {
+  profileMenuOpen.value = false;
+}
+
 function closeProfileMenuOnOutsideClick(event: MouseEvent): void {
   const target = event.target;
   if (target instanceof Node && profileMenuElement.value && !profileMenuElement.value.contains(target)) {
-    profileMenuOpen.value = false;
+    closeProfileMenu();
   }
 }
 

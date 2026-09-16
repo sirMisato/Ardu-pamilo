@@ -14,3 +14,25 @@
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { onBeforeUnmount, onMounted } from "vue";
+import { router } from "./router";
+import { useAuthStore } from "./stores/authStore";
+
+const authStore = useAuthStore();
+
+onMounted(() => {
+  window.addEventListener("pamilo:auth-expired", handleAuthExpired);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("pamilo:auth-expired", handleAuthExpired);
+});
+
+function handleAuthExpired(): void {
+  const wasSuperAdminArea = router.currentRoute.value.path.startsWith("/superadmin");
+  authStore.logout();
+  void router.push(wasSuperAdminArea ? "/superadmin/login" : "/login");
+}
+</script>

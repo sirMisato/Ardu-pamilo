@@ -185,7 +185,7 @@ const routes: RouteRecordRaw[] = [
         component: SuperAdminLicenses,
         meta: {
           titleKey: "navigation.licenses",
-          subtitleKey: "routes.superadminDashboardSubtitle",
+          subtitleKey: "routes.superadminLicenseSubtitle",
           title: "License Management",
           subtitle: "Create, revoke, and set SaaS quotas"
         }

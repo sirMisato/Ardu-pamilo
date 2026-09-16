@@ -48,7 +48,7 @@
             <input
               v-model="form.password"
               class="w-full rounded-xl border border-slate-200 bg-white/50 py-3 pl-11 pr-12 text-slate-700 outline-none transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
-              placeholder="Password"
+              :placeholder="t('auth.passwordPlaceholder')"
               required
               :type="isPasswordVisible ? 'text' : 'password'"
               autocomplete="current-password"
@@ -125,7 +125,33 @@ async function submitLogin(): Promise<void> {
 
 function normalizeLoginError(error: unknown): string {
   if (error instanceof ApiClientError) {
-    return error.message;
+    const errorCode = error.payload?.error;
+
+    if (errorCode === "Invalid login payload") {
+      return t("auth.invalidLoginPayload");
+    }
+
+    if (errorCode === "Invalid credentials") {
+      return t("auth.invalidCredentials");
+    }
+
+    if (errorCode === "User inactive") {
+      return t("auth.userInactive");
+    }
+
+    if (errorCode === "License revoked") {
+      return t("auth.licenseRevoked");
+    }
+
+    if (errorCode === "License suspended") {
+      return t("auth.licenseSuspended");
+    }
+
+    if (errorCode === "License expired") {
+      return t("auth.licenseExpired");
+    }
+
+    return error.status === 401 ? t("auth.invalidCredentials") : error.message;
   }
 
   if (error instanceof TypeError) {

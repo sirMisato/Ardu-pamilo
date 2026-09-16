@@ -2,8 +2,12 @@
   "ai": {
     "title": "AI Recommendations"
   },
+  "api": {
+    "requestFailed": "API request failed with HTTP {status}."
+  },
   "auth": {
     "adminEmail": "Admin Email",
+    "adminAuthNotConfigured": "Admin authentication is not configured in the API.",
     "adminLoginFailed": "Admin login failed. Check the account and password again.",
     "adminLoginSubtitle": "Sign in to the PAMILO control plane",
     "adminSignIn": "Admin Sign In",
@@ -13,12 +17,19 @@
     "emailOrUsername": "Email or Username",
     "forgotPassword": "Forgot Password?",
     "hidePassword": "Hide password",
+    "invalidCredentials": "The email, username, or password is incorrect.",
+    "invalidLoginPayload": "Enter a valid email and password.",
+    "licenseExpired": "The tenant license has expired.",
+    "licenseRevoked": "The tenant license has been revoked.",
+    "licenseSuspended": "The tenant license is suspended.",
     "loginFailed": "Login failed. Check the account and password again.",
     "noAccount": "Do not have an account yet?",
     "password": "Password",
+    "passwordPlaceholder": "Password",
     "showPassword": "Show password",
     "superAdminPortal": "Super Admin Portal",
     "tenantLoginSubtitle": "Sign in to your tenant account",
+    "userInactive": "This tenant user is inactive.",
     "verifying": "Verifying..."
   },
   "charts": {
@@ -69,12 +80,13 @@
     "optionId": "ID - Indonesia"
   },
   "layout": {
+    "accountMenu": "Account menu",
     "collapseSidebar": "Collapse sidebar",
     "licenseControl": "License Control",
     "notifications": "Notifications",
     "openNavigation": "Open navigation",
     "profileSettings": "Profile & Settings",
-    "search": "Search",
+    "search": "Global search",
     "showSidebar": "Show sidebar",
     "superAdminNav": "Super admin navigation",
     "tenantNav": "Main navigation",
@@ -127,6 +139,11 @@
   "reports": {
     "title": "Reports"
   },
+  "roles": {
+    "superAdmin": "Super Admin",
+    "tenantAdmin": "Tenant Admin",
+    "tenantUser": "Read-only Tenant User"
+  },
   "routes": {
     "aiSubtitle": "Field, weather, telemetry, and harvest history analysis",
     "chartSubtitle": "Dynamic charts from MQTT metric keys",
@@ -136,6 +153,7 @@
     "mqttSubtitle": "Add topics and review sensor connections",
     "reportSubtitle": "Exportable telemetry and field logs",
     "settingsSubtitle": "Profile, display, notifications, and security",
+    "superadminLicenseSubtitle": "Create, revoke, and set SaaS quotas",
     "superadminDashboardSubtitle": "Total tenants, active licenses, system health",
     "superadminDashboardTitle": "System Overview",
     "tenantUsersSubtitle": "Create read-only users for dashboard and report access",

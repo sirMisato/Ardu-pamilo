@@ -15,15 +15,15 @@ Gunakan istilah ini secara konsisten di katalog `id` dan `en`. Brand, kode, dan 
 
 | ID | EN |
 | --- | --- |
-| Dashboard | Dashboard |
-| AI Rekomendasi | AI Recommendations |
-| Weather Station | Weather Station |
+| Dasbor | Dashboard |
+| Rekomendasi AI | AI Recommendations |
+| Stasiun Cuaca | Weather Station |
 | Grafik | Charts |
-| Report | Reports |
+| Laporan | Reports |
 | MQTT | MQTT |
 | Perangkat | Devices |
-| Master Data | Master Data |
-| User Tenant | Tenant Users |
+| Data Induk | Master Data |
+| Pengguna Tenant | Tenant Users |
 | Pengaturan | Settings |
 
 ## Weather Station

@@ -1,9 +1,13 @@
 {
   "ai": {
-    "title": "AI Rekomendasi"
+    "title": "Rekomendasi AI"
+  },
+  "api": {
+    "requestFailed": "Permintaan API gagal dengan status HTTP {status}."
   },
   "auth": {
     "adminEmail": "Admin Email",
+    "adminAuthNotConfigured": "Autentikasi admin belum dikonfigurasi di API.",
     "adminLoginFailed": "Login admin gagal. Periksa kembali akun dan kata sandi.",
     "adminLoginSubtitle": "Silakan masuk ke control plane PAMILO",
     "adminSignIn": "Masuk Admin",
@@ -13,12 +17,19 @@
     "emailOrUsername": "Email atau Username",
     "forgotPassword": "Lupa Kata Sandi?",
     "hidePassword": "Sembunyikan password",
+    "invalidCredentials": "Email/username atau kata sandi tidak sesuai.",
+    "invalidLoginPayload": "Isi email dan kata sandi dengan benar.",
+    "licenseExpired": "Lisensi tenant sudah kedaluwarsa.",
+    "licenseRevoked": "Lisensi tenant sudah dicabut.",
+    "licenseSuspended": "Lisensi tenant sedang ditangguhkan.",
     "loginFailed": "Login gagal. Periksa kembali akun dan kata sandi.",
     "noAccount": "Belum punya akun?",
     "password": "Kata Sandi",
+    "passwordPlaceholder": "Kata sandi",
     "showPassword": "Tampilkan password",
     "superAdminPortal": "Portal Super Admin",
     "tenantLoginSubtitle": "Silakan masuk ke akun tenant Anda",
+    "userInactive": "User tenant sedang tidak aktif.",
     "verifying": "Memverifikasi..."
   },
   "charts": {
@@ -49,7 +60,7 @@
     "thisMonth": "Bulan Ini"
   },
   "dashboard": {
-    "title": "Dashboard"
+    "title": "Dasbor"
   },
   "devices": {
     "title": "Perangkat"
@@ -69,12 +80,13 @@
     "optionId": "ID - Indonesia"
   },
   "layout": {
+    "accountMenu": "Menu akun",
     "collapseSidebar": "Sembunyikan sidebar",
     "licenseControl": "License Control",
     "notifications": "Notifikasi",
     "openNavigation": "Buka navigasi",
     "profileSettings": "Profil & Pengaturan",
-    "search": "Cari",
+    "search": "Cari global",
     "showSidebar": "Tampilkan sidebar",
     "superAdminNav": "Navigasi super admin",
     "tenantNav": "Navigasi utama",
@@ -82,7 +94,7 @@
     "tenantPortal": "Tenant Portal"
   },
   "masterData": {
-    "title": "Master Data"
+    "title": "Data Induk"
   },
   "metric": {
     "battery": "Baterai",
@@ -101,44 +113,50 @@
     "title": "MQTT"
   },
   "navigation": {
-    "ai": "AI Rekomendasi",
+    "ai": "Rekomendasi AI",
     "aiShort": "AI",
     "charts": "Grafik",
     "chartsShort": "Grafik",
-    "dashboard": "Dashboard",
-    "dashboardShort": "Home",
+    "dashboard": "Dasbor",
+    "dashboardShort": "Dasbor",
     "devices": "Perangkat",
-    "devicesShort": "Device",
+    "devicesShort": "Perangkat",
     "licenses": "License Management",
-    "masterData": "Master Data",
-    "masterDataShort": "Master",
+    "masterData": "Data Induk",
+    "masterDataShort": "Induk",
     "mqtt": "MQTT",
-    "report": "Report",
+    "report": "Laporan",
     "settings": "Pengaturan",
     "settingsShort": "Setelan",
-    "tenantUsers": "User Tenant",
-    "tenantUsersShort": "User",
-    "weather": "Weather Station",
+    "tenantUsers": "Pengguna Tenant",
+    "tenantUsersShort": "Pengguna",
+    "weather": "Stasiun Cuaca",
     "weatherShort": "Cuaca"
   },
   "notifications": {
     "title": "Notifikasi"
   },
   "reports": {
-    "title": "Report"
+    "title": "Laporan"
+  },
+  "roles": {
+    "superAdmin": "Super Admin",
+    "tenantAdmin": "Admin Tenant",
+    "tenantUser": "User Tenant Read-only"
   },
   "routes": {
     "aiSubtitle": "Analisis lahan, cuaca, telemetry, dan histori panen",
-    "chartSubtitle": "Dynamic charts from MQTT metric keys",
-    "dashboardSubtitle": "Realtime smart farming overview",
+    "chartSubtitle": "Grafik dinamis dari metric key MQTT",
+    "dashboardSubtitle": "Ringkasan smart farming realtime",
     "devicesSubtitle": "Tambah dan kelola daftar perangkat",
     "masterDataSubtitle": "Crop type, zona area, dan threshold tanaman",
     "mqttSubtitle": "Tambah topic dan daftar koneksi sensor",
-    "reportSubtitle": "Exportable telemetry and field logs",
+    "reportSubtitle": "Telemetry dan log lahan yang siap diekspor",
     "settingsSubtitle": "Profil, tampilan, notifikasi, keamanan",
+    "superadminLicenseSubtitle": "Buat, cabut, dan atur kuota SaaS",
     "superadminDashboardSubtitle": "Total tenants, active licenses, system health",
     "superadminDashboardTitle": "System Overview",
-    "tenantUsersSubtitle": "Create user read-only untuk akses dashboard dan report",
+    "tenantUsersSubtitle": "Buat user read-only untuk akses dasbor dan laporan",
     "weatherSubtitle": "Prakiraan cuaca, laporan bulanan, konfigurasi"
   },
   "settings": {
@@ -150,12 +168,12 @@
     "title": "Super Admin"
   },
   "tenantUsers": {
-    "title": "User Tenant"
+    "title": "Pengguna Tenant"
   },
   "validation": {
     "invalidLocale": "Bahasa tidak didukung. Menggunakan Bahasa Indonesia."
   },
   "weather": {
-    "title": "Weather Station"
+    "title": "Stasiun Cuaca"
   }
 }

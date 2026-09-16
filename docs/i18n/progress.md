@@ -134,3 +134,45 @@ Belum diklaim selesai:
 - Pesan API user-facing belum dilokalkan penuh; Batch 13 tetap menjadi pemilik migrasi pesan backend.
 
 Batch berikutnya yang siap dikerjakan: Batch 02, fokus layout, navigasi, auth, role guard, dan shared UI.
+
+## Batch 02 Status
+
+Status: completed for dropdown header, app shell, active auth screens, and shared auth/navigation text.
+
+Perubahan Batch 02:
+
+- Memperkuat `apps/web/src/components/i18n/LanguageSelect.vue` menjadi shared listbox/dropdown dengan urutan opsi wajib `EN - English`, lalu `ID - Indonesia`, trigger ringkas di mobile, `aria-selected`, dan dukungan keyboard dasar.
+- Menjaga dropdown yang sama tetap dipakai di tenant topbar, super admin layout, tenant login, dan super admin login.
+- Menyelaraskan istilah menu di katalog dan glossary: Dasbor/Dashboard, Rekomendasi AI/AI Recommendations, Stasiun Cuaca/Weather Station, Grafik/Charts, Laporan/Reports, MQTT/MQTT, Perangkat/Devices, Data Induk/Master Data, Pengguna Tenant/Tenant Users, Pengaturan/Settings.
+- Melokalisasi role label profil, aria menu akun, aria pencarian global, placeholder password, subtitle lisensi super admin, serta fallback HTTP umum.
+- Memetakan kode error auth yang stabil dari backend untuk login tenant dan super admin ke katalog ID/EN.
+- Menambahkan handler `pamilo:auth-expired` di shell aplikasi agar 401 mengarahkan ke login yang sesuai tanpa membuat mekanisme locale kedua.
+- Memperbarui `docs/i18n/coverage.csv` dan `docs/i18n/glossary.md`.
+
+Pemeriksaan aktual Batch 02:
+
+| Pemeriksaan | Hasil aktual |
+| --- | --- |
+| `npm run i18n:check` di `apps/web` | Lulus: 131 keys, 50 used keys |
+| `npm run typecheck` di `apps/web` | Lulus |
+| `npm run build` di `apps/web` | Lulus, tetap ada warning baseline chunk JS > 500 kB |
+| Dev server `npm run dev -- --port 5177 --strictPort` | Berhasil berjalan di `http://localhost:5177/`, lalu dihentikan |
+| `npx playwright install chromium` | Berhasil memasang browser runtime Playwright lokal user |
+| `npx playwright screenshot --viewport-size=1280,800 http://localhost:5177/login desktop-batch02.png` | Berhasil mengambil screenshot smoke desktop; artefak dihapus |
+| `npx playwright screenshot --viewport-size=375,812 http://localhost:5177/login mobile-batch02.png` | Berhasil mengambil screenshot smoke mobile 375 px; artefak dihapus |
+
+Verifikasi perilaku Batch 02:
+
+- Label dropdown tetap persis `EN - English` dan `ID - Indonesia` dari satu katalog opsi.
+- Default locale tetap `id`; perubahan locale memakai sumber locale Batch 01 dan tidak melakukan navigasi route.
+- Header tenant, super admin header, dan layout autentikasi memakai komponen dropdown yang sama.
+- Auth login tenant dan super admin menampilkan teks ID/EN dari katalog, termasuk error credentials/license/inactive/admin-config yang berasal dari kode backend stabil.
+- Menu/judul/subtitle shell mengikuti glossary Batch 02.
+
+Keterbatasan verifikasi:
+
+- Playwright screenshot CLI berhasil, tetapi Playwright test interaktif sementara gagal karena module resolution paket `@playwright/test`/`playwright/test` dari `npx` tidak tersedia untuk spec dalam repo tanpa memasang dependency proyek. Keyboard/listbox diverifikasi lewat typecheck, build, dan inspeksi implementasi; full automated interaction test belum diklaim.
+- Form login tidak diverifikasi terhadap API nyata untuk pengiriman email/reset karena fitur lupa/reset password tidak memiliki route/backend aktif.
+- Halaman isi fitur seperti Dashboard, Weather, AI, Chart, Report, MQTT, Devices, Master Data, Tenant Users, Settings, dan Super Admin detail tetap menunggu batch masing-masing; Batch 02 hanya menutup kerangka/shared shell dan auth aktif.
+
+Batch berikutnya yang siap dikerjakan: Batch 03, fokus Dashboard dan FieldMap.
