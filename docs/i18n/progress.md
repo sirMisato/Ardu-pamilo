@@ -452,3 +452,45 @@ Keterbatasan verifikasi:
 - Pesan backend Device API lengkap tetap menjadi Batch 13; Batch 09 melokalisasi fallback client dan mempertahankan pesan API mentah bila backend mengembalikan `message`.
 
 Batch berikutnya yang siap dikerjakan bila diminta: Master Data.
+
+## Batch 10 Status
+
+Status: completed for Master Data Crop Types and Thresholds. Zona & Area remains deferred to Batch 11 per active instructions.
+
+Catatan penomoran: instruksi aktif pengguna menamai pekerjaan ini `BATCH 10: Master Data: tanaman dan ambang batas`. Roadmap awal di dokumen audit menempatkan User Tenant pada Batch 10; pekerjaan User Tenant belum dijalankan.
+
+Perubahan Batch 10:
+
+- Melokalisasi `apps/web/src/views/tenant/MasterData.vue` untuk judul Master Data Agronomi/Agronomy Master Data, deskripsi, tab, tombol tambah tanaman, kartu daftar crop, detail crop, status aktif/draft/diarsipkan, tombol edit/hapus/simpan, modal tambah/edit tanaman, validasi crop, dan tabel Threshold Matrix.
+- Menambahkan namespace `masterData.*` di `apps/web/src/i18n/id.json` dan `apps/web/src/i18n/en.json` untuk label tanaman, nama ilmiah, varietas, deskripsi, tanggal tanam, umur tanaman, durasi budidaya, progres, estimasi panen, rentang min/max, status, validasi, konfirmasi hapus, dan feedback simpan.
+- Mengganti formatter lokal Master Data dengan formatter bersama untuk tanggal, angka, persen progres, dan HST/DAP. Tooltip umur tanaman menjelaskan `Hari setelah tanam (HST)` / `Days after planting (DAP)`.
+- Menggunakan registry metrik bersama `apps/web/src/i18n/metrics.ts` untuk label threshold pH, kelembapan tanah, nitrogen, fosfor, dan kalium. Tidak ada threshold EC/suhu di kontrak `ThresholdKey` saat ini, sehingga tidak ditambahkan sebagai field baru.
+- Menambahkan parsing input threshold yang menerima desimal titik atau koma untuk nilai sederhana seperti `5.5` dan `5,5`, lalu menyimpan nilai numerik canonical. Parsing tidak melakukan replace global ribuan/desimal yang berisiko salah.
+- Menambahkan validasi client untuk nama tanaman wajib, durasi budidaya harus angka > 0, nilai threshold harus angka, dan min tidak boleh lebih besar dari max.
+- Menyelaraskan subtitle route Master Data di `apps/web/src/router/index.ts` dan `routes.masterDataSubtitle`.
+- Tidak menambah schema bilingual crop karena kontrak/database aktif hanya menyediakan `name` dan `description` tanpa ID katalog sistem yang stabil. Nama/deskripsi crop dari database tetap dipertahankan sebagai konten tenant/user.
+
+Pemeriksaan aktual Batch 10:
+
+| Pemeriksaan | Hasil aktual |
+| --- | --- |
+| `npm run i18n:check` di `apps/web` | Lulus: 524 keys, 371 used keys |
+| `npm run typecheck` di `apps/web` | Lulus |
+| `npm run build` di `apps/web` | Lulus, tetap ada warning baseline chunk JS > 500 kB |
+| Pencarian literal Master Data crop/threshold dengan `rg` | Tidak menemukan literal lama utama di `MasterData.vue`/router seperti `Master Data Agronomi`, `Crop Types`, `Threshold Matrix`, `Tanggal Tanam`, `Simpan Threshold`, `Perubahan threshold`, `Tambah Crop`, `Hapus crop`, atau formatter hard-coded `id-ID` |
+
+Verifikasi perilaku Batch 10:
+
+- Locale switch memperbarui label Crop Types dan Threshold dari computed/template dan tidak mengubah `activeTab`, `selectedCropId`, draft crop form, draft threshold, relasi plot, status enum, atau nilai threshold.
+- Submit crop tetap mengirim payload canonical: `name`, `latinName`, `description`, `plantingDate`, `plantingPeriodDays`, `status`, `thresholdSource`, dan `varieties`; label terjemahan tidak dikirim.
+- Submit threshold tetap mengirim nilai min/max numerik atau `null`, unit asli, dan key threshold asli. Nilai min/max, rumus HST/DAP, progres, periode tanam, dan estimasi panen tidak berubah karena locale.
+- Nama ilmiah, varietas, nama tanaman custom, deskripsi user, dan threshold source tetap dari sumber data; tidak diterjemahkan otomatis.
+- Zona & Area dan Polygon editor tidak dimigrasikan pada batch ini selain label tab/tombol umum yang terlihat di header Master Data; coverage dipindah ke Batch 11.
+
+Keterbatasan verifikasi:
+
+- Tidak menjalankan browser end-to-end dengan database uji aktif. Simpan/edit/hapus crop dan threshold diverifikasi melalui jalur kode, typecheck, build, dan pemeriksaan payload transform, bukan request nyata.
+- Tidak ada katalog crop sistem dengan ID stabil di schema/API aktif. Contoh seperti Cabai Rawit/Bird's Eye Chili tidak bisa dipetakan dengan aman tanpa schema/seed aditif di batch khusus data katalog.
+- Pesan backend Crop/Plot API lengkap tetap menjadi Batch 13; Batch 10 melokalisasi validasi dan feedback client yang tersedia.
+
+Batch berikutnya yang siap dikerjakan bila diminta: Master Data Zona & Area.

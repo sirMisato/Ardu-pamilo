@@ -124,7 +124,7 @@ const routes: RouteRecordRaw[] = [
           titleKey: "masterData.title",
           subtitleKey: "routes.masterDataSubtitle",
           title: "Master Data",
-          subtitle: "Crop type, zona area, dan threshold tanaman"
+          subtitle: "Jenis tanaman, zona area, dan ambang batas tanaman"
         }
       },
       {

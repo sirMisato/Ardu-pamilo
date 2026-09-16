@@ -250,6 +250,74 @@
     "tenantPortal": "Tenant Portal"
   },
   "masterData": {
+    "actions": {
+      "deleteCrop": "Hapus {name}",
+      "editCrop": "Edit {name}"
+    },
+    "area": {
+      "addArea": "Tambah Area"
+    },
+    "crop": {
+      "addCrop": "Tambah Tanaman",
+      "addTitle": "Tambah Jenis Tanaman",
+      "closeModal": "Tutup modal tanaman",
+      "created": "Tanaman {name} ditambahkan.",
+      "cropAge": "Umur Tanaman",
+      "cropAgeHelp": "Hari setelah tanam (HST)",
+      "cropType": "Jenis Tanaman",
+      "deleted": "Tanaman {name} sudah dihapus.",
+      "deleteConfirm": "Hapus tanaman {name}?",
+      "deleteUsageWarning": "Tanaman ini sedang dipakai oleh {count} zona/area dan relasinya akan dikosongkan.",
+      "description": "Deskripsi",
+      "descriptionEmpty": "Deskripsi belum diisi.",
+      "editTitle": "Edit Jenis Tanaman",
+      "empty": "Belum ada jenis tanaman.",
+      "harvestEstimate": "Estimasi Panen",
+      "modalSubtitle": "Data tanaman tenant.",
+      "name": "Nama",
+      "plantingDate": "Tanggal Tanam",
+      "plantingDateEmpty": "Tanggal tanam belum diisi",
+      "plantingPeriodDays": "Durasi Budidaya (hari)",
+      "plantingPeriodEmpty": "Durasi belum diisi",
+      "plantingPeriodValue": "{count} hari",
+      "progress": "Progres",
+      "save": "Simpan Tanaman",
+      "scientificName": "Nama Ilmiah",
+      "statusUpdated": "Status {name} menjadi {status}.",
+      "thresholdSource": "Sumber Ambang Batas",
+      "thresholdSourcePlaceholder": "Manual, rekomendasi agronom, jurnal",
+      "update": "Update Tanaman",
+      "updated": "Tanaman {name} diperbarui.",
+      "validationNameRequired": "Nama tanaman wajib diisi.",
+      "validationPlantingPeriod": "Durasi budidaya harus berupa angka lebih dari 0.",
+      "varieties": "Varietas",
+      "varietiesEmpty": "Varietas belum diisi"
+    },
+    "description": "Jenis tanaman, zona area, dan ambang batas tenant dari API.",
+    "loading": "Memuat data.",
+    "status": {
+      "active": "Aktif",
+      "archived": "Diarsipkan",
+      "draft": "Draft"
+    },
+    "tabs": {
+      "areas": "Zona & Area",
+      "crops": "Jenis Tanaman",
+      "thresholds": "Ambang Batas"
+    },
+    "threshold": {
+      "empty": "Belum ada ambang batas tanaman dari API.",
+      "invalidNumber": "Nilai ambang batas harus berupa angka.",
+      "matrixDescription": "Ringkasan batas per tanaman dari API tenant.",
+      "matrixTitle": "Matriks Ambang Batas",
+      "max": "Maks",
+      "min": "Min",
+      "minGreaterThanMax": "Nilai minimum tidak boleh lebih besar dari maksimum.",
+      "save": "Simpan Ambang Batas",
+      "saveHelper": "Perubahan ambang batas akan dikirim ke API tenant.",
+      "saved": "Ambang batas {name} tersimpan pada {time}."
+    },
+    "titleAgronomy": "Master Data Agronomi",
     "title": "Data Induk"
   },
   "metric": {
@@ -477,7 +545,7 @@
     "chartSubtitle": "Grafik dinamis dari metric key MQTT",
     "dashboardSubtitle": "Ringkasan smart farming realtime",
     "devicesSubtitle": "Tambah dan kelola daftar perangkat",
-    "masterDataSubtitle": "Crop type, zona area, dan threshold tanaman",
+    "masterDataSubtitle": "Jenis tanaman, zona area, dan ambang batas tanaman",
     "mqttSubtitle": "Tambah topic dan daftar koneksi sensor",
     "reportSubtitle": "Telemetry dan log lahan yang siap diekspor",
     "settingsSubtitle": "Profil, tampilan, notifikasi, keamanan",

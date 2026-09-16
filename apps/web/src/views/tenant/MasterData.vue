@@ -3,8 +3,8 @@
     <section class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-md md:p-5">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 class="text-lg font-semibold tracking-normal text-slate-700">Master Data Agronomi</h2>
-          <p class="mt-1 text-sm text-slate-600">Crop type, zona area, dan threshold tenant dari API.</p>
+          <h2 class="text-lg font-semibold tracking-normal text-slate-700">{{ t("masterData.titleAgronomy") }}</h2>
+          <p class="mt-1 text-sm text-slate-600">{{ t("masterData.description") }}</p>
         </div>
         <button
           class="inline-flex min-h-10 items-center gap-2 rounded-full bg-emerald-300 px-4 text-sm font-semibold text-emerald-950 shadow-sm transition hover:bg-emerald-400"
@@ -12,7 +12,7 @@
           @click="activeTab === 'areas' ? openAreaModal() : openCropModal()"
         >
           <Plus class="h-4 w-4" />
-          {{ activeTab === "areas" ? "Tambah Area" : "Tambah Crop" }}
+          {{ activeTab === "areas" ? t("masterData.area.addArea") : t("masterData.crop.addCrop") }}
         </button>
       </div>
 
@@ -60,26 +60,26 @@
               <div class="mt-4 grid grid-cols-2 gap-3 text-xs text-slate-600">
                 <span class="rounded-lg border border-slate-200/70 bg-white/50 p-2">{{ plantingPeriodLabel(crop.plantingPeriodDays) }}</span>
                 <span class="rounded-lg border border-slate-200/70 bg-white/50 p-2">{{ plantingDateLabel(crop.plantingDate) }}</span>
-                <span class="rounded-lg border border-slate-200/70 bg-white/50 p-2">{{ hstLabel(crop) }}</span>
-                <span class="rounded-lg border border-slate-200/70 bg-white/50 p-2">{{ crop.varieties.join(", ") || "Varietas belum diisi" }}</span>
+                <span class="rounded-lg border border-slate-200/70 bg-white/50 p-2" :title="t('masterData.crop.cropAgeHelp')">{{ hstLabel(crop) }}</span>
+                <span class="rounded-lg border border-slate-200/70 bg-white/50 p-2">{{ crop.varieties.join(", ") || t("masterData.crop.varietiesEmpty") }}</span>
               </div>
             </button>
             <div class="mt-4 flex justify-end gap-2 border-t border-slate-200/70 pt-3">
-              <button class="icon-button" type="button" :aria-label="`Edit ${crop.name}`" @click="openCropModal(crop)">
+              <button class="icon-button" type="button" :aria-label="t('masterData.actions.editCrop', { name: crop.name })" @click="openCropModal(crop)">
                 <Pencil class="h-4 w-4" />
               </button>
-              <button class="icon-button" type="button" :aria-label="`Hapus ${crop.name}`" @click="removeCrop(crop)">
+              <button class="icon-button" type="button" :aria-label="t('masterData.actions.deleteCrop', { name: crop.name })" @click="removeCrop(crop)">
                 <Trash2 class="h-4 w-4" />
               </button>
             </div>
           </article>
 
         <div v-if="isLoading" class="rounded-2xl border border-slate-200/80 bg-white/50 p-4 text-center text-sm text-slate-500 md:p-6">
-          Memuat data.
+          {{ t("masterData.loading") }}
         </div>
 
         <div v-else-if="crops.length === 0" class="rounded-2xl border border-slate-200/80 bg-white/50 p-4 text-center text-sm text-slate-500 md:p-6">
-          Belum ada crop type.
+          {{ t("masterData.crop.empty") }}
         </div>
         </div>
       </div>
@@ -89,13 +89,13 @@
           <div>
             <h3 class="text-xl font-semibold tracking-normal text-slate-700">{{ selectedCrop.name }}</h3>
             <p class="mt-1 text-sm italic text-slate-500">{{ selectedCrop.latinName ?? "-" }}</p>
-            <p class="mt-3 max-w-2xl text-sm text-slate-600">{{ selectedCrop.description ?? "Deskripsi belum diisi." }}</p>
+            <p class="mt-3 max-w-2xl text-sm text-slate-600">{{ selectedCrop.description ?? t("masterData.crop.descriptionEmpty") }}</p>
           </div>
           <div class="flex items-center gap-2">
-            <button class="icon-button" type="button" :aria-label="`Edit ${selectedCrop.name}`" @click="openCropModal(selectedCrop)">
+            <button class="icon-button" type="button" :aria-label="t('masterData.actions.editCrop', { name: selectedCrop.name })" @click="openCropModal(selectedCrop)">
               <Pencil class="h-4 w-4" />
             </button>
-            <button class="icon-button" type="button" :aria-label="`Hapus ${selectedCrop.name}`" @click="removeCrop(selectedCrop)">
+            <button class="icon-button" type="button" :aria-label="t('masterData.actions.deleteCrop', { name: selectedCrop.name })" @click="removeCrop(selectedCrop)">
               <Trash2 class="h-4 w-4" />
             </button>
             <Sprout class="h-9 w-9 text-field-green" />
@@ -104,50 +104,54 @@
 
         <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div class="rounded-xl border border-slate-200/80 bg-white/50 p-4">
-            <p class="text-xs text-slate-500">Tanggal Tanam</p>
+            <p class="text-xs text-slate-500">{{ t("masterData.crop.plantingDate") }}</p>
             <p class="mt-2 text-sm font-semibold text-slate-700">{{ plantingDateLabel(selectedCrop.plantingDate) }}</p>
           </div>
           <div class="rounded-xl border border-slate-200/80 bg-white/50 p-4">
-            <p class="text-xs text-slate-500">Umur Tanaman</p>
+            <p class="text-xs text-slate-500" :title="t('masterData.crop.cropAgeHelp')">{{ t("masterData.crop.cropAge") }}</p>
             <p class="mt-2 text-sm font-semibold text-emerald-700">{{ hstLabel(selectedCrop) }}</p>
           </div>
           <div class="rounded-xl border border-slate-200/80 bg-white/50 p-4">
-            <p class="text-xs text-slate-500">Progress</p>
+            <p class="text-xs text-slate-500">{{ t("masterData.crop.progress") }}</p>
             <p class="mt-2 text-sm font-semibold text-slate-700">{{ cropProgressLabel(selectedCrop) }}</p>
           </div>
           <div class="rounded-xl border border-slate-200/80 bg-white/50 p-4">
-            <p class="text-xs text-slate-500">Estimasi Panen</p>
+            <p class="text-xs text-slate-500">{{ t("masterData.crop.harvestEstimate") }}</p>
             <p class="mt-2 text-sm font-semibold text-slate-700">{{ harvestEstimateLabel(selectedCrop) }}</p>
           </div>
         </div>
 
         <div class="mt-5 grid gap-4 md:grid-cols-2">
-          <label v-for="metric in thresholdMetrics" :key="metric.key" class="space-y-2 rounded-xl border border-slate-200/80 bg-white/50 p-4">
+          <label v-for="metric in localizedThresholdMetrics" :key="metric.key" class="space-y-2 rounded-xl border border-slate-200/80 bg-white/50 p-4">
             <span class="flex items-center justify-between gap-3 text-sm font-semibold text-slate-700">
               {{ metric.label }}
               <span class="text-xs font-medium text-slate-500">{{ metric.unit }}</span>
             </span>
             <div class="grid grid-cols-2 gap-3">
               <input
-                v-model.number="draftThresholds[metric.key].min"
                 class="w-full rounded-lg border border-slate-200 bg-white/50 px-3 py-1.5 text-center text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
-                placeholder="Min"
+                :placeholder="t('masterData.threshold.min')"
                 step="0.1"
-                type="number"
+                type="text"
+                inputmode="decimal"
+                :value="thresholdInputValue(draftThresholds[metric.key].min)"
+                @input="setThresholdValue(metric.key, 'min', ($event.target as HTMLInputElement).value)"
               />
               <input
-                v-model.number="draftThresholds[metric.key].max"
                 class="w-full rounded-lg border border-slate-200 bg-white/50 px-3 py-1.5 text-center text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
-                placeholder="Max"
+                :placeholder="t('masterData.threshold.max')"
                 step="0.1"
-                type="number"
+                type="text"
+                inputmode="decimal"
+                :value="thresholdInputValue(draftThresholds[metric.key].max)"
+                @input="setThresholdValue(metric.key, 'max', ($event.target as HTMLInputElement).value)"
               />
             </div>
           </label>
         </div>
 
         <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
-          <p class="text-sm text-slate-500">{{ savedMessage }}</p>
+          <p class="text-sm" :class="thresholdFeedbackToneClass">{{ thresholdFeedbackMessage }}</p>
           <button
             class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-300 px-5 text-sm font-semibold text-emerald-950 shadow-sm transition hover:bg-emerald-400 disabled:opacity-60"
             :disabled="isSaving"
@@ -155,7 +159,7 @@
             @click="saveThresholds"
           >
             <Save class="h-4 w-4" />
-            {{ isSaving ? "Menyimpan" : "Simpan Threshold" }}
+            {{ isSaving ? t("common.saving") : t("masterData.threshold.save") }}
           </button>
         </div>
       </article>
@@ -204,17 +208,17 @@
 
     <section v-else class="overflow-hidden rounded-2xl border border-white/80 bg-white/60 shadow-sm backdrop-blur-md">
       <div class="border-b border-slate-200/80 p-4 md:p-5">
-        <h3 class="text-base font-semibold tracking-normal text-slate-700">Threshold Matrix</h3>
-        <p class="mt-1 text-sm text-slate-600">Ringkasan batas per crop dari API tenant.</p>
+        <h3 class="text-base font-semibold tracking-normal text-slate-700">{{ t("masterData.threshold.matrixTitle") }}</h3>
+        <p class="mt-1 text-sm text-slate-600">{{ t("masterData.threshold.matrixDescription") }}</p>
       </div>
 
       <div class="w-full overflow-x-auto whitespace-nowrap">
         <table class="min-w-[920px] w-full text-left text-sm">
           <thead class="border-b border-slate-200/80 bg-white/50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
-              <th class="px-5 py-4 font-semibold">Crop Type</th>
-              <th v-for="metric in thresholdMetrics" :key="metric.key" class="px-5 py-4 font-semibold">{{ metric.label }}</th>
-              <th class="px-5 py-4 font-semibold">Status</th>
+              <th class="px-5 py-4 font-semibold">{{ t("masterData.crop.cropType") }}</th>
+              <th v-for="metric in localizedThresholdMetrics" :key="metric.key" class="px-5 py-4 font-semibold">{{ metric.label }}</th>
+              <th class="px-5 py-4 font-semibold">{{ t("common.status") }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-200/70">
@@ -234,9 +238,9 @@
                   :value="crop.status"
                   @change="updateCropStatus(crop.id, ($event.target as HTMLSelectElement).value)"
                 >
-                  <option value="active">Aktif</option>
-                  <option value="draft">Draft</option>
-                  <option value="archived">Archived</option>
+                  <option value="active">{{ statusLabel("active") }}</option>
+                  <option value="draft">{{ statusLabel("draft") }}</option>
+                  <option value="archived">{{ statusLabel("archived") }}</option>
                 </select>
               </td>
             </tr>
@@ -245,7 +249,7 @@
       </div>
 
       <div v-if="crops.length === 0" class="border-t border-slate-200/80 p-8 text-center text-sm text-slate-500">
-        Belum ada threshold crop dari API.
+        {{ t("masterData.threshold.empty") }}
       </div>
     </section>
 
@@ -254,9 +258,9 @@
         <div class="flex items-center justify-between gap-4">
           <div>
             <h2 class="text-lg font-semibold tracking-normal text-slate-700">{{ cropModalTitle }}</h2>
-            <p class="mt-1 text-sm text-slate-600">Data crop tenant.</p>
+            <p class="mt-1 text-sm text-slate-600">{{ t("masterData.crop.modalSubtitle") }}</p>
           </div>
-          <button class="icon-button" type="button" aria-label="Tutup modal" @click="closeCropModal">
+          <button class="icon-button" type="button" :aria-label="t('masterData.crop.closeModal')" @click="closeCropModal">
             <X class="h-4 w-4" />
           </button>
         </div>
@@ -264,57 +268,60 @@
         <div class="mt-5 grid gap-4">
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="space-y-2">
-              <span class="text-sm font-semibold text-slate-700">Nama</span>
-              <input v-model.trim="cropForm.name" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" required type="text" />
+              <span class="text-sm font-semibold text-slate-700">{{ t("masterData.crop.name") }}</span>
+              <input v-model.trim="cropForm.name" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" type="text" />
             </label>
             <label class="space-y-2">
-              <span class="text-sm font-semibold text-slate-700">Latin</span>
+              <span class="text-sm font-semibold text-slate-700">{{ t("masterData.crop.scientificName") }}</span>
               <input v-model.trim="cropForm.latinName" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" type="text" />
             </label>
           </div>
 
           <div class="grid gap-4 sm:grid-cols-3">
             <label class="space-y-2">
-              <span class="text-sm font-semibold text-slate-700">Periode Tanam (hari)</span>
+              <span class="text-sm font-semibold text-slate-700">{{ t("masterData.crop.plantingPeriodDays") }}</span>
               <input v-model.number="cropForm.plantingPeriodDays" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" min="1" type="number" />
             </label>
             <label class="space-y-2">
-              <span class="text-sm font-semibold text-slate-700">Tanggal Tanam</span>
+              <span class="text-sm font-semibold text-slate-700">{{ t("masterData.crop.plantingDate") }}</span>
               <input v-model="cropForm.plantingDate" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" type="date" />
             </label>
             <label class="space-y-2">
-              <span class="text-sm font-semibold text-slate-700">Status</span>
+              <span class="text-sm font-semibold text-slate-700">{{ t("common.status") }}</span>
               <select v-model="cropForm.status" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400">
-                <option value="active">Aktif</option>
-                <option value="draft">Draft</option>
-                <option value="archived">Archived</option>
+                <option value="active">{{ statusLabel("active") }}</option>
+                <option value="draft">{{ statusLabel("draft") }}</option>
+                <option value="archived">{{ statusLabel("archived") }}</option>
               </select>
             </label>
           </div>
 
           <label class="space-y-2">
-            <span class="text-sm font-semibold text-slate-700">Varietas</span>
+            <span class="text-sm font-semibold text-slate-700">{{ t("masterData.crop.varieties") }}</span>
             <input v-model.trim="cropForm.varieties" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" placeholder="IR64, Inpari" type="text" />
           </label>
 
           <label class="space-y-2">
-            <span class="text-sm font-semibold text-slate-700">Sumber Threshold</span>
-            <input v-model.trim="cropForm.thresholdSource" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" placeholder="Manual, rekomendasi agronom, jurnal" type="text" />
+            <span class="text-sm font-semibold text-slate-700">{{ t("masterData.crop.thresholdSource") }}</span>
+            <input v-model.trim="cropForm.thresholdSource" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" :placeholder="t('masterData.crop.thresholdSourcePlaceholder')" type="text" />
           </label>
 
           <label class="space-y-2">
-            <span class="text-sm font-semibold text-slate-700">Deskripsi</span>
+            <span class="text-sm font-semibold text-slate-700">{{ t("masterData.crop.description") }}</span>
             <textarea v-model.trim="cropForm.description" class="min-h-24 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"></textarea>
           </label>
         </div>
+        <p v-if="cropFormErrorKey" class="mt-4 text-sm font-semibold text-rose-600">
+          {{ t(cropFormErrorKey) }}
+        </p>
 
         <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-100" type="button" @click="closeCropModal">
-            Batal
+            {{ t("common.cancel") }}
           </button>
           <button class="inline-flex items-center gap-2 rounded-xl bg-emerald-300 px-5 py-2 text-sm font-semibold text-emerald-950 shadow-sm transition hover:bg-emerald-400 disabled:opacity-60" :disabled="isSaving" type="submit">
             <Save class="h-4 w-4" />
-            {{ isSaving ? "Menyimpan" : cropSubmitLabel }}
+            {{ isSaving ? t("common.saving") : cropSubmitLabel }}
           </button>
         </div>
       </form>
@@ -389,6 +396,9 @@ import { Database, Leaf, Map, Pencil, Plus, Save, Sprout, Trash2, X } from "@luc
 import { storeToRefs } from "pinia";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import PolygonMapEditor from "../../components/maps/PolygonMapEditor.vue";
+import { useI18n } from "../../i18n";
+import { formatCropAge, formatDateTime, formatNumber, formatPercent } from "../../i18n/formatters";
+import { getMetricLabel, getMetricUnit } from "../../i18n/metrics";
 import {
   thresholdMetrics,
   useMasterDataStore,
@@ -403,16 +413,26 @@ import {
 import { useTenantProfileStore } from "../../stores/tenantProfileStore";
 
 type MasterTab = "crops" | "areas" | "thresholds";
+type DraftThresholdRange = {
+  max: number | string | null;
+  min: number | string | null;
+  unit: string;
+};
 
 const tenantProfileStore = useTenantProfileStore();
 const masterDataStore = useMasterDataStore();
 const { crops, errorMessage, isLoading, isSaving, plots } = storeToRefs(masterDataStore);
+const { t } = useI18n();
 const activeTab = ref<MasterTab>("crops");
 const selectedCropId = ref("");
-const savedMessage = ref("Perubahan threshold akan dikirim ke API tenant.");
+const thresholdFeedback = ref<{ key: string; params?: Record<string, string | number>; tone: "error" | "neutral" | "success" }>({
+  key: "masterData.threshold.saveHelper",
+  tone: "neutral"
+});
 const isCropModalOpen = ref(false);
 const isAreaModalOpen = ref(false);
 const editingCropId = ref<string | null>(null);
+const cropFormErrorKey = ref<string | null>(null);
 const editingAreaId = ref<string | null>(null);
 const areaFormError = ref<string | null>(null);
 const areaFormElement = ref<HTMLFormElement | null>(null);
@@ -450,7 +470,7 @@ const areaForm = reactive<{
   name: ""
 });
 
-const draftThresholds = reactive<Record<ThresholdKey, ThresholdRange>>({
+const draftThresholds = reactive<Record<ThresholdKey, DraftThresholdRange>>({
   ph: { max: null, min: null, unit: "range" },
   moisture: { max: null, min: null, unit: "%" },
   nitrogen: { max: null, min: null, unit: "mg/Kg" },
@@ -458,16 +478,33 @@ const draftThresholds = reactive<Record<ThresholdKey, ThresholdRange>>({
   potassium: { max: null, min: null, unit: "mg/Kg" }
 });
 
-const tabs = [
-  { id: "crops" as const, label: "Crop Types", icon: Leaf },
-  { id: "areas" as const, label: "Zona & Area", icon: Map },
-  { id: "thresholds" as const, label: "Threshold", icon: Database }
-];
+const tabs = computed(() => [
+  { id: "crops" as const, label: t("masterData.tabs.crops"), icon: Leaf },
+  { id: "areas" as const, label: t("masterData.tabs.areas"), icon: Map },
+  { id: "thresholds" as const, label: t("masterData.tabs.thresholds"), icon: Database }
+]);
 
 const selectedCrop = computed(() => crops.value.find((crop) => crop.id === selectedCropId.value) ?? crops.value[0] ?? null);
-const cropModalTitle = computed(() => editingCropId.value ? "Edit Crop Type" : "Tambah Crop Type");
-const cropSubmitLabel = computed(() => editingCropId.value ? "Update Crop" : "Simpan Crop");
+const cropModalTitle = computed(() => editingCropId.value ? t("masterData.crop.editTitle") : t("masterData.crop.addTitle"));
+const cropSubmitLabel = computed(() => editingCropId.value ? t("masterData.crop.update") : t("masterData.crop.save"));
 const areaModalTitle = computed(() => editingAreaId.value ? "Edit Zona / Area" : "Tambah Zona / Area");
+const thresholdFeedbackMessage = computed(() => t(thresholdFeedback.value.key, thresholdFeedback.value.params));
+const thresholdFeedbackToneClass = computed(() => {
+  if (thresholdFeedback.value.tone === "error") {
+    return "text-rose-600";
+  }
+
+  if (thresholdFeedback.value.tone === "success") {
+    return "text-emerald-700";
+  }
+
+  return "text-slate-500";
+});
+const localizedThresholdMetrics = computed(() => thresholdMetrics.map((metric) => ({
+  ...metric,
+  label: getMetricLabel(metric.key),
+  unit: getMetricUnit(metric.key, metric.unit)
+})));
 
 onMounted(async () => {
   await Promise.all([
@@ -499,15 +536,31 @@ async function saveThresholds(): Promise<void> {
     return;
   }
 
+  const validationKey = validateThresholds();
+  if (validationKey) {
+    thresholdFeedback.value = {
+      key: validationKey,
+      tone: "error"
+    };
+    return;
+  }
+
   const updated = await masterDataStore.updateCrop(selectedCrop.value.id, {
     thresholds: cloneThresholds(draftThresholds)
   });
 
   if (updated) {
-    savedMessage.value = `Threshold ${updated.name} tersimpan pada ${new Intl.DateTimeFormat("id-ID", {
-      hour: "2-digit",
-      minute: "2-digit"
-    }).format(new Date())}.`;
+    thresholdFeedback.value = {
+      key: "masterData.threshold.saved",
+      params: {
+        name: updated.name,
+        time: formatDateTime(new Date(), {
+          hour: "2-digit",
+          minute: "2-digit"
+        })
+      },
+      tone: "success"
+    };
   }
 }
 
@@ -521,11 +574,19 @@ async function updateCropStatus(cropId: string, status: string): Promise<void> {
   });
 
   if (updated) {
-    savedMessage.value = `Status ${updated.name} menjadi ${statusLabel(updated.status)}.`;
+    thresholdFeedback.value = {
+      key: "masterData.crop.statusUpdated",
+      params: {
+        name: updated.name,
+        status: statusLabel(updated.status)
+      },
+      tone: "success"
+    };
   }
 }
 
 function openCropModal(crop?: ApiCrop): void {
+  cropFormErrorKey.value = null;
   editingCropId.value = crop?.id ?? null;
   cropForm.description = crop?.description ?? "";
   cropForm.latinName = crop?.latinName ?? "";
@@ -545,6 +606,11 @@ function closeCropModal(): void {
 }
 
 async function submitCrop(): Promise<void> {
+  cropFormErrorKey.value = validateCropForm();
+  if (cropFormErrorKey.value) {
+    return;
+  }
+
   const payload: CropPayload = {
     description: cropForm.description || null,
     latinName: cropForm.latinName || null,
@@ -562,6 +628,11 @@ async function submitCrop(): Promise<void> {
 
   if (saved) {
     selectedCropId.value = saved.id;
+    thresholdFeedback.value = {
+      key: editingCropId.value ? "masterData.crop.updated" : "masterData.crop.created",
+      params: { name: saved.name },
+      tone: "success"
+    };
     await masterDataStore.fetchPlots();
     tenantProfileStore.syncFieldsFromPlots(plots.value);
     closeCropModal();
@@ -571,10 +642,10 @@ async function submitCrop(): Promise<void> {
 async function removeCrop(crop: ApiCrop): Promise<void> {
   const usageCount = plots.value.filter((plot) => plot.cropId === crop.id).length;
   const usageMessage = usageCount > 0
-    ? ` Crop ini sedang dipakai oleh ${usageCount} zona/area dan relasinya akan dikosongkan.`
+    ? ` ${t("masterData.crop.deleteUsageWarning", { count: formatNumber(usageCount, { maximumFractionDigits: 0 }) })}`
     : "";
 
-  if (!window.confirm(`Hapus crop ${crop.name}?${usageMessage}`)) {
+  if (!window.confirm(`${t("masterData.crop.deleteConfirm", { name: crop.name })}${usageMessage}`)) {
     return;
   }
 
@@ -582,7 +653,11 @@ async function removeCrop(crop: ApiCrop): Promise<void> {
 
   if (deleted) {
     selectedCropId.value = crops.value[0]?.id ?? "";
-    savedMessage.value = `Crop ${crop.name} sudah dihapus.`;
+    thresholdFeedback.value = {
+      key: "masterData.crop.deleted",
+      params: { name: crop.name },
+      tone: "success"
+    };
   }
 }
 
@@ -656,7 +731,7 @@ function syncDraftThresholds(): void {
   }
 }
 
-function cloneThresholds(source: Record<ThresholdKey, ThresholdRange>): Record<ThresholdKey, ThresholdRange> {
+function cloneThresholds(source: Record<ThresholdKey, DraftThresholdRange>): Record<ThresholdKey, ThresholdRange> {
   return {
     moisture: normalizeRange(source.moisture),
     nitrogen: normalizeRange(source.nitrogen),
@@ -666,7 +741,7 @@ function cloneThresholds(source: Record<ThresholdKey, ThresholdRange>): Record<T
   };
 }
 
-function normalizeRange(range: ThresholdRange): ThresholdRange {
+function normalizeRange(range: DraftThresholdRange): ThresholdRange {
   return {
     max: normalizeNumber(range.max),
     min: normalizeNumber(range.min),
@@ -679,25 +754,29 @@ function normalizeNumber(value: number | string | null): number | null {
     return null;
   }
 
-  const numericValue = Number(value);
+  const normalizedValue = typeof value === "string" ? normalizeDecimalInput(value) : value;
+  const numericValue = Number(normalizedValue);
   return Number.isFinite(numericValue) ? numericValue : null;
 }
 
 function formatRange(range: ThresholdRange): string {
   if (range.min === null || range.max === null) {
-    return "-";
+    return t("format.nullValue");
   }
 
-  return `${range.min}-${range.max}${range.unit === "range" ? "" : ` ${range.unit}`}`;
+  const formattedMin = formatNumber(range.min, { maximumFractionDigits: 2 });
+  const formattedMax = formatNumber(range.max, { maximumFractionDigits: 2 });
+  const unit = getMetricUnit("", range.unit);
+  return `${formattedMin}-${formattedMax}${unit === "range" ? "" : ` ${unit}`}`;
 }
 
 function plantingPeriodLabel(value: ApiCrop["plantingPeriodDays"]): string {
-  return value ? `${value} hari` : "Periode belum diisi";
+  return value ? t("masterData.crop.plantingPeriodValue", { count: formatNumber(value, { maximumFractionDigits: 0 }) }) : t("masterData.crop.plantingPeriodEmpty");
 }
 
 function plantingDateLabel(value: ApiCrop["plantingDate"]): string {
   if (!value) {
-    return "Tanggal tanam belum diisi";
+    return t("masterData.crop.plantingDateEmpty");
   }
 
   return formatDateOnly(value);
@@ -705,22 +784,22 @@ function plantingDateLabel(value: ApiCrop["plantingDate"]): string {
 
 function hstLabel(crop: ApiCrop): string {
   const hst = calculateHst(crop.plantingDate);
-  return hst === null ? "HST belum tersedia" : `${hst} HST`;
+  return formatCropAge(hst);
 }
 
 function cropProgressLabel(crop: ApiCrop): string {
   const progress = cropProgressPercent(crop);
-  return progress === null ? "-" : `${progress}%`;
+  return progress === null ? t("format.nullValue") : formatPercent(progress, { maximumFractionDigits: 0, valueKind: "percent" });
 }
 
 function harvestEstimateLabel(crop: ApiCrop): string {
   if (!crop.plantingDate || !crop.plantingPeriodDays) {
-    return "-";
+    return t("format.nullValue");
   }
 
   const plantingDate = parseDateOnly(crop.plantingDate);
   if (!plantingDate) {
-    return "-";
+    return t("format.nullValue");
   }
 
   plantingDate.setDate(plantingDate.getDate() + crop.plantingPeriodDays);
@@ -769,11 +848,11 @@ function formatDateOnly(value: string): string {
     return value;
   }
 
-  return new Intl.DateTimeFormat("id-ID", {
+  return formatDateTime(date, {
     day: "2-digit",
     month: "short",
     year: "numeric"
-  }).format(date);
+  });
 }
 
 function toDateInputValue(value: Date): string {
@@ -784,15 +863,7 @@ function toDateInputValue(value: Date): string {
 }
 
 function statusLabel(status: CropStatus): string {
-  if (status === "active") {
-    return "Aktif";
-  }
-
-  if (status === "archived") {
-    return "Archived";
-  }
-
-  return "Draft";
+  return t(`masterData.status.${status}`);
 }
 
 function statusClass(status: CropStatus): string {
@@ -809,6 +880,65 @@ function statusClass(status: CropStatus): string {
 
 function isCropStatus(value: string): value is CropStatus {
   return value === "active" || value === "draft" || value === "archived";
+}
+
+function thresholdInputValue(value: number | string | null): string {
+  return value === null ? "" : String(value);
+}
+
+function setThresholdValue(metricKey: ThresholdKey, boundary: "max" | "min", rawValue: string): void {
+  draftThresholds[metricKey][boundary] = rawValue.trim() === "" ? null : rawValue.trim();
+}
+
+function validateThresholds(): string | null {
+  for (const metric of thresholdMetrics) {
+    const minValue = parseThresholdInput(draftThresholds[metric.key].min);
+    const maxValue = parseThresholdInput(draftThresholds[metric.key].max);
+
+    if (!minValue.valid || !maxValue.valid) {
+      return "masterData.threshold.invalidNumber";
+    }
+
+    if (minValue.value !== null && maxValue.value !== null && minValue.value > maxValue.value) {
+      return "masterData.threshold.minGreaterThanMax";
+    }
+  }
+
+  return null;
+}
+
+function parseThresholdInput(value: number | string | null): { valid: boolean; value: number | null } {
+  if (value === null || value === "") {
+    return { valid: true, value: null };
+  }
+
+  const normalizedValue = typeof value === "string" ? normalizeDecimalInput(value) : value;
+  const numericValue = Number(normalizedValue);
+  return {
+    valid: Number.isFinite(numericValue),
+    value: Number.isFinite(numericValue) ? numericValue : null
+  };
+}
+
+function normalizeDecimalInput(value: string): string {
+  const trimmedValue = value.trim();
+  if (trimmedValue.includes(",") && !trimmedValue.includes(".")) {
+    return trimmedValue.replace(",", ".");
+  }
+
+  return trimmedValue;
+}
+
+function validateCropForm(): string | null {
+  if (!cropForm.name.trim()) {
+    return "masterData.crop.validationNameRequired";
+  }
+
+  if (cropForm.plantingPeriodDays !== null && (!Number.isFinite(cropForm.plantingPeriodDays) || cropForm.plantingPeriodDays <= 0)) {
+    return "masterData.crop.validationPlantingPeriod";
+  }
+
+  return null;
 }
 
 function defaultPolygon(): Record<string, unknown> {

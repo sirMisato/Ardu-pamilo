@@ -250,6 +250,74 @@
     "tenantPortal": "Tenant Portal"
   },
   "masterData": {
+    "actions": {
+      "deleteCrop": "Delete {name}",
+      "editCrop": "Edit {name}"
+    },
+    "area": {
+      "addArea": "Add Area"
+    },
+    "crop": {
+      "addCrop": "Add Crop",
+      "addTitle": "Add Crop Type",
+      "closeModal": "Close crop modal",
+      "created": "Crop {name} added.",
+      "cropAge": "Crop Age",
+      "cropAgeHelp": "Days after planting (DAP)",
+      "cropType": "Crop Type",
+      "deleted": "Crop {name} has been deleted.",
+      "deleteConfirm": "Delete crop {name}?",
+      "deleteUsageWarning": "This crop is used by {count} zones/areas and those relationships will be cleared.",
+      "description": "Description",
+      "descriptionEmpty": "No description has been entered.",
+      "editTitle": "Edit Crop Type",
+      "empty": "No crop types yet.",
+      "harvestEstimate": "Harvest Estimate",
+      "modalSubtitle": "Tenant crop data.",
+      "name": "Name",
+      "plantingDate": "Planting Date",
+      "plantingDateEmpty": "No planting date entered",
+      "plantingPeriodDays": "Cultivation Duration (days)",
+      "plantingPeriodEmpty": "No duration entered",
+      "plantingPeriodValue": "{count} days",
+      "progress": "Progress",
+      "save": "Save Crop",
+      "scientificName": "Scientific Name",
+      "statusUpdated": "{name} status changed to {status}.",
+      "thresholdSource": "Threshold Source",
+      "thresholdSourcePlaceholder": "Manual, agronomist recommendation, journal",
+      "update": "Update Crop",
+      "updated": "Crop {name} updated.",
+      "validationNameRequired": "Crop name is required.",
+      "validationPlantingPeriod": "Cultivation duration must be a number greater than 0.",
+      "varieties": "Varieties",
+      "varietiesEmpty": "No varieties entered"
+    },
+    "description": "Tenant crop types, zones and areas, and thresholds from the API.",
+    "loading": "Loading data.",
+    "status": {
+      "active": "Active",
+      "archived": "Archived",
+      "draft": "Draft"
+    },
+    "tabs": {
+      "areas": "Zones & Areas",
+      "crops": "Crop Types",
+      "thresholds": "Thresholds"
+    },
+    "threshold": {
+      "empty": "No crop thresholds are available from the API yet.",
+      "invalidNumber": "Threshold values must be numbers.",
+      "matrixDescription": "Threshold summary per crop from the tenant API.",
+      "matrixTitle": "Threshold Matrix",
+      "max": "Max",
+      "min": "Min",
+      "minGreaterThanMax": "Minimum value cannot be greater than maximum value.",
+      "save": "Save Thresholds",
+      "saveHelper": "Threshold changes will be sent to the tenant API.",
+      "saved": "{name} thresholds saved at {time}."
+    },
+    "titleAgronomy": "Agronomy Master Data",
     "title": "Master Data"
   },
   "metric": {
