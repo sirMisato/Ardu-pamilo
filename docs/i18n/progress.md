@@ -215,3 +215,42 @@ Keterbatasan verifikasi:
 - Cuaca dinamis lengkap tetap menjadi Batch 04; Batch 03 hanya memakai adapter bersama awal untuk ringkasan Dashboard.
 
 Batch berikutnya yang siap dikerjakan: Batch 04, fokus Weather Station.
+
+## Batch 04 Status
+
+Status: completed for Weather Station forecast, monthly report, configuration labels, and shared weather condition adapter.
+
+Perubahan Batch 04:
+
+- Melokalisasi `apps/web/src/views/tenant/Weather.vue` untuk judul Weather Station, lokasi, tombol refresh, tab Prakiraan Cuaca/Weather Forecast, Laporan Bulanan/Monthly Report, Konfigurasi/Configuration, kartu kondisi saat ini, prakiraan 3 hari, prakiraan per interval, sumber data, waktu pembaruan, loading/empty/error state, tabel histori, pagination, form konfigurasi, status konfigurasi, aria label ikon aksi, dan dialog hapus.
+- Memperluas katalog `apps/web/src/i18n/id.json` dan `apps/web/src/i18n/en.json` dengan namespace `weather.*` dan shared `common.actions`/`common.status`.
+- Memperkuat adapter `apps/web/src/i18n/weather.ts` untuk kondisi cuaca, detail kode cuaca, fallback kode tidak dikenal, tone badge, arah angin ID/EN, dan format kecepatan angin `km/j` atau `km/h` tanpa mengubah nilai.
+- Memperbarui `apps/web/src/services/bmkgService.ts` agar fallback kode cuaca memakai adapter pusat, mock forecast memiliki label ID/EN yang benar, dan ringkasan harian menyimpan `summaryEn`.
+- Weather history tetap memakai kontrak backend lama; tampilan client membaca `conditionEn` dan `weatherCode` dari `current_json` bila tersedia, sehingga Dashboard/forecast/histori dapat memakai adapter yang sama tanpa migrasi database.
+- Berdasarkan dokumentasi resmi BMKG yang dicek pada 2026-09-16, payload prakiraan menyediakan `weather_desc` untuk Indonesia dan `weather_desc_en` untuk English, `ws` dalam km/jam, `wd` arah angin, `tcc` tutupan awan, `vs_text` jarak pandang, serta data 3 hari per 3 jam. Atribusi BMKG tetap dipertahankan.
+
+Pemeriksaan aktual Batch 04:
+
+| Pemeriksaan | Hasil aktual |
+| --- | --- |
+| `npm run i18n:check` di `apps/web` | Lulus: 255 keys, 176 used keys |
+| `npm run typecheck` di `apps/web` | Lulus |
+| `npm run build` di `apps/web` | Lulus, tetap ada warning baseline chunk JS > 500 kB |
+| `npx --no-install tsx --version` di `apps/web` | Gagal karena `tsx` tidak terpasang dan `npx --no-install` tidak boleh memasang paket; fixture runtime TS ad hoc tidak dijalankan |
+| Pencarian literal Weather utama dengan `rg` | Tidak menemukan string UI lama utama seperti `Prakiraan Cuaca`, `Report Bulanan`, `Histori Cuaca`, `Pilih bulan`, atau pesan error lokal sebagai literal user-facing di `Weather.vue` |
+
+Verifikasi perilaku Batch 04:
+
+- Perubahan bahasa memperbarui label Weather secara reaktif dari computed/template dan tidak mengubah `activeTab`, `monthlyFilters.month`, page size, current page, form draft, konfigurasi aktif, atau payload cuaca.
+- Peluang hujan tetap persen, curah hujan tetap mm, suhu tetap C, dan angin tetap km/j/km/h sesuai locale tampilan tanpa konversi nilai.
+- Kondisi cuaca mengutamakan field BMKG `weather_desc`/`weather_desc_en`; jika hanya kode tersedia, adapter pusat memetakan kode yang didukung; kode tidak dikenal menampilkan `Kondisi cuaca tidak dikenal`/`Unknown weather condition` dengan detail kode bila ada.
+- Nama lokasi, ADM4, Endpoint/URL, atribusi BMKG, dan source payload tersimpan tetap dipertahankan; yang diterjemahkan hanya label buatan aplikasi.
+- Tanggal dan waktu Weather memakai formatter bersama `id-ID`/`en-US` dari locale aktif, tanpa mengubah timezone aplikasi/data.
+
+Keterbatasan verifikasi:
+
+- Tidak menjalankan browser end-to-end dengan akun nyata/API BMKG nyata karena kredensial dan layanan backend lokal tidak tersedia dari konteks aktif.
+- Fixture eksplisit untuk seluruh kombinasi kondisi didukung, kode tak dikenal, pergantian hari, nilai 0/null/pecahan diverifikasi melalui jalur kode, typecheck, build, dan inspeksi adapter; runner TS ad hoc tidak tersedia tanpa menambah paket baru.
+- AI weather context dan Report weather export masih menunggu batch pemilik masing-masing, tetapi adapter cuaca bersama sudah tersedia untuk dipakai Batch 05 dan Batch 07.
+
+Batch berikutnya yang siap dikerjakan: Batch 05, fokus AI Rekomendasi dan strategi prompt/hasil AI berbasis locale.

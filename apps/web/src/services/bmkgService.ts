@@ -1,4 +1,5 @@
 import { appEnvironment } from "../config/environment";
+import { getBmkgWeatherCodeLabel } from "../i18n/weather";
 
 const defaultForecastBaseUrl = "https://api.bmkg.go.id/publik/prakiraan-cuaca";
 const bmkgAttribution = "Data: Badan Meteorologi, Klimatologi, dan Geofisika (BMKG)";
@@ -35,6 +36,7 @@ export interface BmkgDailyForecast {
   date: string;
   dateLabel: string;
   summary: string;
+  summaryEn: string;
   averageTemperatureC: number | null;
   humidityRange: string;
   rainChancePercent: number;
@@ -59,23 +61,6 @@ interface FetchForecastOptions {
 }
 
 type BmkgRecord = Record<string, unknown>;
-
-const weatherCodeDescriptions: Record<number, string> = {
-  0: "Cerah",
-  1: "Cerah",
-  2: "Cerah Berawan",
-  3: "Berawan",
-  4: "Berawan Tebal",
-  5: "Udara Kabur",
-  10: "Asap",
-  45: "Kabut",
-  60: "Hujan Ringan",
-  61: "Hujan Sedang",
-  63: "Hujan Lebat",
-  80: "Hujan Lokal",
-  95: "Hujan Petir",
-  97: "Hujan Petir"
-};
 
 export async function fetchBmkgForecast(options: FetchForecastOptions): Promise<BmkgForecastResult> {
   const adm4 = options.adm4.trim();
@@ -218,15 +203,16 @@ function normalizeForecastItem(record: BmkgRecord): BmkgForecastItem | null {
   const weatherCode = readNumber(record.weather);
   const condition = readString(
     record.weather_desc,
-    weatherCode !== null ? weatherCodeDescriptions[weatherCode] ?? "Cuaca Tersedia" : "Cuaca Tersedia"
+    getBmkgWeatherCodeLabel(weatherCode, "id") ?? "Cuaca Tersedia"
   );
+  const conditionEn = readString(record.weather_desc_en, getBmkgWeatherCodeLabel(weatherCode, "en") ?? "Weather available");
 
   return {
     id: `${localDateTime || dateTime}-${weatherCode ?? "weather"}`,
     dateTime: dateTime || localDateTime,
     localDateTime: localDateTime || dateTime,
     condition,
-    conditionEn: readString(record.weather_desc_en, condition),
+    conditionEn,
     weatherCode,
     temperatureC: readNumber(record.t),
     humidityPercent: readNumber(record.hu),
@@ -290,6 +276,7 @@ function normalizeDailyForecast(date: string, dayItems: BmkgForecastItem[]): Bmk
     date,
     dateLabel: formatDateLabel(date),
     summary: representative.condition,
+    summaryEn: representative.conditionEn,
     averageTemperatureC: average(temperatures),
     humidityRange: formatRange(humidityValues, "%"),
     rainChancePercent: sortedItems.length > 0 ? Math.round((rainySamples / sortedItems.length) * 100) : 0,
@@ -324,12 +311,14 @@ function createMockForecastResult(forecastUrl: string, errorMessage: string, adm
 
 function createMockForecastItems(): BmkgForecastItem[] {
   const now = new Date();
-  const conditions = ["Cerah Berawan", "Hujan Ringan", "Berawan", "Cerah Berawan", "Hujan Lokal", "Cerah"];
+  const weatherCodes = [2, 60, 3, 2, 80, 0];
 
   return Array.from({ length: 18 }, (_, index) => {
     const localDate = new Date(now);
     localDate.setHours(now.getHours() + index * 3, 0, 0, 0);
-    const condition = conditions[index % conditions.length] ?? "Cerah Berawan";
+    const weatherCode = weatherCodes[index % weatherCodes.length] ?? 2;
+    const condition = getBmkgWeatherCodeLabel(weatherCode, "id") ?? "Cuaca Tersedia";
+    const conditionEn = getBmkgWeatherCodeLabel(weatherCode, "en") ?? "Weather available";
     const rainfall = condition.includes("Hujan") ? 0.8 + (index % 3) * 0.4 : 0;
 
     return {
@@ -337,8 +326,8 @@ function createMockForecastItems(): BmkgForecastItem[] {
       dateTime: localDate.toISOString(),
       localDateTime: toLocalDateTime(localDate),
       condition,
-      conditionEn: condition,
-      weatherCode: condition.includes("Hujan") ? 60 : 2,
+      conditionEn,
+      weatherCode,
       temperatureC: 27 + (index % 5),
       humidityPercent: 64 + (index % 6) * 4,
       rainfallMm: rainfall,

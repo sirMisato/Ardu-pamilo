@@ -3,7 +3,7 @@
     <section class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-5">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 class="text-lg font-semibold tracking-normal text-slate-800">Weather Station</h2>
+          <h2 class="text-lg font-semibold tracking-normal text-slate-800">{{ t("weather.title") }}</h2>
           <p class="mt-1 text-sm text-slate-500">{{ locationLabel }}</p>
         </div>
 
@@ -13,7 +13,7 @@
           @click="refreshForecast"
         >
           <RefreshCw class="h-4 w-4" :class="isLoading ? 'animate-spin' : ''" />
-          Refresh
+          {{ t("common.refresh") }}
         </button>
       </div>
 
@@ -39,17 +39,18 @@
       <section v-if="forecast" class="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.45fr)]">
         <article class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6">
           <div class="border-b border-white/60 pb-5">
-            <p class="text-sm font-medium text-slate-500">Prakiraan Cuaca Saat Ini</p>
+            <p class="text-sm font-medium text-slate-500">{{ t("weather.currentForecast") }}</p>
             <div class="mt-4 flex items-center justify-between gap-4">
               <div>
                 <p class="text-5xl font-bold tracking-normal text-slate-800">{{ formatTemperature(forecast.current.temperatureC) }}</p>
-                <h3 class="mt-3 text-xl font-semibold tracking-normal text-slate-700">{{ forecast.current.condition }}</h3>
+                <h3 class="mt-3 text-xl font-semibold tracking-normal text-slate-700">{{ getWeatherConditionLabel(forecast.current) }}</h3>
                 <p class="mt-2 text-sm text-slate-500">{{ formatDateTime(forecast.current.localDateTime) }}</p>
+                <p v-if="getWeatherConditionDetail(forecast.current)" class="mt-1 text-xs text-slate-400">{{ getWeatherConditionDetail(forecast.current) }}</p>
               </div>
               <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-600">
                 <img
                   v-if="forecast.current.iconUrl"
-                  :alt="forecast.current.condition"
+                  :alt="getWeatherConditionLabel(forecast.current)"
                   class="h-10 w-10"
                   :src="forecast.current.iconUrl"
                 />
@@ -73,15 +74,15 @@
           <div class="border-t border-white/60 pt-4 text-xs text-slate-500">
             <span>{{ forecast.attribution }}</span>
             <span class="mx-2 text-slate-500">/</span>
-            <span>{{ forecast.isMock ? "Mock fallback aktif" : safeUrlHost(forecast.forecastUrl) }}</span>
+            <span>{{ forecast.isMock ? t("weather.activeMockFallback") : safeUrlHost(forecast.forecastUrl) }}</span>
           </div>
         </article>
 
         <article class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 class="text-base font-semibold tracking-normal text-slate-800">3-Day Forecast Grid</h3>
-              <p class="mt-1 text-sm text-slate-500">Ringkasan harian dari bucket prakiraan BMKG.</p>
+              <h3 class="text-base font-semibold tracking-normal text-slate-800">{{ t("weather.forecastGrid") }}</h3>
+              <p class="mt-1 text-sm text-slate-500">{{ t("weather.forecastGridDescription") }}</p>
             </div>
             <p class="rounded-full border border-white/60 bg-white/50 px-3 py-1 text-xs text-slate-600">ADM4 {{ forecast.location.adm4 }}</p>
           </div>
@@ -90,8 +91,8 @@
             <article v-for="day in dailyForecast" :key="day.date" class="rounded-2xl border border-white/60 bg-white/50 p-4">
               <div class="flex items-start justify-between gap-3">
                 <div>
-                  <p class="text-sm font-semibold text-slate-800">{{ day.dateLabel }}</p>
-                  <p class="mt-1 text-xs text-slate-500">{{ day.summary }}</p>
+                  <p class="text-sm font-semibold text-slate-800">{{ formatDayLabel(day.date) }}</p>
+                  <p class="mt-1 text-xs text-slate-500">{{ getWeatherConditionLabel(dailyConditionSource(day)) }}</p>
                 </div>
                 <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-600">
                   <CloudRain v-if="day.rainChancePercent >= 40" class="h-5 w-5" />
@@ -101,16 +102,16 @@
 
               <div class="mt-5 space-y-3 divide-y divide-white/60 text-sm">
                 <div class="flex items-center justify-between gap-3">
-                  <span class="text-slate-500">Avg Temp</span>
+                  <span class="text-slate-500">{{ t("weather.averageTemperature") }}</span>
                   <strong class="text-slate-800">{{ formatTemperature(day.averageTemperatureC) }}</strong>
                 </div>
                 <div class="flex items-center justify-between gap-3 pt-3">
-                  <span class="text-slate-500">Humidity</span>
+                  <span class="text-slate-500">{{ t("weather.airHumidity") }}</span>
                   <strong class="text-slate-800">{{ day.humidityRange }}</strong>
                 </div>
                 <div class="flex items-center justify-between gap-3 pt-3">
-                  <span class="text-slate-500">Rain Chance</span>
-                  <strong class="text-teal-700">{{ day.rainChancePercent }}%</strong>
+                  <span class="text-slate-500">{{ t("weather.rainChance") }}</span>
+                  <strong class="text-teal-700">{{ formatPercent(day.rainChancePercent) }}</strong>
                 </div>
               </div>
             </article>
@@ -121,10 +122,10 @@
       <section v-if="forecast" class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 class="text-base font-semibold tracking-normal text-slate-800">Hourly Forecast</h3>
-            <p class="mt-1 text-sm text-slate-500">Sampel prakiraan 3 jam BMKG untuk pemantauan lapangan.</p>
+            <h3 class="text-base font-semibold tracking-normal text-slate-800">{{ t("weather.hourlyForecast") }}</h3>
+            <p class="mt-1 text-sm text-slate-500">{{ t("weather.hourlyForecastDescription") }}</p>
           </div>
-          <p class="text-xs text-slate-500">Updated {{ formatDateTime(forecast.fetchedAt) }}</p>
+          <p class="text-xs text-slate-500">{{ t("weather.updatedAt", { time: formatDateTime(forecast.fetchedAt) }) }}</p>
         </div>
 
         <div class="mt-5 grid gap-3 divide-white/60 sm:grid-cols-2 xl:grid-cols-4 xl:divide-x">
@@ -132,11 +133,12 @@
             <div class="flex items-start justify-between gap-3">
               <div>
                 <p class="text-xs text-slate-500">{{ formatTimeOnly(item.localDateTime) }}</p>
-                <p class="mt-2 text-sm font-semibold text-slate-800">{{ item.condition }}</p>
+                <p class="mt-2 text-sm font-semibold text-slate-800">{{ getWeatherConditionLabel(item) }}</p>
+                <p v-if="getWeatherConditionDetail(item)" class="mt-1 text-[11px] text-slate-400">{{ getWeatherConditionDetail(item) }}</p>
               </div>
               <span
                 class="rounded-full px-2 py-1 text-xs font-semibold"
-                :class="item.condition.toLowerCase().includes('hujan') ? 'bg-sky-100 text-sky-700' : item.condition.toLowerCase().includes('cerah') ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'"
+                :class="getWeatherToneClass(item)"
               >
                 {{ item.weatherCode ?? "-" }}
               </span>
@@ -153,7 +155,11 @@
 
       <section v-if="isLoading && !forecast" class="rounded-[2rem] border border-white/80 bg-white/60 p-8 text-center shadow-sm backdrop-blur-lg">
         <Loader2 class="mx-auto h-10 w-10 animate-spin text-teal-600" />
-        <p class="mt-4 text-sm text-slate-600">Mengambil prakiraan cuaca BMKG.</p>
+        <p class="mt-4 text-sm text-slate-600">{{ t("weather.loadingForecast") }}</p>
+      </section>
+
+      <section v-else-if="!forecast && !isLoading" class="rounded-[2rem] border border-white/80 bg-white/60 p-8 text-center shadow-sm backdrop-blur-lg">
+        <p class="text-sm text-slate-600">{{ activeAdm4 ? t("weather.emptyForecast") : t("weather.sourceNotConfigured") }}</p>
       </section>
     </section>
 
@@ -161,7 +167,7 @@
       <section class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-5">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 class="text-lg font-semibold tracking-normal text-slate-800">Report Bulanan</h2>
+            <h2 class="text-lg font-semibold tracking-normal text-slate-800">{{ t("weather.monthlyReport") }}</h2>
             <p class="mt-1 text-sm text-slate-500">{{ monthlyReportLabel }}</p>
           </div>
           <button
@@ -171,13 +177,13 @@
             @click="loadWeatherHistory"
           >
             <RefreshCw class="h-4 w-4" :class="isHistoryLoading ? 'animate-spin' : ''" />
-            Refresh
+            {{ t("common.refresh") }}
           </button>
         </div>
 
         <form class="mt-5 flex flex-wrap items-end gap-3" @submit.prevent="applyMonthlyFilters">
           <label class="min-w-[220px] flex-1 space-y-2 sm:flex-none">
-            <span class="text-xs font-medium text-slate-500">Bulan Report</span>
+            <span class="text-xs font-medium text-slate-500">{{ t("weather.monthReport") }}</span>
             <input
               v-model="monthlyFilters.month"
               class="min-h-10 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
@@ -189,7 +195,7 @@
             type="submit"
             :disabled="isHistoryLoading || monthlyMonthError !== null"
           >
-            Terapkan
+            {{ t("weather.applyMonth") }}
           </button>
           <button
             class="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/80 bg-white/50 px-4 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-white/70 hover:text-teal-700"
@@ -197,38 +203,38 @@
             :disabled="isHistoryLoading"
             @click="resetMonthlyRangeToCurrentMonth"
           >
-            Bulan Ini
+            {{ t("common.thisMonth") }}
           </button>
           <p v-if="monthlyMonthError" class="basis-full text-sm text-amber-700">{{ monthlyMonthError }}</p>
         </form>
 
         <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <div class="rounded-2xl border border-white/60 bg-white/50 p-4">
-            <p class="text-xs text-slate-500">Records</p>
-            <p class="mt-2 text-xl font-semibold tracking-normal text-slate-800">{{ weatherHistoryTotal.toLocaleString("id-ID") }}</p>
+            <p class="text-xs text-slate-500">{{ t("weather.records") }}</p>
+            <p class="mt-2 text-xl font-semibold tracking-normal text-slate-800">{{ formatCount(weatherHistoryTotal) }}</p>
           </div>
           <div class="rounded-2xl border border-white/60 bg-white/50 p-4">
-            <p class="text-xs text-slate-500">Avg Temp</p>
+            <p class="text-xs text-slate-500">{{ t("weather.averageTemperature") }}</p>
             <p class="mt-2 text-xl font-semibold tracking-normal text-slate-800">{{ formatTemperature(monthlySummary.averageTemperatureC) }}</p>
           </div>
           <div class="rounded-2xl border border-white/60 bg-white/50 p-4">
-            <p class="text-xs text-slate-500">Total Rain</p>
+            <p class="text-xs text-slate-500">{{ t("weather.totalRainfall") }}</p>
             <p class="mt-2 text-xl font-semibold tracking-normal text-sky-700">{{ formatRain(monthlySummary.totalRainfallMm) }}</p>
           </div>
           <div class="rounded-2xl border border-white/60 bg-white/50 p-4">
-            <p class="text-xs text-slate-500">Rain Records</p>
-            <p class="mt-2 text-xl font-semibold tracking-normal text-teal-700">{{ monthlySummary.rainyRecords }}</p>
+            <p class="text-xs text-slate-500">{{ t("weather.rainRecords") }}</p>
+            <p class="mt-2 text-xl font-semibold tracking-normal text-teal-700">{{ formatCount(monthlySummary.rainyRecords) }}</p>
           </div>
           <div class="rounded-2xl border border-white/60 bg-white/50 p-4">
-            <p class="text-xs text-slate-500">Latest</p>
-            <p class="mt-2 truncate text-sm font-semibold text-slate-800">{{ monthlySummary.latestCondition }}</p>
+            <p class="text-xs text-slate-500">{{ t("weather.latest") }}</p>
+            <p class="mt-2 truncate text-sm font-semibold text-slate-800">{{ latestMonthlyCondition }}</p>
           </div>
         </div>
       </section>
 
       <section class="overflow-hidden rounded-2xl border border-white/80 bg-white/60 shadow-sm backdrop-blur-lg">
         <div class="border-b border-white/60 p-4 md:p-5">
-          <h3 class="text-base font-semibold tracking-normal text-slate-800">Histori Cuaca</h3>
+          <h3 class="text-base font-semibold tracking-normal text-slate-800">{{ t("weather.historyTitle") }}</h3>
           <p class="mt-1 text-sm text-slate-500">ADM4 {{ activeAdm4 || "-" }}</p>
         </div>
 
@@ -236,45 +242,45 @@
           <table class="min-w-[980px] w-full text-left text-sm">
             <thead class="border-b border-white/60 bg-white/40 text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th class="px-4 py-3 font-semibold">Timestamp</th>
-                <th class="px-4 py-3 font-semibold">Lokasi</th>
-                <th class="px-4 py-3 font-semibold">Kondisi</th>
-                <th class="px-4 py-3 font-semibold">Temp</th>
-                <th class="px-4 py-3 font-semibold">Humidity</th>
-                <th class="px-4 py-3 font-semibold">Rainfall</th>
-                <th class="px-4 py-3 font-semibold">Wind</th>
-                <th class="px-4 py-3 font-semibold">Source</th>
+                <th class="px-4 py-3 font-semibold">{{ t("weather.timestamp") }}</th>
+                <th class="px-4 py-3 font-semibold">{{ t("weather.location") }}</th>
+                <th class="px-4 py-3 font-semibold">{{ t("weather.currentCondition") }}</th>
+                <th class="px-4 py-3 font-semibold">{{ t("weather.temperature") }}</th>
+                <th class="px-4 py-3 font-semibold">{{ t("weather.airHumidity") }}</th>
+                <th class="px-4 py-3 font-semibold">{{ t("weather.rainfall") }}</th>
+                <th class="px-4 py-3 font-semibold">{{ t("weather.wind") }}</th>
+                <th class="px-4 py-3 font-semibold">{{ t("weather.dataSource") }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-white/60">
               <tr v-for="item in weatherHistory" :key="item.id" class="hover:bg-white/40">
                 <td class="px-4 py-4 text-slate-700">{{ formatDateTime(item.observedAt) }}</td>
                 <td class="px-4 py-4 text-slate-700">{{ formatWeatherHistoryLocation(item) }}</td>
-                <td class="px-4 py-4 font-semibold text-slate-800">{{ item.condition }}</td>
+                <td class="px-4 py-4 font-semibold text-slate-800">{{ getWeatherConditionLabel(weatherHistoryConditionSource(item)) }}</td>
                 <td class="px-4 py-4 text-amber-700">{{ formatTemperature(item.temperatureC) }}</td>
                 <td class="px-4 py-4 text-sky-700">{{ formatHumidity(item.humidityPercent) }}</td>
                 <td class="px-4 py-4 text-teal-700">{{ formatRain(item.rainfallMm) }}</td>
                 <td class="px-4 py-4 text-slate-700">{{ formatWind(item.windSpeed, item.windDirection ?? "-") }}</td>
-                <td class="px-4 py-4 text-slate-500">{{ item.isMock ? "Fallback" : item.source }}</td>
+                <td class="px-4 py-4 text-slate-500">{{ item.isMock ? t("weather.weatherSourceFallback") : item.source }}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
         <div v-if="isHistoryLoading" class="border-t border-white/60 p-8 text-center text-sm text-slate-500">
-          Memuat histori cuaca...
+          {{ t("weather.loadingHistory") }}
         </div>
         <div v-else-if="weatherHistoryTotal === 0" class="border-t border-white/60 p-8 text-center text-sm text-slate-500">
-          Belum ada histori cuaca untuk bulan ini.
+          {{ t("weather.emptyForecast") }}
         </div>
 
         <div v-else class="flex flex-wrap items-center justify-between gap-3 border-t border-white/60 p-4 text-sm text-slate-700">
           <p>
-            Menampilkan {{ monthlyPaginationStart }}-{{ monthlyPaginationEnd }} dari {{ weatherHistoryTotal.toLocaleString("id-ID") }} records
+            {{ t("weather.showingRecords", { start: monthlyPaginationStart, end: monthlyPaginationEnd, total: formatCount(weatherHistoryTotal) }) }}
           </p>
           <div class="flex flex-wrap items-center gap-2">
             <label class="flex items-center gap-2 text-xs text-slate-500">
-              Rows
+              {{ t("weather.rows") }}
               <select
                 v-model.number="monthlyPageSize"
                 class="h-9 rounded-xl border border-emerald-200 bg-white/50 px-2 text-sm text-slate-700 outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
@@ -287,17 +293,17 @@
             <button
               class="icon-button h-9 w-9"
               type="button"
-              aria-label="Halaman sebelumnya"
+              :aria-label="t('weather.previousPage')"
               :disabled="isHistoryLoading || monthlyActivePage <= 1"
               @click="setMonthlyPage(monthlyActivePage - 1)"
             >
               <ChevronLeft class="h-4 w-4" />
             </button>
-            <span class="min-w-24 text-center text-xs text-slate-500">Hal {{ monthlyActivePage }} / {{ monthlyTotalPages }}</span>
+            <span class="min-w-24 text-center text-xs text-slate-500">{{ t("weather.pageStatus", { page: monthlyActivePage, total: monthlyTotalPages }) }}</span>
             <button
               class="icon-button h-9 w-9"
               type="button"
-              aria-label="Halaman berikutnya"
+              :aria-label="t('weather.nextPage')"
               :disabled="isHistoryLoading || monthlyActivePage >= monthlyTotalPages"
               @click="setMonthlyPage(monthlyActivePage + 1)"
             >
@@ -310,14 +316,14 @@
 
     <section v-else class="rounded-2xl border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6">
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <h2 class="text-lg font-semibold tracking-normal text-slate-800">Konfigurasi</h2>
+        <h2 class="text-lg font-semibold tracking-normal text-slate-800">{{ t("weather.configuration") }}</h2>
         <button
           class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-300 px-4 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400"
           type="button"
           @click="openCreateConfigForm"
         >
           <Plus class="h-4 w-4" />
-          Tambah
+          {{ t("common.add") }}
         </button>
       </div>
 
@@ -328,14 +334,14 @@
       >
         <div class="flex flex-wrap items-center justify-between gap-3">
           <h3 class="text-base font-semibold text-slate-800">{{ configFormTitle }}</h3>
-          <button class="icon-button" type="button" aria-label="Tutup form" @click="closeConfigForm">
+          <button class="icon-button" type="button" :aria-label="t('weather.closeForm')" @click="closeConfigForm">
             <X class="h-4 w-4" />
           </button>
         </div>
 
         <div class="mt-4 grid gap-4 md:grid-cols-2">
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-700">Nama</span>
+            <span class="text-sm font-medium text-slate-700">{{ t("weather.configName") }}</span>
             <input
               v-model.trim="configForm.name"
               class="min-h-11 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
@@ -345,7 +351,7 @@
           </label>
 
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-700">Field</span>
+            <span class="text-sm font-medium text-slate-700">{{ t("weather.field") }}</span>
             <select
               v-model="configForm.fieldId"
               class="min-h-11 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
@@ -379,7 +385,7 @@
           </label>
 
           <label class="space-y-2 md:col-span-2">
-            <span class="text-sm font-medium text-slate-700">Catatan</span>
+            <span class="text-sm font-medium text-slate-700">{{ t("dashboard.region") }}</span>
             <textarea
               v-model.trim="configForm.notes"
               class="min-h-20 w-full rounded-xl border border-emerald-200 bg-white/50 px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70"
@@ -388,7 +394,7 @@
 
           <label class="inline-flex items-center gap-3 rounded-xl border border-white/80 bg-white/50 px-3 py-3 text-sm font-medium text-slate-700">
             <input v-model="configForm.isEnabled" class="h-4 w-4 accent-[#a7e8af]" type="checkbox" />
-            Aktif
+            {{ t("weather.configStatusActive") }}
           </label>
         </div>
 
@@ -398,7 +404,7 @@
             type="button"
             @click="closeConfigForm"
           >
-            Batal
+            {{ t("common.cancel") }}
           </button>
           <button
             class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-300 px-4 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 disabled:opacity-60"
@@ -406,7 +412,7 @@
             type="submit"
           >
             <Save class="h-4 w-4" />
-            Simpan
+            {{ t("common.save") }}
           </button>
         </div>
       </form>
@@ -415,12 +421,12 @@
         <table class="min-w-[880px] w-full text-left text-sm">
           <thead class="border-b border-white/60 bg-white/40 text-xs uppercase tracking-wide text-slate-500">
             <tr>
-              <th class="px-4 py-3 font-semibold">Nama</th>
-              <th class="px-4 py-3 font-semibold">Field</th>
+              <th class="px-4 py-3 font-semibold">{{ t("weather.configName") }}</th>
+              <th class="px-4 py-3 font-semibold">{{ t("weather.field") }}</th>
               <th class="px-4 py-3 font-semibold">ADM4</th>
               <th class="px-4 py-3 font-semibold">Endpoint</th>
-              <th class="px-4 py-3 font-semibold">Status</th>
-              <th class="px-4 py-3 text-right font-semibold">Aksi</th>
+              <th class="px-4 py-3 font-semibold">{{ t("common.status") }}</th>
+              <th class="px-4 py-3 text-right font-semibold">{{ t("common.actions") }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-white/60">
@@ -440,7 +446,7 @@
                   :class="config.id === weatherConfigStore.activeConfigId ? 'bg-emerald-100 text-emerald-700' : config.isEnabled ? 'bg-white/70 text-slate-700' : 'bg-slate-100 text-slate-500'"
                 >
                   <span class="h-2 w-2 rounded-full" :class="config.isEnabled ? 'bg-teal-500' : 'bg-slate-400'"></span>
-                  {{ config.id === weatherConfigStore.activeConfigId ? "Aktif" : config.isEnabled ? "Enabled" : "Disabled" }}
+                  {{ config.id === weatherConfigStore.activeConfigId ? t("weather.configStatusActive") : config.isEnabled ? t("weather.configStatusEnabled") : t("weather.configStatusDisabled") }}
                 </span>
               </td>
               <td class="px-4 py-4">
@@ -448,16 +454,16 @@
                   <button
                     class="icon-button"
                     type="button"
-                    :aria-label="`Aktifkan ${config.name}`"
+                    :aria-label="t('weather.configStatusActive') + ' ' + config.name"
                     :disabled="!config.isEnabled"
                     @click="activateWeatherConfig(config.id)"
                   >
                     <CheckCircle2 class="h-4 w-4" />
                   </button>
-                  <button class="icon-button" type="button" :aria-label="`Edit ${config.name}`" @click="openEditConfigForm(config.id)">
+                  <button class="icon-button" type="button" :aria-label="t('weather.editConfigLabel', { name: config.name })" @click="openEditConfigForm(config.id)">
                     <Pencil class="h-4 w-4" />
                   </button>
-                  <button class="icon-button" type="button" :aria-label="`Hapus ${config.name}`" @click="deleteWeatherConfig(config.id)">
+                  <button class="icon-button" type="button" :aria-label="t('weather.deleteConfigLabel', { name: config.name })" @click="deleteWeatherConfig(config.id)">
                     <Trash2 class="h-4 w-4" />
                   </button>
                 </div>
@@ -467,7 +473,7 @@
         </table>
 
         <div v-if="weatherConfigs.length === 0" class="p-8 text-center text-sm text-slate-500">
-          Belum ada konfigurasi weather.
+          {{ t("weather.configEmpty") }}
         </div>
       </div>
     </section>
@@ -496,6 +502,16 @@ import {
 } from "@lucide/vue";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { appEnvironment } from "../../config/environment";
+import { formatDataCount, formatDateTime as formatLocalizedDateTime, formatNumber, formatPercent as formatLocalizedPercent } from "../../i18n/formatters";
+import { t } from "../../i18n";
+import {
+  formatWindLabel,
+  getWeatherConditionDetail,
+  getWeatherConditionLabel,
+  getWeatherToneClass,
+  isRainyCondition,
+  type WeatherConditionSource
+} from "../../i18n/weather";
 import {
   fetchBmkgForecast,
   type BmkgForecastResult
@@ -590,20 +606,20 @@ const activeAdm4 = computed(() => weatherConfigStore.activeAdm4Code || tenantPro
 const weatherConfigs = computed(() => weatherConfigStore.configs);
 const isReadOnlyTenant = computed(() => authStore.isReadOnlyTenant);
 
-const tabs: Array<{ id: WeatherTab; label: string }> = [
-  { id: "forecast", label: "Prakiraan Cuaca" },
-  { id: "monthly", label: "Report Bulanan" },
-  { id: "config", label: "Konfigurasi" }
-];
+const tabs = computed<Array<{ id: WeatherTab; label: string }>>(() => [
+  { id: "forecast", label: t("weather.forecastTab") },
+  { id: "monthly", label: t("weather.monthlyReport") },
+  { id: "config", label: t("weather.configuration") }
+]);
 const visibleTabs = computed(() => isReadOnlyTenant.value
-  ? tabs.filter((tab) => tab.id !== "config")
-  : tabs);
+  ? tabs.value.filter((tab) => tab.id !== "config")
+  : tabs.value);
 
 const locationLabel = computed(() => {
   if (!forecast.value) {
     return activeField.value
       ? `${activeField.value.regionLabel} / ADM4 ${activeAdm4.value}`
-      : "BMKG forecast location";
+      : t("weather.forecastLocationFallback");
   }
 
   const location = forecast.value.location;
@@ -617,7 +633,7 @@ const monthlyMonthError = computed(() => {
   const range = selectedMonthlyRange.value;
 
   if (!range) {
-    return "Pilih bulan report.";
+    return t("weather.monthRequired");
   }
 
   return null;
@@ -637,7 +653,7 @@ const configForm = reactive<WeatherConfigInput>({
   name: "",
   notes: ""
 });
-const configFormTitle = computed(() => editingConfigId.value ? "Edit Konfigurasi" : "Tambah Konfigurasi");
+const configFormTitle = computed(() => editingConfigId.value ? t("weather.editConfig") : t("weather.addConfig"));
 const canSubmitConfig = computed(() => {
   return configForm.name.trim().length > 0
     && configForm.fieldId.length > 0
@@ -651,37 +667,37 @@ const currentWeatherMetrics = computed(() => {
 
   return [
     {
-      label: "Temperature",
+      label: t("weather.temperature"),
       value: formatTemperature(current?.temperatureC ?? null),
       icon: Thermometer,
       iconClass: "text-amber-200"
     },
     {
-      label: "Humidity",
+      label: t("weather.airHumidity"),
       value: formatHumidity(current?.humidityPercent ?? null),
       icon: Droplets,
       iconClass: "text-sky-200"
     },
     {
-      label: "Rainfall",
+      label: t("weather.rainfall"),
       value: formatRain(current?.rainfallMm ?? null),
       icon: CloudRain,
       iconClass: "text-field-mint"
     },
     {
-      label: "Wind",
+      label: t("weather.wind"),
       value: formatWind(current?.windSpeed ?? null, current?.windDirection ?? "-"),
       icon: Wind,
       iconClass: "text-field-green"
     },
     {
-      label: "Cloud Cover",
+      label: t("weather.cloudCover"),
       value: formatPercent(current?.cloudCoverPercent ?? null),
       icon: CloudSun,
       iconClass: "text-violet-200"
     },
     {
-      label: "Visibility",
+      label: t("weather.visibility"),
       value: current?.visibility ?? "-",
       icon: Eye,
       iconClass: "text-cyan-200"
@@ -689,11 +705,15 @@ const currentWeatherMetrics = computed(() => {
   ];
 });
 const monthlySummary = computed(() => weatherHistorySummary.value);
+const latestMonthlyCondition = computed(() => {
+  const latest = [...weatherHistory.value].sort((left, right) => Date.parse(right.observedAt) - Date.parse(left.observedAt))[0] ?? null;
+  return latest ? getWeatherConditionLabel(weatherHistoryConditionSource(latest)) : monthlySummary.value.latestCondition;
+});
 const monthlyReportLabel = computed(() => {
   const range = selectedMonthlyRange.value;
 
   if (!range) {
-    return "Bulan report belum dipilih";
+    return t("weather.monthNotSelected");
   }
 
   return `${formatDateOnly(range.start)} - ${formatDateOnly(range.end)}`;
@@ -735,13 +755,17 @@ async function refreshForecast(): Promise<void> {
 
   forecast.value = result;
   const messages = result.isMock
-    ? [`BMKG live data belum bisa diambil: ${result.errorMessage ?? "menggunakan data contoh."}`]
+    ? [
+        activeAdm4.value
+          ? t("weather.liveDataUnavailable", { message: result.errorMessage ?? t("dashboard.weatherFallbackDefault") })
+          : t("weather.sourceNotConfigured")
+      ]
     : [];
 
   try {
     await persistWeatherHistory(result);
   } catch (error) {
-    messages.push(`Histori cuaca belum tersimpan: ${normalizeApiError(error)}`);
+    messages.push(t("weather.historyNotSaved", { message: normalizeApiError(error) }));
   }
 
   errorMessage.value = messages.length > 0 ? messages.join(" ") : null;
@@ -836,7 +860,8 @@ function buildWeatherHistoryPayload(result: BmkgForecastResult): WeatherHistoryP
       dateLabel: day.dateLabel,
       humidityRange: day.humidityRange,
       rainChancePercent: day.rainChancePercent,
-      summary: day.summary
+      summary: day.summary,
+      summaryEn: day.summaryEn
     })),
     errorMessage: result.errorMessage ?? null,
     fetchedAt: result.fetchedAt,
@@ -971,31 +996,51 @@ function deleteWeatherConfig(configId: string): void {
   }
 
   const config = weatherConfigStore.configs.find((item) => item.id === configId);
-  if (!config || !window.confirm(`Hapus konfigurasi ${config.name}?`)) {
+  if (!config || !window.confirm(t("weather.deleteConfigConfirm", { name: config.name }))) {
     return;
   }
 
   weatherConfigStore.deleteConfig(configId);
 }
 
+function dailyConditionSource(day: { summary: string; summaryEn: string }): WeatherConditionSource {
+  return {
+    condition: day.summary,
+    conditionEn: day.summaryEn
+  };
+}
+
+function weatherHistoryConditionSource(item: WeatherHistoryItem): WeatherConditionSource {
+  const current = isRecord(item.current) ? item.current : {};
+  return {
+    condition: typeof current.condition === "string" ? current.condition : item.condition,
+    conditionEn: typeof current.conditionEn === "string" ? current.conditionEn : null,
+    weatherCode: typeof current.weatherCode === "number" ? current.weatherCode : null
+  };
+}
+
 function formatTemperature(value: number | null): string {
-  return value === null ? "-" : `${value} C`;
+  return value === null ? t("format.nullValue") : `${formatNumber(value, { maximumFractionDigits: 1 })} C`;
 }
 
 function formatHumidity(value: number | null): string {
-  return value === null ? "-" : `${value}%`;
+  return formatPercent(value);
 }
 
 function formatPercent(value: number | null): string {
-  return value === null ? "-" : `${value}%`;
+  return formatLocalizedPercent(value, { valueKind: "percent" });
 }
 
 function formatRain(value: number | null): string {
-  return value === null ? "-" : `${value} mm`;
+  return value === null ? t("format.nullValue") : `${formatNumber(value, { maximumFractionDigits: 1 })} mm`;
 }
 
-function formatWind(value: number | null, direction: string): string {
-  return value === null ? "-" : `${value} km/j ${direction}`.trim();
+function formatWind(value: number | null, direction: string | null): string {
+  return formatWindLabel(value, direction);
+}
+
+function formatCount(value: number | null | undefined): string {
+  return formatDataCount(value);
 }
 
 function formatWeatherHistoryLocation(item: WeatherHistoryItem): string {
@@ -1020,18 +1065,18 @@ function formatDateTime(value: string): string {
     return value;
   }
 
-  return new Intl.DateTimeFormat("id-ID", {
+  return formatLocalizedDateTime(date, {
     dateStyle: "medium",
     timeStyle: "short"
-  }).format(date);
+  });
 }
 
 function formatDateOnly(value: Date): string {
-  return new Intl.DateTimeFormat("id-ID", {
+  return formatLocalizedDateTime(value, {
     day: "2-digit",
     month: "short",
     year: "numeric"
-  }).format(value);
+  });
 }
 
 function formatTimeOnly(value: string): string {
@@ -1041,25 +1086,20 @@ function formatTimeOnly(value: string): string {
     return value;
   }
 
-  return new Intl.DateTimeFormat("id-ID", {
+  return formatLocalizedDateTime(date, {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
     month: "short"
-  }).format(date);
+  });
 }
 
-function weatherToneClass(condition: string): string {
-  const normalized = condition.toLowerCase();
-  if (normalized.includes("hujan")) {
-    return "bg-sky-300/10 text-sky-200";
-  }
-
-  if (normalized.includes("cerah")) {
-    return "bg-amber-300/10 text-amber-200";
-  }
-
-  return "bg-field-mint/10 text-field-mint";
+function formatDayLabel(date: string): string {
+  return formatLocalizedDateTime(`${date}T00:00:00`, {
+    day: "2-digit",
+    month: "short",
+    weekday: "short"
+  });
 }
 
 function safeUrlHost(value: string): string {
@@ -1140,19 +1180,19 @@ function roundMetric(value: number): number {
 }
 
 function isRainyWeather(item: WeatherHistoryItem): boolean {
-  return (item.rainfallMm ?? 0) > 0 || item.condition.toLowerCase().includes("hujan");
+  return (item.rainfallMm ?? 0) > 0 || isRainyCondition(weatherHistoryConditionSource(item));
 }
 
 function normalizeApiError(error: unknown): string {
   if (error instanceof ApiClientError) {
-    return error.status === 401 ? "Sesi login berakhir. Silakan login ulang." : error.message;
+    return error.status === 401 ? t("weather.sessionExpired") : error.message;
   }
 
   if (error instanceof TypeError) {
-    return "API backend belum dapat dihubungi.";
+    return t("auth.apiUnavailable", { target: "API" });
   }
 
-  return "Gagal memproses histori cuaca.";
+  return t("weather.historyProcessFailed");
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
