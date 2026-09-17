@@ -3,6 +3,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { db } from "../db/client.js";
 import type { JsonValue, Tenant, TenantSettings, TenantSettingsUpdate } from "../db/schema.js";
+import type { LocaleCode } from "../i18n/locale.js";
 import { requireTenantContext, verifyTenant, verifyTenantAdmin } from "../middleware/verifyTenant.js";
 
 const displayPreferencesSchema = z.object({
@@ -78,7 +79,7 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
     if (!tenantRow) {
       return reply.code(404).send({
         error: "Tenant not found",
-        message: "Tenant context tidak ditemukan di database."
+        message: settingsMessage(request.locale, "tenantContextNotFound")
       });
     }
 
@@ -109,14 +110,14 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
       if (result.numUpdatedRows === 0n) {
         return reply.code(404).send({
           error: "Tenant not found",
-          message: "Tenant profile tidak ditemukan."
+          message: settingsMessage(request.locale, "tenantProfileNotFound")
         });
       }
     } catch (error) {
       if (isDuplicateEntryError(error)) {
         return reply.code(409).send({
           error: "Email already exists",
-          message: "Email sudah digunakan tenant lain."
+          message: settingsMessage(request.locale, "emailExists")
         });
       }
 
@@ -147,7 +148,7 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
     if (!tenantRow || !(await bcrypt.compare(parsed.data.currentPassword, tenantRow.password_hash))) {
       return reply.code(401).send({
         error: "Invalid current password",
-        message: "Kata sandi saat ini tidak sesuai."
+        message: settingsMessage(request.locale, "invalidCurrentPassword")
       });
     }
 
@@ -226,7 +227,7 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "Invalid reset confirmation",
-        message: "Ketik RESET PAMILO untuk mengonfirmasi reset sistem."
+        message: settingsMessage(request.locale, "invalidResetConfirmation")
       });
     }
 
@@ -388,4 +389,28 @@ function isDuplicateEntryError(error: unknown): boolean {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function settingsMessage(
+  locale: LocaleCode,
+  key: "emailExists" | "invalidCurrentPassword" | "invalidResetConfirmation" | "tenantContextNotFound" | "tenantProfileNotFound"
+): string {
+  const messages: Record<LocaleCode, Record<typeof key, string>> = {
+    en: {
+      emailExists: "This email is already used by another tenant.",
+      invalidCurrentPassword: "The current password is incorrect.",
+      invalidResetConfirmation: "Type RESET PAMILO to confirm the system reset.",
+      tenantContextNotFound: "The tenant context was not found in the database.",
+      tenantProfileNotFound: "Tenant profile was not found."
+    },
+    id: {
+      emailExists: "Email sudah digunakan tenant lain.",
+      invalidCurrentPassword: "Kata sandi saat ini tidak sesuai.",
+      invalidResetConfirmation: "Ketik RESET PAMILO untuk mengonfirmasi reset sistem.",
+      tenantContextNotFound: "Tenant context tidak ditemukan di database.",
+      tenantProfileNotFound: "Tenant profile tidak ditemukan."
+    }
+  };
+
+  return messages[locale][key];
 }

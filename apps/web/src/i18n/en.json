@@ -686,14 +686,157 @@
     "weatherSubtitle": "Weather forecasts, monthly reports, and configuration"
   },
   "settings": {
-    "displayPreferenceSaved": "Display preferences saved.",
-    "displayPreferenceUpdateFailed": "Failed to update display preferences.",
+    "display": {
+      "compactMode": "Compact Mode",
+      "compactModeDetail": "Tighten spacing between dashboard panels.",
+      "description": "Tenant visual preferences.",
+      "language": "Language",
+      "languageDetail": "This uses the same preference as the language dropdown in the header.",
+      "reduceMotion": "Reduce Motion",
+      "reduceMotionDetail": "Reduce UI transition animations.",
+      "save": "Save Appearance",
+      "saved": "Appearance preferences saved.",
+      "theme": "Theme",
+      "themes": {
+        "dark": "Dark",
+        "light": "Light",
+        "system": "System"
+      }
+    },
+    "errors": {
+      "apiUnavailable": "The backend API cannot be reached yet. Make sure the local Fastify server is running.",
+      "displayUpdateFailed": "Failed to update appearance preferences.",
+      "loadFailed": "Failed to load tenant settings.",
+      "notificationsUpdateFailed": "Failed to update notification preferences.",
+      "passwordUpdateFailed": "Failed to change the password.",
+      "profileUpdateFailed": "Failed to update the profile.",
+      "resetFailed": "Failed to reset the system.",
+      "sessionExpired": "The login session has ended. Please sign in again."
+    },
+    "notifications": {
+      "description": "Operational alerts for sensors and weather.",
+      "deviceOffline": "Device Offline",
+      "deviceOfflineDetail": "When a device stops sending data.",
+      "emailAlerts": "Email Alerts",
+      "emailAlertsDetail": "Send summaries and alerts to the owner email.",
+      "save": "Save Notifications",
+      "saved": "Notification preferences saved.",
+      "smsAlerts": "SMS Alerts",
+      "smsAlertsDetail": "Enable the SMS channel for critical alerts.",
+      "thresholdBreaches": "Threshold Breaches",
+      "thresholdBreachesDetail": "When sensor values cross crop thresholds.",
+      "weatherWarnings": "Weather Warnings",
+      "weatherWarningsDetail": "Weather warnings from BMKG.",
+      "webAlerts": "Web Alerts",
+      "webAlertsDetail": "Show realtime alerts in the browser."
+    },
+    "profile": {
+      "description": "Tenant identity shown on the dashboard.",
+      "email": "Email",
+      "save": "Save Profile",
+      "saved": "Tenant profile updated.",
+      "tenantName": "Tenant Name"
+    },
+    "reset": {
+      "button": "Reset Tenant Data",
+      "closeModal": "Close reset modal",
+      "completed": "Reset complete: {devices} devices and {rows} telemetry rows deleted.",
+      "confirmButton": "Confirm Reset",
+      "confirmInstruction": "Type {phrase} to continue.",
+      "confirmTitle": "Confirm Reset",
+      "description": "Deletes devices and telemetry data for the active tenant.",
+      "resetting": "Resetting",
+      "warning": "Reset only applies to this tenant. Other tenant data is not touched by the backend endpoint."
+    },
+    "security": {
+      "changePassword": "Change Password",
+      "confirmPassword": "Repeat Password",
+      "currentPassword": "Current Password",
+      "description": "Update the tenant password.",
+      "newPassword": "New Password",
+      "passwordMismatch": "The new password and confirmation do not match yet.",
+      "saved": "Password updated."
+    },
+    "tabs": {
+      "display": "Appearance",
+      "notifications": "Notifications",
+      "profile": "Profile",
+      "reset": "Reset Entire System",
+      "security": "Security"
+    },
     "title": "Settings"
   },
   "superadmin": {
     "title": "Super Admin"
   },
   "tenantUsers": {
+    "actions": {
+      "deleteAria": "Delete tenant user {name}",
+      "editAria": "Edit tenant user {name}"
+    },
+    "addUser": "Add Tenant User",
+    "columns": {
+      "created": "Created",
+      "role": "Role",
+      "status": "Status",
+      "user": "User"
+    },
+    "confirm": {
+      "deleteUser": "Delete tenant user {name}?"
+    },
+    "empty": {
+      "noFilterResults": "No tenant users match this filter.",
+      "noUsers": "No tenant users yet."
+    },
+    "errors": {
+      "apiUnavailable": "The backend API cannot be reached yet. Make sure the local Fastify server is running.",
+      "createFailed": "Failed to add the tenant user.",
+      "deleteFailed": "Failed to delete the tenant user.",
+      "loadFailed": "Failed to load tenant users.",
+      "sessionExpired": "The login session has ended. Please sign in again.",
+      "updateFailed": "Failed to update the tenant user."
+    },
+    "feedback": {
+      "userDeleted": "User {name} has been deleted.",
+      "userSaved": "User {name} saved as {role}."
+    },
+    "loading": "Loading tenant users.",
+    "modal": {
+      "addTitle": "Add Tenant User",
+      "close": "Close tenant user modal",
+      "editTitle": "Edit Tenant User",
+      "email": "Email",
+      "name": "Name",
+      "password": "Password",
+      "passwordCreatePlaceholder": "Minimum 8 characters",
+      "passwordEditPlaceholder": "Leave blank to keep unchanged",
+      "role": "Role",
+      "roleNote": "This role can only view Dashboard, Weather Station, Charts, and Reports.",
+      "saveUser": "Save User",
+      "status": "Status",
+      "updateUser": "Update User"
+    },
+    "roles": {
+      "tenantUser": "Read-only Tenant User"
+    },
+    "searchAria": "Search tenant users by name or email",
+    "searchPlaceholder": "Search name or email",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "summary": {
+      "active": "Active",
+      "role": "Role",
+      "total": "Total Users"
+    },
+    "validation": {
+      "emailInvalid": "Enter a valid email address.",
+      "emailRequired": "Email is required.",
+      "nameRequired": "Name is required.",
+      "passwordMin": "Password must be at least 8 characters.",
+      "passwordRequired": "Password is required for a new user."
+    },
     "title": "Tenant Users"
   },
   "validation": {

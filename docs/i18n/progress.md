@@ -571,3 +571,49 @@ Keterbatasan verifikasi dan riwayat:
 - Tidak ada test runner unit di manifest. Fixture mocked provider untuk bilingual valid, ID-only, EN-only, angka berbeda, dan timeout belum diotomasi sebagai test; validasi parser dan kontrak dicek lewat typecheck/build dan inspeksi jalur kode.
 
 Batch berikutnya yang siap dikerjakan bila diminta: Pengguna Tenant, Pengaturan, Super Admin, atau Backend API messages sesuai instruksi batch aktif berikutnya.
+
+## Batch 13 Status
+
+Status: completed for User Tenant and all Settings sections found in the active tenant app.
+
+Catatan penomoran: instruksi aktif pengguna menamai pekerjaan ini `BATCH 13: User Tenant dan seluruh Pengaturan`. Roadmap awal pernah memisahkan User Tenant, Pengaturan, dan API messages; batch ini menutup permukaan User Tenant dan Settings sekaligus, termasuk pesan API terkait keduanya.
+
+Perubahan Batch 13:
+
+- Melokalisasi `apps/web/src/views/tenant/TenantUsers.vue` untuk kartu ringkasan, pencarian, tabel, role/status display labels, empty/loading state, modal tambah/edit, placeholder password, validasi client, konfirmasi hapus, aria label aksi, pesan sukses, dan formatter tanggal.
+- Memperbarui `apps/web/src/stores/tenantUserStore.ts` agar fallback error User Tenant memakai katalog ID/EN.
+- Melokalisasi `apps/web/src/views/tenant/Settings.vue` untuk tab Profil/Profile, Tampilan/Appearance, Notifikasi/Notifications, Keamanan/Security, dan Reset Semua Sistem/Reset Entire System.
+- Menambahkan kontrol Bahasa/Language di tab Tampilan memakai `LanguageSelect` yang sama dengan header, sehingga pilihan tetap memakai satu sumber locale dan persistensi yang sama.
+- Menjaga draft form aktif pada Settings dari reset tidak sengaja saat bahasa berubah dengan watcher granular untuk profile/display/notifications.
+- Memperbarui `apps/web/src/stores/settingsStore.ts` agar pesan sukses/gagal profile, display, notifications, password, dan reset memakai katalog.
+- Melokalisasi `message` backend di `apps/api/src/routes/tenantUserRoutes.ts` dan `apps/api/src/routes/settingsRoutes.ts` berdasarkan `request.locale`, dengan `error` code, enum, otorisasi, dan kontrak payload tetap stabil.
+- Memperluas katalog `apps/web/src/i18n/id.json` dan `apps/web/src/i18n/en.json` dengan namespace `tenantUsers.*` dan `settings.*`.
+- Memperbarui `docs/i18n/coverage.csv`.
+
+Pemeriksaan aktual Batch 13:
+
+| Pemeriksaan | Hasil aktual |
+| --- | --- |
+| `npm run i18n:check` di `apps/web` | Lulus: 727 keys, 552 used keys |
+| `npm run typecheck` di `apps/web` | Lulus |
+| `npm run build` di `apps/web` | Lulus, tetap ada warning baseline chunk JS > 500 kB |
+| `npm run typecheck` di `apps/api` | Lulus |
+| `npm run build` di `apps/api` | Lulus |
+| Pencarian literal User Tenant/Settings utama dengan `rg` | Tidak menemukan literal UI lama utama sebagai teks user-facing di `TenantUsers.vue`, `Settings.vue`, atau store terkait; hasil tersisa adalah nama tipe/fungsi seperti `TenantProfileSettings` dan teks katalog/helper API |
+
+Verifikasi perilaku Batch 13:
+
+- Locale switch memperbarui label User Tenant dan Settings dari computed/template tanpa mengubah `searchQuery`, modal user, draft user, `activeTab`, draft profil, draft tampilan, draft notifikasi, draft password, reset modal, atau status login.
+- Role dan status user tenant tetap dikirim sebagai nilai canonical `tenant_user`, `active`, dan `inactive`; hanya label tampilannya yang diterjemahkan.
+- Nama user, email, nama tenant, email tenant, dan data yang diketik pengguna tetap asli dan tidak diterjemahkan otomatis.
+- Tab Tampilan memakai `LanguageSelect` shared dengan urutan opsi tetap `EN - English` lalu `ID - Indonesia`; tidak ada state preferensi bahasa kedua.
+- Submit display tetap mengirim enum tema canonical `dark`/`light`/`system` dan properti aditif `language` id/en.
+- Reset sistem mempertahankan literal konfirmasi `RESET PAMILO`, guard tombol, endpoint yang sama, dan otorisasi tenant admin; tidak ada pelemahan pengaman bahasa.
+
+Keterbatasan verifikasi:
+
+- Tidak menjalankan browser end-to-end dengan database fixture multi-role aktif karena kredensial/fixture lokal tidak tersedia dari konteks aktif. Skenario role tenant admin/read-only, preferensi user A vs B, dan sinkron header/pengaturan diverifikasi lewat jalur kode, resolver locale existing, i18n check, typecheck, dan build.
+- Tidak menjalankan aksi hapus user, ubah password, atau reset sistem terhadap data nyata. Konfirmasi dan payload diverifikasi lewat kode dan build; aksi berbahaya tidak ditembakkan.
+- Tidak ditemukan fitur undangan user tenant atau reset kata sandi user tenant di route/API aktif. Fitur tersebut dicatat tidak tersedia untuk batch ini, bukan dibuat baru.
+
+Batch berikutnya yang siap dikerjakan bila diminta: Super Admin atau sisa Backend API messages lintas fitur, sesuai instruksi batch aktif berikutnya.

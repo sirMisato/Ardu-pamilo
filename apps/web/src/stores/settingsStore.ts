@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
-import type { LocaleCode } from "../i18n";
+import { t, type LocaleCode } from "../i18n";
 import { ApiClientError, apiGet, apiPost, apiPut } from "../services/apiClient";
 import { useAuthStore } from "./authStore";
 
@@ -73,7 +73,7 @@ export const useSettingsStore = defineStore("settings", () => {
       applySettingsResponse(response);
       useAuthStore().applyLocaleFromCurrentAuth(response.displayPreferences.language);
     } catch (error) {
-      errorMessage.value = normalizeApiError(error, "Gagal mengambil pengaturan tenant.");
+      errorMessage.value = normalizeApiError(error, t("settings.errors.loadFailed"));
     } finally {
       isLoading.value = false;
     }
@@ -88,10 +88,10 @@ export const useSettingsStore = defineStore("settings", () => {
       const response = await apiPut<TenantSettingsResponse>("/api/v1/settings/profile", input);
       applySettingsResponse(response);
       useAuthStore().applyTenantProfile(response.profile);
-      successMessage.value = "Profil tenant berhasil diperbarui.";
+      successMessage.value = t("settings.profile.saved");
       return true;
     } catch (error) {
-      errorMessage.value = normalizeApiError(error, "Gagal memperbarui profil.");
+      errorMessage.value = normalizeApiError(error, t("settings.errors.profileUpdateFailed"));
       return false;
     } finally {
       isSaving.value = false;
@@ -106,10 +106,10 @@ export const useSettingsStore = defineStore("settings", () => {
     try {
       const response = await apiPut<{ displayPreferences: DisplayPreferences }>("/api/v1/settings/display", input);
       displayPreferences.value = response.displayPreferences;
-      successMessage.value = "Preferensi tampilan berhasil disimpan.";
+      successMessage.value = t("settings.display.saved");
       return true;
     } catch (error) {
-      errorMessage.value = normalizeApiError(error, "Gagal memperbarui preferensi tampilan.");
+      errorMessage.value = normalizeApiError(error, t("settings.errors.displayUpdateFailed"));
       return false;
     } finally {
       isSaving.value = false;
@@ -136,10 +136,10 @@ export const useSettingsStore = defineStore("settings", () => {
     try {
       const response = await apiPut<{ notificationPreferences: NotificationPreferences }>("/api/v1/settings/notifications", input);
       notificationPreferences.value = response.notificationPreferences;
-      successMessage.value = "Preferensi notifikasi berhasil disimpan.";
+      successMessage.value = t("settings.notifications.saved");
       return true;
     } catch (error) {
-      errorMessage.value = normalizeApiError(error, "Gagal memperbarui preferensi notifikasi.");
+      errorMessage.value = normalizeApiError(error, t("settings.errors.notificationsUpdateFailed"));
       return false;
     } finally {
       isSaving.value = false;
@@ -153,10 +153,10 @@ export const useSettingsStore = defineStore("settings", () => {
 
     try {
       await apiPut<{ ok: boolean }>("/api/v1/settings/password", input);
-      successMessage.value = "Kata sandi berhasil diperbarui.";
+      successMessage.value = t("settings.security.saved");
       return true;
     } catch (error) {
-      errorMessage.value = normalizeApiError(error, "Gagal mengganti kata sandi.");
+      errorMessage.value = normalizeApiError(error, t("settings.errors.passwordUpdateFailed"));
       return false;
     } finally {
       isSaving.value = false;
@@ -174,10 +174,13 @@ export const useSettingsStore = defineStore("settings", () => {
         confirmation
       });
       resetResult.value = response;
-      successMessage.value = `Reset selesai: ${response.deletedDevices} perangkat dan ${response.deletedTelemetryRows} telemetry rows dihapus.`;
+      successMessage.value = t("settings.reset.completed", {
+        devices: response.deletedDevices,
+        rows: response.deletedTelemetryRows
+      });
       return response;
     } catch (error) {
-      errorMessage.value = normalizeApiError(error, "Gagal melakukan reset sistem.");
+      errorMessage.value = normalizeApiError(error, t("settings.errors.resetFailed"));
       return null;
     } finally {
       isSaving.value = false;
@@ -217,11 +220,11 @@ export const useSettingsStore = defineStore("settings", () => {
 
 function normalizeApiError(error: unknown, fallback: string): string {
   if (error instanceof ApiClientError) {
-    return error.status === 401 ? "Sesi login berakhir. Silakan login ulang." : error.message;
+    return error.status === 401 ? t("settings.errors.sessionExpired") : error.message;
   }
 
   if (error instanceof TypeError) {
-    return "API backend belum dapat dihubungi. Pastikan Fastify lokal sedang berjalan.";
+    return t("settings.errors.apiUnavailable");
   }
 
   return fallback;

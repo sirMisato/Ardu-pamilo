@@ -686,14 +686,157 @@
     "weatherSubtitle": "Prakiraan cuaca, laporan bulanan, konfigurasi"
   },
   "settings": {
-    "displayPreferenceSaved": "Preferensi tampilan berhasil disimpan.",
-    "displayPreferenceUpdateFailed": "Gagal memperbarui preferensi tampilan.",
+    "display": {
+      "compactMode": "Mode Ringkas",
+      "compactModeDetail": "Rapatkan jarak antar panel dashboard.",
+      "description": "Preferensi visual tenant.",
+      "language": "Bahasa",
+      "languageDetail": "Pilihan ini memakai preferensi yang sama dengan dropdown bahasa di header.",
+      "reduceMotion": "Kurangi Gerak",
+      "reduceMotionDetail": "Kurangi animasi transisi UI.",
+      "save": "Simpan Tampilan",
+      "saved": "Preferensi tampilan berhasil disimpan.",
+      "theme": "Tema",
+      "themes": {
+        "dark": "Gelap",
+        "light": "Terang",
+        "system": "Sistem"
+      }
+    },
+    "errors": {
+      "apiUnavailable": "API backend belum dapat dihubungi. Pastikan Fastify lokal sedang berjalan.",
+      "displayUpdateFailed": "Gagal memperbarui preferensi tampilan.",
+      "loadFailed": "Gagal mengambil pengaturan tenant.",
+      "notificationsUpdateFailed": "Gagal memperbarui preferensi notifikasi.",
+      "passwordUpdateFailed": "Gagal mengganti kata sandi.",
+      "profileUpdateFailed": "Gagal memperbarui profil.",
+      "resetFailed": "Gagal melakukan reset sistem.",
+      "sessionExpired": "Sesi login berakhir. Silakan login ulang."
+    },
+    "notifications": {
+      "description": "Alert operasional sensor dan cuaca.",
+      "deviceOffline": "Perangkat Offline",
+      "deviceOfflineDetail": "Saat perangkat tidak mengirim data.",
+      "emailAlerts": "Alert Email",
+      "emailAlertsDetail": "Kirim ringkasan dan alert ke email owner.",
+      "save": "Simpan Notifikasi",
+      "saved": "Preferensi notifikasi berhasil disimpan.",
+      "smsAlerts": "Alert SMS",
+      "smsAlertsDetail": "Aktifkan kanal SMS untuk alert kritis.",
+      "thresholdBreaches": "Ambang Terlampaui",
+      "thresholdBreachesDetail": "Saat nilai sensor melewati batas tanaman.",
+      "weatherWarnings": "Peringatan Cuaca",
+      "weatherWarningsDetail": "Peringatan cuaca dari BMKG.",
+      "webAlerts": "Alert Web",
+      "webAlertsDetail": "Tampilkan alert realtime di browser."
+    },
+    "profile": {
+      "description": "Identitas tenant yang tampil di dashboard.",
+      "email": "Email",
+      "save": "Simpan Profil",
+      "saved": "Profil tenant berhasil diperbarui.",
+      "tenantName": "Nama Tenant"
+    },
+    "reset": {
+      "button": "Reset Data Tenant",
+      "closeModal": "Tutup modal reset",
+      "completed": "Reset selesai: {devices} perangkat dan {rows} baris telemetry dihapus.",
+      "confirmButton": "Konfirmasi Reset",
+      "confirmInstruction": "Ketik {phrase} untuk melanjutkan.",
+      "confirmTitle": "Konfirmasi Reset",
+      "description": "Menghapus perangkat dan telemetry data tenant aktif.",
+      "resetting": "Mereset",
+      "warning": "Reset hanya berlaku untuk tenant ini. Data tenant lain tidak disentuh oleh endpoint backend."
+    },
+    "security": {
+      "changePassword": "Ganti Password",
+      "confirmPassword": "Ulangi Password",
+      "currentPassword": "Password Saat Ini",
+      "description": "Perbarui kata sandi tenant.",
+      "newPassword": "Password Baru",
+      "passwordMismatch": "Password baru dan konfirmasi belum sama.",
+      "saved": "Kata sandi berhasil diperbarui."
+    },
+    "tabs": {
+      "display": "Tampilan",
+      "notifications": "Notifikasi",
+      "profile": "Profil",
+      "reset": "Reset Semua Sistem",
+      "security": "Keamanan"
+    },
     "title": "Pengaturan"
   },
   "superadmin": {
     "title": "Super Admin"
   },
   "tenantUsers": {
+    "actions": {
+      "deleteAria": "Hapus user tenant {name}",
+      "editAria": "Edit user tenant {name}"
+    },
+    "addUser": "Tambah User Tenant",
+    "columns": {
+      "created": "Dibuat",
+      "role": "Role",
+      "status": "Status",
+      "user": "User"
+    },
+    "confirm": {
+      "deleteUser": "Hapus user tenant {name}?"
+    },
+    "empty": {
+      "noFilterResults": "Belum ada user tenant sesuai filter.",
+      "noUsers": "Belum ada user tenant."
+    },
+    "errors": {
+      "apiUnavailable": "API backend belum dapat dihubungi. Pastikan Fastify lokal sedang berjalan.",
+      "createFailed": "Gagal menambahkan user tenant.",
+      "deleteFailed": "Gagal menghapus user tenant.",
+      "loadFailed": "Gagal mengambil user tenant.",
+      "sessionExpired": "Sesi login berakhir. Silakan login ulang.",
+      "updateFailed": "Gagal memperbarui user tenant."
+    },
+    "feedback": {
+      "userDeleted": "User {name} sudah dihapus.",
+      "userSaved": "User {name} tersimpan sebagai {role}."
+    },
+    "loading": "Memuat user tenant.",
+    "modal": {
+      "addTitle": "Tambah User Tenant",
+      "close": "Tutup modal user tenant",
+      "editTitle": "Edit User Tenant",
+      "email": "Email",
+      "name": "Nama",
+      "password": "Password",
+      "passwordCreatePlaceholder": "Minimal 8 karakter",
+      "passwordEditPlaceholder": "Kosongkan jika tidak diubah",
+      "role": "Role",
+      "roleNote": "Role ini hanya bisa melihat Dashboard, Weather Station, Grafik, dan Report.",
+      "saveUser": "Simpan User",
+      "status": "Status",
+      "updateUser": "Update User"
+    },
+    "roles": {
+      "tenantUser": "User Tenant Read-only"
+    },
+    "searchAria": "Cari nama atau email user tenant",
+    "searchPlaceholder": "Cari nama atau email",
+    "status": {
+      "active": "Aktif",
+      "inactive": "Nonaktif"
+    },
+    "summary": {
+      "active": "Aktif",
+      "role": "Role",
+      "total": "Total User"
+    },
+    "validation": {
+      "emailInvalid": "Format email tidak valid.",
+      "emailRequired": "Email wajib diisi.",
+      "nameRequired": "Nama wajib diisi.",
+      "passwordMin": "Password minimal 8 karakter.",
+      "passwordRequired": "Password wajib diisi untuk user baru."
+    },
     "title": "Pengguna Tenant"
   },
   "validation": {

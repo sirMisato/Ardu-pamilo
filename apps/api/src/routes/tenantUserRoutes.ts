@@ -4,6 +4,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { db } from "../db/client.js";
 import type { TenantUser, TenantUserStatus, TenantUserUpdate } from "../db/schema.js";
+import type { LocaleCode } from "../i18n/locale.js";
 import { requireTenantContext, verifyTenant, verifyTenantAdmin } from "../middleware/verifyTenant.js";
 
 const tenantUserStatusSchema = z.enum(["active", "inactive"]);
@@ -63,7 +64,7 @@ export const tenantUserRoutes: FastifyPluginAsync = async (app) => {
     if (await emailBelongsToTenantOwner(body.email)) {
       return reply.code(409).send({
         error: "Email already exists",
-        message: "Email sudah digunakan sebagai owner tenant."
+        message: tenantUserMessage(request.locale, "ownerEmailExists")
       });
     }
 
@@ -87,7 +88,7 @@ export const tenantUserRoutes: FastifyPluginAsync = async (app) => {
       if (isDuplicateEntryError(error)) {
         return reply.code(409).send({
           error: "User already exists",
-          message: "Email user tenant sudah terdaftar."
+          message: tenantUserMessage(request.locale, "userEmailExists")
         });
       }
 
@@ -119,7 +120,7 @@ export const tenantUserRoutes: FastifyPluginAsync = async (app) => {
     if (body.data.email && await emailBelongsToTenantOwner(body.data.email)) {
       return reply.code(409).send({
         error: "Email already exists",
-        message: "Email sudah digunakan sebagai owner tenant."
+        message: tenantUserMessage(request.locale, "ownerEmailExists")
       });
     }
 
@@ -127,7 +128,7 @@ export const tenantUserRoutes: FastifyPluginAsync = async (app) => {
     if (Object.keys(updateValues).length === 0) {
       return reply.code(400).send({
         error: "Empty update",
-        message: "Minimal satu field user tenant harus dikirim."
+        message: tenantUserMessage(request.locale, "emptyUpdate")
       });
     }
 
@@ -142,14 +143,14 @@ export const tenantUserRoutes: FastifyPluginAsync = async (app) => {
       if (result.numUpdatedRows === 0n) {
         return reply.code(404).send({
           error: "Tenant user not found",
-          message: "User tenant tidak ditemukan."
+          message: tenantUserMessage(request.locale, "notFound")
         });
       }
     } catch (error) {
       if (isDuplicateEntryError(error)) {
         return reply.code(409).send({
           error: "User already exists",
-          message: "Email user tenant sudah terdaftar."
+          message: tenantUserMessage(request.locale, "userEmailExists")
         });
       }
 
@@ -183,7 +184,7 @@ export const tenantUserRoutes: FastifyPluginAsync = async (app) => {
     if (result.numDeletedRows === 0n) {
       return reply.code(404).send({
         error: "Tenant user not found",
-        message: "User tenant tidak ditemukan."
+        message: tenantUserMessage(request.locale, "notFound")
       });
     }
 
@@ -243,4 +244,23 @@ function isDuplicateEntryError(error: unknown): boolean {
 
 function serializeDate(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : value;
+}
+
+function tenantUserMessage(locale: LocaleCode, key: "emptyUpdate" | "notFound" | "ownerEmailExists" | "userEmailExists"): string {
+  const messages: Record<LocaleCode, Record<typeof key, string>> = {
+    en: {
+      emptyUpdate: "Send at least one tenant user field.",
+      notFound: "Tenant user was not found.",
+      ownerEmailExists: "This email is already used as the tenant owner.",
+      userEmailExists: "This tenant user email is already registered."
+    },
+    id: {
+      emptyUpdate: "Minimal satu field user tenant harus dikirim.",
+      notFound: "User tenant tidak ditemukan.",
+      ownerEmailExists: "Email sudah digunakan sebagai owner tenant.",
+      userEmailExists: "Email user tenant sudah terdaftar."
+    }
+  };
+
+  return messages[locale][key];
 }

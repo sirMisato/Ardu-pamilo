@@ -25,8 +25,8 @@
       <form v-if="activeTab === 'profile'" class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6 lg:p-8" @submit.prevent="submitProfile">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 class="text-2xl font-bold tracking-normal text-slate-800">Profil</h2>
-            <p class="mt-1 mb-6 text-sm text-slate-500">Identitas tenant yang tampil di dashboard.</p>
+            <h2 class="text-2xl font-bold tracking-normal text-slate-800">{{ t("settings.tabs.profile") }}</h2>
+            <p class="mt-1 mb-6 text-sm text-slate-500">{{ t("settings.profile.description") }}</p>
           </div>
           <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
             <UserRound class="h-6 w-6" />
@@ -35,7 +35,7 @@
 
         <div class="mt-6 grid gap-4 md:grid-cols-2">
           <label class="space-y-2">
-            <span class="mb-1.5 block text-sm font-semibold text-slate-700">Nama Tenant</span>
+            <span class="mb-1.5 block text-sm font-semibold text-slate-700">{{ t("settings.profile.tenantName") }}</span>
             <input
               v-model.trim="profileDraft.name"
               class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
@@ -45,7 +45,7 @@
           </label>
 
           <label class="space-y-2">
-            <span class="mb-1.5 block text-sm font-semibold text-slate-700">Email</span>
+            <span class="mb-1.5 block text-sm font-semibold text-slate-700">{{ t("settings.profile.email") }}</span>
             <input
               v-model.trim="profileDraft.email"
               class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
@@ -58,7 +58,7 @@
         <div class="mt-6 flex justify-end">
           <button class="inline-flex items-center gap-2 rounded-xl bg-emerald-300 px-6 py-2.5 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 disabled:opacity-60" :disabled="isSaving" type="submit">
             <Save class="h-4 w-4" />
-            {{ isSaving ? "Menyimpan" : "Simpan Profil" }}
+            {{ isSaving ? t("common.saving") : t("settings.profile.save") }}
           </button>
         </div>
       </form>
@@ -66,8 +66,8 @@
       <section v-else-if="activeTab === 'display'" class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6 lg:p-8">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 class="text-2xl font-bold tracking-normal text-slate-800">Tampilan</h2>
-            <p class="mt-1 mb-6 text-sm text-slate-500">Preferensi visual tenant.</p>
+            <h2 class="text-2xl font-bold tracking-normal text-slate-800">{{ t("settings.tabs.display") }}</h2>
+            <p class="mt-1 mb-6 text-sm text-slate-500">{{ t("settings.display.description") }}</p>
           </div>
           <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
             <Palette class="h-6 w-6" />
@@ -76,7 +76,7 @@
 
         <div class="mt-6 grid gap-5">
           <div>
-            <p class="mb-1.5 text-sm font-semibold text-slate-700">Theme</p>
+            <p class="mb-1.5 text-sm font-semibold text-slate-700">{{ t("settings.display.theme") }}</p>
             <div class="mt-3 grid gap-3 sm:grid-cols-3">
               <button
                 v-for="theme in themeOptions"
@@ -88,6 +88,14 @@
               >
                 {{ theme.label }}
               </button>
+            </div>
+          </div>
+
+          <div class="grid gap-2">
+            <p class="text-sm font-semibold text-slate-700">{{ t("settings.display.language") }}</p>
+            <p class="text-xs text-slate-500">{{ t("settings.display.languageDetail") }}</p>
+            <div class="mt-1 max-w-xs">
+              <LanguageSelect />
             </div>
           </div>
 
@@ -110,7 +118,7 @@
         <div class="mt-6 flex justify-end">
           <button class="inline-flex items-center gap-2 rounded-xl bg-emerald-300 px-6 py-2.5 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 disabled:opacity-60" :disabled="isSaving" type="button" @click="submitDisplay">
             <Save class="h-4 w-4" />
-            {{ isSaving ? "Menyimpan" : "Simpan Tampilan" }}
+            {{ isSaving ? t("common.saving") : t("settings.display.save") }}
           </button>
         </div>
       </section>
@@ -118,8 +126,8 @@
       <section v-else-if="activeTab === 'notifications'" class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6 lg:p-8">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 class="text-2xl font-bold tracking-normal text-slate-800">Notifikasi</h2>
-            <p class="mt-1 mb-6 text-sm text-slate-500">Alert operasional sensor dan cuaca.</p>
+            <h2 class="text-2xl font-bold tracking-normal text-slate-800">{{ t("settings.tabs.notifications") }}</h2>
+            <p class="mt-1 mb-6 text-sm text-slate-500">{{ t("settings.notifications.description") }}</p>
           </div>
           <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
             <Bell class="h-6 w-6" />
@@ -147,7 +155,7 @@
         <div class="mt-6 flex justify-end">
           <button class="inline-flex items-center gap-2 rounded-xl bg-emerald-300 px-6 py-2.5 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 disabled:opacity-60" :disabled="isSaving" type="button" @click="submitNotifications">
             <Save class="h-4 w-4" />
-            {{ isSaving ? "Menyimpan" : "Simpan Notifikasi" }}
+            {{ isSaving ? t("common.saving") : t("settings.notifications.save") }}
           </button>
         </div>
       </section>
@@ -155,8 +163,8 @@
       <form v-else-if="activeTab === 'security'" class="rounded-[2rem] border border-white/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6 lg:p-8" @submit.prevent="submitPassword">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 class="text-2xl font-bold tracking-normal text-slate-800">Keamanan</h2>
-            <p class="mt-1 mb-6 text-sm text-slate-500">Perbarui kata sandi tenant.</p>
+            <h2 class="text-2xl font-bold tracking-normal text-slate-800">{{ t("settings.tabs.security") }}</h2>
+            <p class="mt-1 mb-6 text-sm text-slate-500">{{ t("settings.security.description") }}</p>
           </div>
           <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
             <ShieldCheck class="h-6 w-6" />
@@ -165,27 +173,27 @@
 
         <div class="mt-6 grid gap-4 md:grid-cols-3">
           <label class="space-y-2">
-            <span class="mb-1.5 block text-sm font-semibold text-slate-700">Password Saat Ini</span>
+            <span class="mb-1.5 block text-sm font-semibold text-slate-700">{{ t("settings.security.currentPassword") }}</span>
             <input v-model="passwordForm.currentPassword" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" required type="password" autocomplete="current-password" />
           </label>
           <label class="space-y-2">
-            <span class="mb-1.5 block text-sm font-semibold text-slate-700">Password Baru</span>
+            <span class="mb-1.5 block text-sm font-semibold text-slate-700">{{ t("settings.security.newPassword") }}</span>
             <input v-model="passwordForm.newPassword" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" minlength="8" required type="password" autocomplete="new-password" />
           </label>
           <label class="space-y-2">
-            <span class="mb-1.5 block text-sm font-semibold text-slate-700">Ulangi Password</span>
+            <span class="mb-1.5 block text-sm font-semibold text-slate-700">{{ t("settings.security.confirmPassword") }}</span>
             <input v-model="passwordForm.confirmPassword" class="min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" minlength="8" required type="password" autocomplete="new-password" />
           </label>
         </div>
 
         <div v-if="passwordMismatch" class="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-sm text-amber-700">
-          Password baru dan konfirmasi belum sama.
+          {{ t("settings.security.passwordMismatch") }}
         </div>
 
         <div class="mt-6 flex justify-end">
           <button class="inline-flex items-center gap-2 rounded-xl bg-emerald-300 px-6 py-2.5 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 disabled:opacity-60" :disabled="isSaving || passwordMismatch" type="submit">
             <Save class="h-4 w-4" />
-            {{ isSaving ? "Menyimpan" : "Ganti Password" }}
+            {{ isSaving ? t("common.saving") : t("settings.security.changePassword") }}
           </button>
         </div>
       </form>
@@ -193,8 +201,8 @@
       <section v-else class="rounded-[2rem] border border-rose-200/80 bg-white/60 p-4 shadow-sm backdrop-blur-lg md:p-6 lg:p-8">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 class="text-2xl font-bold tracking-normal text-slate-800">Reset Semua Sistem</h2>
-            <p class="mt-1 mb-6 text-sm text-slate-500">Menghapus perangkat dan telemetry data tenant aktif.</p>
+            <h2 class="text-2xl font-bold tracking-normal text-slate-800">{{ t("settings.tabs.reset") }}</h2>
+            <p class="mt-1 mb-6 text-sm text-slate-500">{{ t("settings.reset.description") }}</p>
           </div>
           <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-700">
             <AlertTriangle class="h-6 w-6" />
@@ -202,12 +210,12 @@
         </div>
 
         <div class="mt-6 rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-700">
-          Reset hanya berlaku untuk tenant ini. Data tenant lain tidak disentuh oleh endpoint backend.
+          {{ t("settings.reset.warning") }}
         </div>
 
         <button class="mt-6 inline-flex items-center gap-2 rounded-xl bg-rose-100 px-6 py-2.5 text-sm font-semibold text-rose-700 transition-all hover:bg-rose-200" type="button" @click="isResetModalOpen = true">
           <RotateCcw class="h-4 w-4" />
-          Reset Tenant Data
+          {{ t("settings.reset.button") }}
         </button>
       </section>
     </section>
@@ -216,10 +224,10 @@
       <form class="w-full max-w-lg rounded-[2rem] border border-white/80 bg-white/85 p-4 shadow-2xl backdrop-blur-xl md:p-6" @submit.prevent="submitReset">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h2 class="text-xl font-bold tracking-normal text-slate-800">Konfirmasi Reset</h2>
-            <p class="mt-2 text-sm text-slate-500">Ketik <span class="font-semibold text-rose-700">{{ resetPhrase }}</span> untuk melanjutkan.</p>
+            <h2 class="text-xl font-bold tracking-normal text-slate-800">{{ t("settings.reset.confirmTitle") }}</h2>
+            <p class="mt-2 text-sm text-slate-500">{{ t("settings.reset.confirmInstruction", { phrase: resetPhrase }) }}</p>
           </div>
-          <button class="icon-button" type="button" aria-label="Tutup modal" @click="closeResetModal">
+          <button class="icon-button" type="button" :aria-label="t('settings.reset.closeModal')" @click="closeResetModal">
             <X class="h-4 w-4" />
           </button>
         </div>
@@ -227,17 +235,17 @@
         <input
           v-model.trim="resetConfirmation"
           class="mt-5 min-h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400"
-          placeholder="RESET PAMILO"
+          :placeholder="resetPhrase"
           type="text"
         />
 
         <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 transition-all hover:bg-slate-100" type="button" @click="closeResetModal">
-            Batal
+            {{ t("common.cancel") }}
           </button>
           <button class="inline-flex items-center gap-2 rounded-xl bg-rose-100 px-6 py-2.5 text-sm font-semibold text-rose-700 transition-all hover:bg-rose-200 disabled:opacity-60" :disabled="isSaving || resetConfirmation !== resetPhrase" type="submit">
             <AlertTriangle class="h-4 w-4" />
-            {{ isSaving ? "Mereset" : "Konfirmasi Reset" }}
+            {{ isSaving ? t("settings.reset.resetting") : t("settings.reset.confirmButton") }}
           </button>
         </div>
       </form>
@@ -264,6 +272,8 @@ import {
 } from "@lucide/vue";
 import { storeToRefs } from "pinia";
 import { computed, onMounted, reactive, ref, watch } from "vue";
+import LanguageSelect from "../../components/i18n/LanguageSelect.vue";
+import { useI18n } from "../../i18n";
 import {
   useSettingsStore,
   type DisplayPreferences,
@@ -277,6 +287,7 @@ type NotificationKey = keyof NotificationPreferences;
 
 const settingsStore = useSettingsStore();
 const { displayPreferences, errorMessage, isLoading, isSaving, notificationPreferences, profile, successMessage } = storeToRefs(settingsStore);
+const { locale, t } = useI18n();
 const activeTab = ref<SettingsTab>("profile");
 const isResetModalOpen = ref(false);
 const resetPhrase = "RESET PAMILO";
@@ -305,33 +316,33 @@ const passwordForm = reactive({
   newPassword: ""
 });
 
-const tabs = [
-  { id: "profile" as const, label: "Profil", icon: UserRound },
-  { id: "display" as const, label: "Tampilan", icon: Palette },
-  { id: "notifications" as const, label: "Notifikasi", icon: Bell },
-  { id: "security" as const, label: "Keamanan", icon: ShieldCheck },
-  { id: "reset" as const, label: "Reset Semua Sistem", icon: RotateCcw }
-];
+const tabs = computed(() => [
+  { id: "profile" as const, label: t("settings.tabs.profile"), icon: UserRound },
+  { id: "display" as const, label: t("settings.tabs.display"), icon: Palette },
+  { id: "notifications" as const, label: t("settings.tabs.notifications"), icon: Bell },
+  { id: "security" as const, label: t("settings.tabs.security"), icon: ShieldCheck },
+  { id: "reset" as const, label: t("settings.tabs.reset"), icon: RotateCcw }
+]);
 
-const themeOptions: Array<{ label: string; value: DisplayTheme }> = [
-  { label: "Dark", value: "dark" },
-  { label: "Light", value: "light" },
-  { label: "System", value: "system" }
-];
+const themeOptions = computed<Array<{ label: string; value: DisplayTheme }>>(() => [
+  { label: t("settings.display.themes.dark"), value: "dark" },
+  { label: t("settings.display.themes.light"), value: "light" },
+  { label: t("settings.display.themes.system"), value: "system" }
+]);
 
-const displayToggles: Array<{ detail: string; key: DisplayToggleKey; label: string }> = [
-  { detail: "Rapatkan jarak antar panel dashboard.", key: "compactMode", label: "Compact Mode" },
-  { detail: "Kurangi animasi transisi UI.", key: "reduceMotion", label: "Reduce Motion" }
-];
+const displayToggles = computed<Array<{ detail: string; key: DisplayToggleKey; label: string }>>(() => [
+  { detail: t("settings.display.compactModeDetail"), key: "compactMode", label: t("settings.display.compactMode") },
+  { detail: t("settings.display.reduceMotionDetail"), key: "reduceMotion", label: t("settings.display.reduceMotion") }
+]);
 
-const notificationItems: Array<{ detail: string; icon: unknown; key: NotificationKey; label: string }> = [
-  { detail: "Saat nilai sensor melewati batas crop.", icon: Gauge, key: "thresholdBreaches", label: "Threshold Breach" },
-  { detail: "Kirim ringkasan dan alert ke email owner.", icon: Mail, key: "emailAlerts", label: "Email Alerts" },
-  { detail: "Aktifkan kanal SMS untuk alert kritis.", icon: Smartphone, key: "smsAlerts", label: "SMS Alerts" },
-  { detail: "Tampilkan alert realtime di browser.", icon: Monitor, key: "webAlerts", label: "Web Alerts" },
-  { detail: "Saat perangkat tidak mengirim data.", icon: WifiOff, key: "deviceOffline", label: "Device Offline" },
-  { detail: "Peringatan cuaca dari BMKG.", icon: CloudSun, key: "weatherWarnings", label: "Weather Warnings" }
-];
+const notificationItems = computed<Array<{ detail: string; icon: unknown; key: NotificationKey; label: string }>>(() => [
+  { detail: t("settings.notifications.thresholdBreachesDetail"), icon: Gauge, key: "thresholdBreaches", label: t("settings.notifications.thresholdBreaches") },
+  { detail: t("settings.notifications.emailAlertsDetail"), icon: Mail, key: "emailAlerts", label: t("settings.notifications.emailAlerts") },
+  { detail: t("settings.notifications.smsAlertsDetail"), icon: Smartphone, key: "smsAlerts", label: t("settings.notifications.smsAlerts") },
+  { detail: t("settings.notifications.webAlertsDetail"), icon: Monitor, key: "webAlerts", label: t("settings.notifications.webAlerts") },
+  { detail: t("settings.notifications.deviceOfflineDetail"), icon: WifiOff, key: "deviceOffline", label: t("settings.notifications.deviceOffline") },
+  { detail: t("settings.notifications.weatherWarningsDetail"), icon: CloudSun, key: "weatherWarnings", label: t("settings.notifications.weatherWarnings") }
+]);
 
 const passwordMismatch = computed(() => Boolean(passwordForm.newPassword || passwordForm.confirmPassword) && passwordForm.newPassword !== passwordForm.confirmPassword);
 
@@ -340,11 +351,23 @@ onMounted(async () => {
   syncDrafts();
 });
 
-watch([profile, displayPreferences, notificationPreferences], () => {
-  syncDrafts();
-}, {
-  deep: true
-});
+watch(profile, () => {
+  if (activeTab.value !== "profile") {
+    syncProfileDraft();
+  }
+}, { deep: true });
+
+watch(displayPreferences, () => {
+  if (activeTab.value !== "display") {
+    syncDisplayDraft();
+  }
+}, { deep: true });
+
+watch(notificationPreferences, () => {
+  if (activeTab.value !== "notifications") {
+    syncNotificationDraft();
+  }
+}, { deep: true });
 
 function selectTab(tab: SettingsTab): void {
   activeTab.value = tab;
@@ -361,6 +384,7 @@ async function submitProfile(): Promise<void> {
 async function submitDisplay(): Promise<void> {
   await settingsStore.updateDisplayPreferences({
     compactMode: displayDraft.compactMode,
+    language: locale.value,
     reduceMotion: displayDraft.reduceMotion,
     theme: displayDraft.theme
   });
@@ -411,11 +435,24 @@ function setNotificationToggle(key: NotificationKey, value: boolean): void {
 }
 
 function syncDrafts(): void {
+  syncProfileDraft();
+  syncDisplayDraft();
+  syncNotificationDraft();
+}
+
+function syncProfileDraft(): void {
   profileDraft.email = profile.value.email;
   profileDraft.name = profile.value.name;
+}
+
+function syncDisplayDraft(): void {
   displayDraft.compactMode = displayPreferences.value.compactMode;
+  displayDraft.language = displayPreferences.value.language;
   displayDraft.reduceMotion = displayPreferences.value.reduceMotion;
   displayDraft.theme = displayPreferences.value.theme;
+}
+
+function syncNotificationDraft(): void {
   notificationDraft.deviceOffline = notificationPreferences.value.deviceOffline;
   notificationDraft.emailAlerts = notificationPreferences.value.emailAlerts;
   notificationDraft.smsAlerts = notificationPreferences.value.smsAlerts;

@@ -1,5 +1,6 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
+import { t } from "../i18n";
 import { ApiClientError, apiDelete, apiGet, apiPost, apiPut } from "../services/apiClient";
 
 export type TenantUserRole = "tenant_user";
@@ -46,7 +47,7 @@ export const useTenantUserStore = defineStore("tenantUsers", () => {
     try {
       users.value = await apiGet<ApiTenantUser[]>("/api/v1/tenant-users");
     } catch (error) {
-      errorMessage.value = normalizeApiError(error, "Gagal mengambil user tenant.");
+      errorMessage.value = normalizeApiError(error, t("tenantUsers.errors.loadFailed"));
       users.value = [];
     } finally {
       isLoading.value = false;
@@ -62,7 +63,7 @@ export const useTenantUserStore = defineStore("tenantUsers", () => {
       users.value = [created, ...users.value.filter((user) => user.id !== created.id)];
       return created;
     } catch (error) {
-      errorMessage.value = normalizeApiError(error, "Gagal menambahkan user tenant.");
+      errorMessage.value = normalizeApiError(error, t("tenantUsers.errors.createFailed"));
       return null;
     } finally {
       isSaving.value = false;
@@ -78,7 +79,7 @@ export const useTenantUserStore = defineStore("tenantUsers", () => {
       users.value = users.value.map((user) => user.id === updated.id ? updated : user);
       return updated;
     } catch (error) {
-      errorMessage.value = normalizeApiError(error, "Gagal memperbarui user tenant.");
+      errorMessage.value = normalizeApiError(error, t("tenantUsers.errors.updateFailed"));
       return null;
     } finally {
       isSaving.value = false;
@@ -93,7 +94,7 @@ export const useTenantUserStore = defineStore("tenantUsers", () => {
       users.value = users.value.filter((user) => user.id !== userId);
       return true;
     } catch (error) {
-      errorMessage.value = normalizeApiError(error, "Gagal menghapus user tenant.");
+      errorMessage.value = normalizeApiError(error, t("tenantUsers.errors.deleteFailed"));
       return false;
     }
   }
@@ -118,11 +119,11 @@ export const useTenantUserStore = defineStore("tenantUsers", () => {
 
 function normalizeApiError(error: unknown, fallback: string): string {
   if (error instanceof ApiClientError) {
-    return error.status === 401 ? "Sesi login berakhir. Silakan login ulang." : error.message;
+    return error.status === 401 ? t("tenantUsers.errors.sessionExpired") : error.message;
   }
 
   if (error instanceof TypeError) {
-    return "API backend belum dapat dihubungi. Pastikan Fastify lokal sedang berjalan.";
+    return t("tenantUsers.errors.apiUnavailable");
   }
 
   return fallback;
