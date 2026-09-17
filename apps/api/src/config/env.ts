@@ -63,7 +63,10 @@ const envSchema = z.object({
   OPENAI_API_KEY: optionalTrimmedString,
   SUPER_ADMIN_EMAIL: z.string().email().optional(),
   SUPER_ADMIN_PASSWORD_HASH: z.string().optional(),
-  TENCENT_API_KEY: optionalTrimmedString
+  TENCENT_API_KEY: optionalTrimmedString,
+  WEB_PUSH_CONTACT: z.string().default("mailto:admin@pamilo.local"),
+  WEB_PUSH_PRIVATE_KEY: optionalTrimmedString,
+  WEB_PUSH_PUBLIC_KEY: optionalTrimmedString
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -130,5 +133,10 @@ export const env = {
   superAdmin: {
     email: parsedEnv.data.SUPER_ADMIN_EMAIL || undefined,
     passwordHash: parsedEnv.data.SUPER_ADMIN_PASSWORD_HASH || undefined
+  },
+  webPush: {
+    contact: parsedEnv.data.WEB_PUSH_CONTACT,
+    privateKey: parsedEnv.data.WEB_PUSH_PRIVATE_KEY,
+    publicKey: parsedEnv.data.WEB_PUSH_PUBLIC_KEY
   }
 } as const;

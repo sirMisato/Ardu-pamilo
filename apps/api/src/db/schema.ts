@@ -132,6 +132,21 @@ export interface TenantUsersTable {
   updated_at: Timestamp;
 }
 
+export interface WebPushSubscriptionsTable {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  endpoint: string;
+  endpoint_hash: string;
+  p256dh_key: string;
+  auth_key: string;
+  user_agent: string | null;
+  locale: string;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  last_seen_at: Timestamp;
+}
+
 export interface Database {
   devices: DevicesTable;
   master_crops: MasterCropsTable;
@@ -140,6 +155,7 @@ export interface Database {
   tenant_settings: TenantSettingsTable;
   tenant_users: TenantUsersTable;
   tenants: TenantsTable;
+  web_push_subscriptions: WebPushSubscriptionsTable;
   weather_history: WeatherHistoryTable;
 }
 
@@ -172,3 +188,6 @@ export type TenantSettingsUpdate = Updateable<TenantSettingsTable>;
 export type TenantUser = Selectable<TenantUsersTable>;
 export type NewTenantUser = Insertable<TenantUsersTable>;
 export type TenantUserUpdate = Updateable<TenantUsersTable>;
+
+export type WebPushSubscriptionRecord = Selectable<WebPushSubscriptionsTable>;
+export type NewWebPushSubscription = Insertable<WebPushSubscriptionsTable>;

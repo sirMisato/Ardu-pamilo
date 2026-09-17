@@ -3,6 +3,7 @@ import { type Kysely } from "kysely";
 import mqtt, { type IClientOptions, type MqttClient } from "mqtt";
 import type { Database, JsonValue } from "../db/schema.js";
 import { emitTelemetryEvent } from "./telemetryEventBus.js";
+import { notifyTelemetryThresholdBreaches } from "./webPushService.js";
 
 const telemetryTopicPattern = /^pamilo\/v1\/tenants\/([^/]+)\/devices\/([^/]+)\/telemetry$/;
 const defaultTelemetryTopic = "pamilo/v1/tenants/+/devices/+/telemetry";
@@ -170,6 +171,15 @@ export async function ingestTelemetryMessage(input: {
     receivedAt: receivedAt.toISOString(),
     tenantId: topicParts.tenantId,
     topic: input.topic
+  });
+
+  void notifyTelemetryThresholdBreaches({
+    db: input.db,
+    deviceId: device.id,
+    deviceUid: topicParts.deviceUid,
+    logger: input.logger,
+    payload: parsedPayload,
+    tenantId: topicParts.tenantId
   });
 
   input.logger.info(

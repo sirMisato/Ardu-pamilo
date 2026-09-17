@@ -2,6 +2,14 @@ import { ref } from "vue";
 import { defineStore } from "pinia";
 import { t, type LocaleCode } from "../i18n";
 import { ApiClientError, apiGet, apiPost, apiPut } from "../services/apiClient";
+import {
+  getPushSupportState,
+  isPushConfigured,
+  sendTestWebPush,
+  subscribeToWebPush,
+  unsubscribeFromWebPush,
+  type PushSupportState
+} from "../services/webPush";
 import { useAuthStore } from "./authStore";
 
 export type DisplayTheme = "dark" | "light" | "system";
@@ -62,6 +70,8 @@ export const useSettingsStore = defineStore("settings", () => {
   const successMessage = ref<string | null>(null);
   const isLoading = ref(false);
   const isSaving = ref(false);
+  const isPushBusy = ref(false);
+  const pushSupportState = ref<PushSupportState>("prompt");
   const resetResult = ref<ResetSystemResult | null>(null);
 
   async function fetchSettings(): Promise<void> {
@@ -146,6 +156,69 @@ export const useSettingsStore = defineStore("settings", () => {
     }
   }
 
+  async function refreshPushState(): Promise<void> {
+    pushSupportState.value = await getPushSupportState();
+  }
+
+  async function enableWebPush(): Promise<boolean> {
+    isPushBusy.value = true;
+    errorMessage.value = null;
+    successMessage.value = null;
+
+    try {
+      if (!(await isPushConfigured())) {
+        errorMessage.value = t("settings.notifications.pushNotConfigured");
+        return false;
+      }
+
+      await subscribeToWebPush();
+      await refreshPushState();
+      successMessage.value = t("settings.notifications.pushEnabled");
+      return true;
+    } catch (error) {
+      await refreshPushState();
+      errorMessage.value = normalizePushError(error);
+      return false;
+    } finally {
+      isPushBusy.value = false;
+    }
+  }
+
+  async function disableWebPush(): Promise<boolean> {
+    isPushBusy.value = true;
+    errorMessage.value = null;
+    successMessage.value = null;
+
+    try {
+      await unsubscribeFromWebPush();
+      await refreshPushState();
+      successMessage.value = t("settings.notifications.pushDisabled");
+      return true;
+    } catch (error) {
+      errorMessage.value = normalizeApiError(error, t("settings.notifications.pushDisableFailed"));
+      return false;
+    } finally {
+      isPushBusy.value = false;
+    }
+  }
+
+  async function testWebPush(): Promise<boolean> {
+    isPushBusy.value = true;
+    errorMessage.value = null;
+    successMessage.value = null;
+
+    try {
+      const sent = await sendTestWebPush();
+      successMessage.value = sent > 0 ? t("settings.notifications.pushTestSent") : t("settings.notifications.pushNoDevice");
+      return sent > 0;
+    } catch (error) {
+      errorMessage.value = normalizeApiError(error, t("settings.notifications.pushTestFailed"));
+      return false;
+    } finally {
+      isPushBusy.value = false;
+    }
+  }
+
   async function changePassword(input: { currentPassword: string; newPassword: string }): Promise<boolean> {
     isSaving.value = true;
     errorMessage.value = null;
@@ -201,16 +274,22 @@ export const useSettingsStore = defineStore("settings", () => {
   return {
     changePassword,
     clearMessages,
+    disableWebPush,
     displayPreferences,
+    enableWebPush,
     errorMessage,
     fetchSettings,
     isLoading,
+    isPushBusy,
     isSaving,
     notificationPreferences,
     profile,
+    pushSupportState,
+    refreshPushState,
     resetResult,
     resetSystem,
     successMessage,
+    testWebPush,
     updateDisplayPreferences,
     updateLanguagePreference,
     updateNotificationPreferences,
@@ -228,4 +307,26 @@ function normalizeApiError(error: unknown, fallback: string): string {
   }
 
   return fallback;
+}
+
+function normalizePushError(error: unknown): string {
+  if (error instanceof Error) {
+    if (error.message === "denied") {
+      return t("settings.notifications.pushDenied");
+    }
+
+    if (error.message === "not_supported") {
+      return t("settings.notifications.pushUnsupported");
+    }
+
+    if (error.message === "unsupported_context") {
+      return t("settings.notifications.pushRequiresHttps");
+    }
+
+    if (error.message === "not_configured") {
+      return t("settings.notifications.pushNotConfigured");
+    }
+  }
+
+  return normalizeApiError(error, t("settings.notifications.pushEnableFailed"));
 }

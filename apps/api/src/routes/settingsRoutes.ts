@@ -6,6 +6,13 @@ import type { JsonValue, Tenant, TenantSettings, TenantSettingsUpdate } from "..
 import type { LocaleCode } from "../i18n/locale.js";
 import { apiMessage, fieldLabels } from "../i18n/messages.js";
 import { requireTenantContext, verifyTenant, verifyTenantAdmin } from "../middleware/verifyTenant.js";
+import {
+  deleteWebPushSubscription,
+  getWebPushPublicKey,
+  isWebPushConfigured,
+  saveWebPushSubscription,
+  sendTestWebPush
+} from "../services/webPushService.js";
 
 const displayPreferencesSchema = z.object({
   compactMode: z.boolean().optional(),
@@ -21,6 +28,17 @@ const notificationPreferencesSchema = z.object({
   thresholdBreaches: z.boolean().optional(),
   weatherWarnings: z.boolean().optional(),
   webAlerts: z.boolean().optional()
+});
+const pushSubscriptionSchema = z.object({
+  endpoint: z.string().url().max(2048),
+  expirationTime: z.number().nullable().optional(),
+  keys: z.object({
+    auth: z.string().min(1).max(512),
+    p256dh: z.string().min(1).max(512)
+  })
+});
+const pushUnsubscribeSchema = z.object({
+  endpoint: z.string().url().max(2048)
 });
 
 const profileSchema = z.object({
@@ -85,6 +103,77 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
     }
 
     return toSettingsDto(tenantRow, settings);
+  });
+
+  app.get("/settings/push/public-key", async () => ({
+    configured: isWebPushConfigured(),
+    publicKey: getWebPushPublicKey()
+  }));
+
+  app.post<{ Body: z.input<typeof pushSubscriptionSchema> }>("/settings/push/subscriptions", async (request, reply) => {
+    const tenant = requireTenantContext(request);
+    const parsed = pushSubscriptionSchema.safeParse(request.body);
+
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: "Invalid push subscription",
+        message: settingsMessage(request.locale, "invalidPushSubscription")
+      });
+    }
+
+    if (!isWebPushConfigured()) {
+      return reply.code(503).send({
+        error: "Web push not configured",
+        message: settingsMessage(request.locale, "webPushNotConfigured")
+      });
+    }
+
+    await saveWebPushSubscription({
+      auth: parsed.data.keys.auth,
+      endpoint: parsed.data.endpoint,
+      locale: request.locale,
+      p256dh: parsed.data.keys.p256dh,
+      tenantId: tenant.tenantId,
+      userAgent: request.headers["user-agent"],
+      userId: tenant.userId
+    });
+
+    return {
+      ok: true
+    };
+  });
+
+  app.delete<{ Body: z.input<typeof pushUnsubscribeSchema> }>("/settings/push/subscriptions", async (request, reply) => {
+    const tenant = requireTenantContext(request);
+    const parsed = pushUnsubscribeSchema.safeParse(request.body);
+
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: "Invalid push subscription",
+        message: settingsMessage(request.locale, "invalidPushSubscription")
+      });
+    }
+
+    await deleteWebPushSubscription(parsed.data.endpoint, tenant.tenantId, tenant.userId);
+
+    return {
+      ok: true
+    };
+  });
+
+  app.post("/settings/push/test", async (request) => {
+    const tenant = requireTenantContext(request);
+    const sent = await sendTestWebPush({
+      locale: request.locale,
+      logger: request.log,
+      tenantId: tenant.tenantId,
+      userId: tenant.userId
+    });
+
+    return {
+      ok: true,
+      sent
+    };
   });
 
   app.put<{ Body: z.input<typeof profileSchema> }>("/settings/profile", { preHandler: verifyTenantAdmin }, async (request, reply) => {
@@ -420,22 +509,26 @@ const settingsFieldLabels = {
 
 function settingsMessage(
   locale: LocaleCode,
-  key: "emailExists" | "invalidCurrentPassword" | "invalidResetConfirmation" | "tenantContextNotFound" | "tenantProfileNotFound"
+  key: "emailExists" | "invalidCurrentPassword" | "invalidPushSubscription" | "invalidResetConfirmation" | "tenantContextNotFound" | "tenantProfileNotFound" | "webPushNotConfigured"
 ): string {
   const messages: Record<LocaleCode, Record<typeof key, string>> = {
     en: {
       emailExists: "This email is already used by another tenant.",
       invalidCurrentPassword: "The current password is incorrect.",
+      invalidPushSubscription: "The browser notification subscription is invalid.",
       invalidResetConfirmation: "Type RESET PAMILO to confirm the system reset.",
       tenantContextNotFound: "The tenant context was not found in the database.",
-      tenantProfileNotFound: "Tenant profile was not found."
+      tenantProfileNotFound: "Tenant profile was not found.",
+      webPushNotConfigured: "Web push is not configured on the server yet."
     },
     id: {
       emailExists: "Email sudah digunakan tenant lain.",
       invalidCurrentPassword: "Kata sandi saat ini tidak sesuai.",
+      invalidPushSubscription: "Subscription notifikasi browser tidak valid.",
       invalidResetConfirmation: "Ketik RESET PAMILO untuk mengonfirmasi reset sistem.",
       tenantContextNotFound: "Tenant context tidak ditemukan di database.",
-      tenantProfileNotFound: "Tenant profile tidak ditemukan."
+      tenantProfileNotFound: "Tenant profile tidak ditemukan.",
+      webPushNotConfigured: "Web push belum dikonfigurasi di server."
     }
   };
 

@@ -27,6 +27,7 @@ export default defineConfig({
       registerType: "autoUpdate",
       workbox: {
         cleanupOutdatedCaches: true,
+        importScripts: ["push-listener.js"],
         navigateFallback: "/index.html"
       }
     })

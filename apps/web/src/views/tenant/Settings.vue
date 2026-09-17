@@ -152,6 +152,34 @@
           </label>
         </div>
 
+        <div class="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p class="text-sm font-semibold text-slate-700">{{ t("settings.notifications.pushTitle") }}</p>
+              <p class="mt-1 text-xs text-slate-500">{{ pushStatusLabel }}</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button
+                class="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-300 px-4 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 disabled:opacity-60"
+                type="button"
+                :disabled="isPushBusy || pushSupportState === 'denied' || pushSupportState === 'not_supported' || pushSupportState === 'unsupported_context'"
+                @click="enablePushNotifications"
+              >
+                <Bell class="h-4 w-4" />
+                {{ t("settings.notifications.enablePush") }}
+              </button>
+              <button
+                class="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/80 bg-white/70 px-4 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-white disabled:opacity-60"
+                type="button"
+                :disabled="isPushBusy || pushSupportState !== 'granted'"
+                @click="settingsStore.testWebPush"
+              >
+                {{ t("settings.notifications.testPush") }}
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="mt-6 flex justify-end">
           <button class="inline-flex items-center gap-2 rounded-xl bg-emerald-300 px-6 py-2.5 text-sm font-semibold text-emerald-950 shadow-sm transition-all hover:bg-emerald-400 disabled:opacity-60" :disabled="isSaving" type="button" @click="submitNotifications">
             <Save class="h-4 w-4" />
@@ -286,7 +314,7 @@ type DisplayToggleKey = "compactMode" | "reduceMotion";
 type NotificationKey = keyof NotificationPreferences;
 
 const settingsStore = useSettingsStore();
-const { displayPreferences, errorMessage, isLoading, isSaving, notificationPreferences, profile, successMessage } = storeToRefs(settingsStore);
+const { displayPreferences, errorMessage, isLoading, isPushBusy, isSaving, notificationPreferences, profile, pushSupportState, successMessage } = storeToRefs(settingsStore);
 const { locale, t } = useI18n();
 const activeTab = ref<SettingsTab>("profile");
 const isResetModalOpen = ref(false);
@@ -345,9 +373,17 @@ const notificationItems = computed<Array<{ detail: string; icon: unknown; key: N
 ]);
 
 const passwordMismatch = computed(() => Boolean(passwordForm.newPassword || passwordForm.confirmPassword) && passwordForm.newPassword !== passwordForm.confirmPassword);
+const pushStatusLabel = computed(() => {
+  if (pushSupportState.value === "granted") return t("settings.notifications.pushGranted");
+  if (pushSupportState.value === "denied") return t("settings.notifications.pushDenied");
+  if (pushSupportState.value === "not_supported") return t("settings.notifications.pushUnsupported");
+  if (pushSupportState.value === "unsupported_context") return t("settings.notifications.pushRequiresHttps");
+  return t("settings.notifications.pushPrompt");
+});
 
 onMounted(async () => {
   await settingsStore.fetchSettings();
+  await settingsStore.refreshPushState();
   syncDrafts();
 });
 
@@ -391,9 +427,28 @@ async function submitDisplay(): Promise<void> {
 }
 
 async function submitNotifications(): Promise<void> {
-  await settingsStore.updateNotificationPreferences({
+  const saved = await settingsStore.updateNotificationPreferences({
     ...notificationDraft
   });
+
+  if (!saved) {
+    return;
+  }
+
+  if (notificationDraft.webAlerts) {
+    await settingsStore.enableWebPush();
+  } else {
+    await settingsStore.disableWebPush();
+  }
+}
+
+async function enablePushNotifications(): Promise<void> {
+  notificationDraft.webAlerts = true;
+  await settingsStore.updateNotificationPreferences({
+    ...notificationDraft,
+    webAlerts: true
+  });
+  await settingsStore.enableWebPush();
 }
 
 async function submitPassword(): Promise<void> {
