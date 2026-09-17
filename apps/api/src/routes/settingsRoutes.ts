@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "../db/client.js";
 import type { JsonValue, Tenant, TenantSettings, TenantSettingsUpdate } from "../db/schema.js";
 import type { LocaleCode } from "../i18n/locale.js";
+import { apiMessage, fieldLabels } from "../i18n/messages.js";
 import { requireTenantContext, verifyTenant, verifyTenantAdmin } from "../middleware/verifyTenant.js";
 
 const displayPreferencesSchema = z.object({
@@ -93,7 +94,9 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "Invalid profile payload",
-        issues: parsed.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, settingsFieldLabels),
+        issues: parsed.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidProfilePayload")
       });
     }
 
@@ -139,7 +142,9 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "Invalid password payload",
-        issues: parsed.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, settingsFieldLabels),
+        issues: parsed.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidPasswordPayload")
       });
     }
 
@@ -173,7 +178,9 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "Invalid display preferences",
-        issues: parsed.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, settingsFieldLabels),
+        issues: parsed.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidDisplayPreferences")
       });
     }
 
@@ -200,7 +207,9 @@ export const settingsRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "Invalid notification preferences",
-        issues: parsed.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, settingsFieldLabels),
+        issues: parsed.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidNotificationPreferences")
       });
     }
 
@@ -390,6 +399,24 @@ function isDuplicateEntryError(error: unknown): boolean {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
+
+const settingsFieldLabels = {
+  compactMode: { en: "Compact Mode", id: "Mode Ringkas" },
+  confirmation: { en: "Confirmation", id: "Konfirmasi" },
+  currentPassword: { en: "Current Password", id: "Password Saat Ini" },
+  deviceOffline: { en: "Device Offline", id: "Perangkat Offline" },
+  email: { en: "Email", id: "Email" },
+  emailAlerts: { en: "Email Alerts", id: "Alert Email" },
+  language: { en: "Language", id: "Bahasa" },
+  name: { en: "Tenant Name", id: "Nama Tenant" },
+  newPassword: { en: "New Password", id: "Password Baru" },
+  reduceMotion: { en: "Reduce Motion", id: "Kurangi Gerak" },
+  smsAlerts: { en: "SMS Alerts", id: "Alert SMS" },
+  theme: { en: "Theme", id: "Tema" },
+  thresholdBreaches: { en: "Threshold Breaches", id: "Ambang Terlampaui" },
+  weatherWarnings: { en: "Weather Warnings", id: "Peringatan Cuaca" },
+  webAlerts: { en: "Web Alerts", id: "Alert Web" }
+};
 
 function settingsMessage(
   locale: LocaleCode,

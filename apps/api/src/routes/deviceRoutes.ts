@@ -3,6 +3,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { db } from "../db/client.js";
 import type { DeviceStatus, JsonValue } from "../db/schema.js";
+import { apiMessage, fieldLabels } from "../i18n/messages.js";
 import { requireTenantContext, verifyTenant, verifyTenantAdmin } from "../middleware/verifyTenant.js";
 
 const deviceStatusSchema = z.enum(["online", "offline", "maintenance"]);
@@ -76,7 +77,9 @@ export const deviceRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "Invalid device payload",
-        issues: parsed.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, deviceFieldLabels),
+        issues: parsed.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidDevicePayload")
       });
     }
 
@@ -86,9 +89,7 @@ export const deviceRoutes: FastifyPluginAsync = async (app) => {
     if (!plot) {
       return reply.code(body.plotId ? 404 : 500).send({
         error: "Plot not found",
-        message: body.plotId
-          ? "The target plot does not exist for this tenant."
-          : "Unable to prepare a default field for this tenant."
+        message: apiMessage(request.locale, body.plotId ? "devicePlotNotFound" : "deviceDefaultPlotFailed")
       });
     }
 
@@ -96,14 +97,14 @@ export const deviceRoutes: FastifyPluginAsync = async (app) => {
     if (!topicParts) {
       return reply.code(400).send({
         error: "Invalid telemetry topic",
-        message: "Topic harus memakai format pamilo/v1/tenants/{tenant_id}/devices/{device_uid}/telemetry."
+        message: apiMessage(request.locale, "invalidTelemetryTopic")
       });
     }
 
     if (topicParts.tenantId !== tenant.tenantId || topicParts.deviceUid !== body.deviceUid) {
       return reply.code(400).send({
         error: "Telemetry topic mismatch",
-        message: "Tenant ID dan Device UID pada telemetry topic harus sama dengan tenant aktif dan Device UID perangkat."
+        message: apiMessage(request.locale, "telemetryTopicMismatch")
       });
     }
 
@@ -120,7 +121,7 @@ export const deviceRoutes: FastifyPluginAsync = async (app) => {
     if (existingDevice) {
       return reply.code(409).send({
         error: "Device already exists",
-        message: "Device UID atau telemetry topic sudah terdaftar untuk tenant ini."
+        message: apiMessage(request.locale, "deviceAlreadyExists")
       });
     }
 
@@ -155,7 +156,9 @@ export const deviceRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "Invalid route params",
-        issues: parsed.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, deviceFieldLabels),
+        issues: parsed.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidRouteParams")
       });
     }
 
@@ -168,7 +171,7 @@ export const deviceRoutes: FastifyPluginAsync = async (app) => {
     if (result.numDeletedRows === 0n) {
       return reply.code(404).send({
         error: "Device not found",
-        message: "The device does not exist for this tenant."
+        message: apiMessage(request.locale, "deviceNotFound")
       });
     }
 
@@ -298,3 +301,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function serializeDate(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : value;
 }
+
+const deviceFieldLabels = {
+  deviceId: { en: "Device ID", id: "ID Perangkat" },
+  deviceUid: { en: "Device UID", id: "Device UID" },
+  displayName: { en: "Display Name", id: "Nama Tampilan" },
+  metadata: { en: "Metadata", id: "Metadata" },
+  mqttUsername: { en: "MQTT Username", id: "Username MQTT" },
+  plotId: { en: "Plot ID", id: "ID Plot" },
+  status: { en: "Status", id: "Status" },
+  telemetryTopic: { en: "Telemetry Topic", id: "Topic Telemetry" }
+};

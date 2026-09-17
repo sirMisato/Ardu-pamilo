@@ -17,12 +17,12 @@
       <article class="rounded-lg border border-white/10 bg-white/5">
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 p-5">
           <div>
-            <h2 class="text-lg font-semibold tracking-normal text-white">Tenant Licenses</h2>
-            <p class="mt-1 text-sm text-slate-400">Latest registered farming accounts.</p>
+            <h2 class="text-lg font-semibold tracking-normal text-white">{{ t("superadmin.dashboard.tenantLicenses") }}</h2>
+            <p class="mt-1 text-sm text-slate-400">{{ t("superadmin.dashboard.latestAccounts") }}</p>
           </div>
           <button class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-amber-300/30 px-4 text-sm font-semibold text-amber-100 hover:bg-amber-300/10" type="button" @click="refresh">
             <RefreshCcw class="h-4 w-4" />
-            Refresh
+            {{ t("common.refresh") }}
           </button>
         </div>
 
@@ -34,10 +34,10 @@
           <table class="min-w-[760px] w-full text-left text-sm">
             <thead class="border-b border-white/10 bg-white/5 text-xs uppercase tracking-wide text-slate-400">
               <tr>
-                <th class="px-5 py-4 font-semibold">Tenant</th>
-                <th class="px-5 py-4 font-semibold">Status</th>
-                <th class="px-5 py-4 font-semibold">Quotas</th>
-                <th class="px-5 py-4 font-semibold">Expires</th>
+                <th class="px-5 py-4 font-semibold">{{ t("superadmin.columns.tenant") }}</th>
+                <th class="px-5 py-4 font-semibold">{{ t("common.status") }}</th>
+                <th class="px-5 py-4 font-semibold">{{ t("superadmin.columns.quotas") }}</th>
+                <th class="px-5 py-4 font-semibold">{{ t("superadmin.columns.expires") }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-white/10">
@@ -51,26 +51,26 @@
                     {{ statusLabel(tenant.licenseStatus) }}
                   </span>
                 </td>
-                <td class="px-5 py-4 text-slate-300">{{ tenant.maxPlots }} plot / {{ tenant.maxDevices }} devices</td>
-                <td class="px-5 py-4 text-slate-300">{{ tenant.licenseExpiresAt ? formatDate(tenant.licenseExpiresAt) : "No expiry" }}</td>
+                <td class="px-5 py-4 text-slate-300">{{ t("superadmin.dashboard.quotaValue", { plots: formatDataCount(tenant.maxPlots), devices: formatDataCount(tenant.maxDevices) }) }}</td>
+                <td class="px-5 py-4 text-slate-300">{{ tenant.licenseExpiresAt ? formatDate(tenant.licenseExpiresAt) : t("superadmin.noExpiry") }}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
         <div v-if="isLoading" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
-          Loading tenant licenses.
+          {{ t("superadmin.loadingLicenses") }}
         </div>
         <div v-else-if="recentTenants.length === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
-          No tenant licenses yet.
+          {{ t("superadmin.empty.noLicenses") }}
         </div>
       </article>
 
       <article class="rounded-lg border border-white/10 bg-white/5 p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <h2 class="text-lg font-semibold tracking-normal text-white">System Health</h2>
-            <p class="mt-1 text-sm text-slate-400">Local backend control plane status.</p>
+            <h2 class="text-lg font-semibold tracking-normal text-white">{{ t("superadmin.dashboard.systemHealth") }}</h2>
+            <p class="mt-1 text-sm text-slate-400">{{ t("superadmin.dashboard.controlPlaneStatus") }}</p>
           </div>
           <Activity class="h-7 w-7 text-field-mint" />
         </div>
@@ -93,43 +93,46 @@
 import { Activity, BadgeCheck, Building2, RefreshCcw, ShieldAlert } from "@lucide/vue";
 import { storeToRefs } from "pinia";
 import { computed, onMounted } from "vue";
+import { useI18n } from "../../i18n";
+import { formatDataCount, formatDateTime } from "../../i18n/formatters";
 import { useAdminStore, type TenantLicenseStatus } from "../../stores/adminStore";
 
 const adminStore = useAdminStore();
 const { activeLicenseCount, errorMessage, isLoading, overview, revokedLicenseCount, suspendedLicenseCount, tenants } = storeToRefs(adminStore);
+const { t } = useI18n();
 
 const stats = computed(() => [
   {
-    detail: `${suspendedLicenseCount.value} suspended`,
+    detail: t("superadmin.dashboard.suspendedCount", { count: formatDataCount(suspendedLicenseCount.value) }),
     detailClass: "text-slate-400",
     icon: Building2,
     iconClass: "text-field-mint",
-    label: "Total Tenants",
-    value: String(overview.value?.totalTenants ?? tenants.value.length)
+    label: t("superadmin.dashboard.totalTenants"),
+    value: formatDataCount(overview.value?.totalTenants ?? tenants.value.length)
   },
   {
-    detail: "Trial and active accounts",
+    detail: t("superadmin.dashboard.trialActiveAccounts"),
     detailClass: "text-field-mint",
     icon: BadgeCheck,
     iconClass: "text-field-green",
-    label: "Active Licenses",
-    value: String(overview.value?.activeLicenses ?? activeLicenseCount.value)
+    label: t("superadmin.dashboard.activeLicenses"),
+    value: formatDataCount(overview.value?.activeLicenses ?? activeLicenseCount.value)
   },
   {
-    detail: `${revokedLicenseCount.value} revoked`,
+    detail: t("superadmin.dashboard.revokedCount", { count: formatDataCount(revokedLicenseCount.value) }),
     detailClass: "text-amber-100",
     icon: ShieldAlert,
     iconClass: "text-amber-200",
-    label: "License Watch",
-    value: String(suspendedLicenseCount.value + revokedLicenseCount.value)
+    label: t("superadmin.dashboard.licenseWatch"),
+    value: formatDataCount(suspendedLicenseCount.value + revokedLicenseCount.value)
   }
 ]);
 
 const recentTenants = computed(() => tenants.value.slice(0, 6));
 const healthItems = computed(() => [
-  { label: "API", value: overview.value?.systemHealth.api ?? "checking" },
-  { label: "Database", value: overview.value?.systemHealth.database ?? "checking" },
-  { label: "MQTT Ingestor", value: overview.value?.systemHealth.mqttIngestor ?? "local opt-in" }
+  { label: "API", value: healthLabel(overview.value?.systemHealth.api) },
+  { label: "Database", value: healthLabel(overview.value?.systemHealth.database) },
+  { label: "MQTT Ingestor", value: healthLabel(overview.value?.systemHealth.mqttIngestor) }
 ]);
 
 onMounted(() => {
@@ -144,10 +147,10 @@ async function refresh(): Promise<void> {
 }
 
 function statusLabel(status: TenantLicenseStatus): string {
-  if (status === "active") return "Active";
-  if (status === "trial") return "Trial";
-  if (status === "suspended") return "Suspended";
-  return "Revoked";
+  if (status === "active") return t("superadmin.status.active");
+  if (status === "trial") return t("superadmin.status.trial");
+  if (status === "suspended") return t("superadmin.status.suspended");
+  return t("superadmin.status.revoked");
 }
 
 function statusClass(status: TenantLicenseStatus): string {
@@ -158,8 +161,15 @@ function statusClass(status: TenantLicenseStatus): string {
 }
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("id-ID", {
+  return formatDateTime(value, {
     dateStyle: "medium"
-  }).format(new Date(value));
+  });
+}
+
+function healthLabel(value: string | undefined): string {
+  if (value === "nominal") return t("superadmin.health.nominal");
+  if (value === "connected") return t("superadmin.health.connected");
+  if (value === "local opt-in") return t("superadmin.health.localOptIn");
+  return t("superadmin.health.checking");
 }
 </script>

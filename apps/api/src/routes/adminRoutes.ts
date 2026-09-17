@@ -4,6 +4,7 @@ import type { FastifyPluginAsync, FastifyReply } from "fastify";
 import { z } from "zod";
 import { db } from "../db/client.js";
 import type { Tenant, TenantLicenseStatus, TenantUpdate } from "../db/schema.js";
+import { apiMessage, fieldLabels } from "../i18n/messages.js";
 import { verifySuperAdmin } from "../middleware/verifySuperAdmin.js";
 
 const tenantStatusSchema = z.enum(["trial", "active", "suspended", "revoked"]);
@@ -80,7 +81,9 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "Invalid tenant payload",
-        issues: parsed.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, tenantFieldLabels),
+        issues: parsed.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidTenantPayload")
       });
     }
 
@@ -106,7 +109,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
       if (isDuplicateEntryError(error)) {
         return reply.code(409).send({
           error: "Tenant already exists",
-          message: "Owner email atau tenant ID sudah terdaftar."
+          message: apiMessage(request.locale, "tenantAlreadyExists")
         });
       }
 
@@ -127,10 +130,12 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
     if (!params.success || !body.success) {
       return reply.code(400).send({
         error: "Invalid tenant update",
+        fieldLabels: fieldLabels(request.locale, tenantFieldLabels),
         issues: {
           body: body.success ? undefined : body.error.flatten().fieldErrors,
           params: params.success ? undefined : params.error.flatten().fieldErrors
-        }
+        },
+        message: apiMessage(request.locale, "invalidTenantUpdate")
       });
     }
 
@@ -138,7 +143,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
     if (Object.keys(updateValues).length === 0) {
       return reply.code(400).send({
         error: "Empty update",
-        message: "At least one tenant field must be supplied."
+        message: apiMessage(request.locale, "emptyTenantUpdate")
       });
     }
 
@@ -152,14 +157,14 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
       if (result.numUpdatedRows === 0n) {
         return reply.code(404).send({
           error: "Tenant not found",
-          message: "Tenant license tidak ditemukan."
+          message: apiMessage(request.locale, "tenantNotFound")
         });
       }
     } catch (error) {
       if (isDuplicateEntryError(error)) {
         return reply.code(409).send({
           error: "Tenant already exists",
-          message: "Owner email sudah digunakan tenant lain."
+          message: apiMessage(request.locale, "tenantOwnerEmailExists")
         });
       }
 
@@ -174,21 +179,23 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
   });
 
   app.post<{ Params: { tenantId: string } }>("/tenants/:tenantId/revoke", async (request, reply) => {
-    return revokeTenant(request.params, reply);
+    return revokeTenant(request.params, reply, request.locale);
   });
 
   app.delete<{ Params: { tenantId: string } }>("/tenants/:tenantId", async (request, reply) => {
-    return revokeTenant(request.params, reply);
+    return revokeTenant(request.params, reply, request.locale);
   });
 };
 
-async function revokeTenant(params: { tenantId: string }, reply: FastifyReply) {
+async function revokeTenant(params: { tenantId: string }, reply: FastifyReply, locale: "id" | "en") {
   const parsed = tenantParamsSchema.safeParse(params);
 
   if (!parsed.success) {
     return reply.code(400).send({
       error: "Invalid route params",
-      issues: parsed.error.flatten().fieldErrors
+      fieldLabels: fieldLabels(locale, tenantFieldLabels),
+      issues: parsed.error.flatten().fieldErrors,
+      message: apiMessage(locale, "invalidRouteParams")
     });
   }
 
@@ -203,7 +210,7 @@ async function revokeTenant(params: { tenantId: string }, reply: FastifyReply) {
   if (result.numUpdatedRows === 0n) {
     return reply.code(404).send({
       error: "Tenant not found",
-      message: "Tenant license tidak ditemukan."
+      message: apiMessage(locale, "tenantNotFound")
     });
   }
 
@@ -264,3 +271,14 @@ function isDuplicateEntryError(error: unknown): boolean {
 function serializeDate(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : value;
 }
+
+const tenantFieldLabels = {
+  accountName: { en: "Account Name", id: "Nama Akun" },
+  licenseExpiresAt: { en: "License Expiry", id: "Masa Berlaku Lisensi" },
+  licenseStatus: { en: "License Status", id: "Status Lisensi" },
+  maxDevices: { en: "Max Devices", id: "Maksimal Perangkat" },
+  maxPlots: { en: "Max Plots", id: "Maksimal Plot" },
+  ownerEmail: { en: "Owner Email", id: "Email Owner" },
+  password: { en: "Password", id: "Kata Sandi" },
+  tenantId: { en: "Tenant ID", id: "ID Tenant" }
+};

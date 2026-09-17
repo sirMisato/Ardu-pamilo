@@ -1,6 +1,7 @@
 import { computed, ref, shallowRef } from "vue";
 import { defineStore } from "pinia";
 import { resolveApiUrl } from "../config/environment";
+import { t } from "../i18n";
 import { apiGet, getAccessToken } from "../services/apiClient";
 import { useAuthStore } from "./authStore";
 
@@ -105,7 +106,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     const token = getAccessToken();
     if (!token) {
       connectionState.value = "history";
-      errorMessage.value = "Sesi login dibutuhkan untuk membuka realtime telemetry stream.";
+      errorMessage.value = t("telemetry.errors.sessionRequired");
       return;
     }
 
@@ -148,11 +149,11 @@ export const useTelemetryStore = defineStore("telemetry", () => {
 
       if (response.status === 401) {
         window.dispatchEvent(new CustomEvent("pamilo:auth-expired"));
-        throw new Error("Sesi login berakhir. Silakan login ulang.");
+        throw new Error(t("telemetry.errors.sessionExpired"));
       }
 
       if (!response.ok || !response.body) {
-        throw new Error(`Realtime telemetry stream gagal dibuka (${response.status}).`);
+        throw new Error(t("telemetry.errors.streamOpenFailed", { status: response.status }));
       }
 
       connectionState.value = "connected";
@@ -164,7 +165,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
       }
 
       connectionState.value = "offline";
-      errorMessage.value = error instanceof Error ? error.message : "Realtime telemetry stream terputus.";
+      errorMessage.value = error instanceof Error ? error.message : t("telemetry.errors.streamDisconnected");
       scheduleStreamReconnect();
     } finally {
       if (streamController.value === controller) {
@@ -192,7 +193,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
 
       buffer += decoder.decode();
       processSseBuffer(`${buffer}\n\n`);
-      throw new Error("Realtime telemetry stream ditutup oleh server.");
+      throw new Error(t("telemetry.errors.streamClosed"));
     } finally {
       reader.releaseLock();
     }
@@ -237,7 +238,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
       errorMessage.value = null;
     } catch {
       connectionState.value = "error";
-      errorMessage.value = "Realtime telemetry stream mengirim payload yang tidak valid.";
+      errorMessage.value = t("telemetry.errors.invalidStreamPayload");
     }
   }
 
@@ -253,7 +254,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
 
       if (!token) {
         connectionState.value = "history";
-        errorMessage.value = "Sesi login dibutuhkan untuk membuka realtime telemetry stream.";
+        errorMessage.value = t("telemetry.errors.sessionRequired");
         return;
       }
 
@@ -287,7 +288,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
     } catch (error) {
       if (!streamController.value && connectionState.value !== "connected") {
         connectionState.value = "error";
-        errorMessage.value = error instanceof Error ? error.message : "Gagal mengambil telemetry history.";
+        errorMessage.value = error instanceof Error ? error.message : t("telemetry.errors.historyFailed");
       }
     } finally {
       isHistoryLoading.value = false;
@@ -296,7 +297,7 @@ export const useTelemetryStore = defineStore("telemetry", () => {
 
   function ingestTelemetryPayload(topicName: string, payload: unknown, options: TelemetryIngestOptions = {}): void {
     if (!isRecord(payload)) {
-      errorMessage.value = "Received MQTT payload must be a JSON object.";
+      errorMessage.value = t("telemetry.errors.payloadMustBeObject");
       return;
     }
 

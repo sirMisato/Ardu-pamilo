@@ -1,4 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { apiMessage } from "../i18n/messages.js";
 
 export interface TenantContext {
   tenantId: string;
@@ -32,7 +33,7 @@ export async function verifyTenant(request: FastifyRequest, reply: FastifyReply)
     if (!payload.tenant_id) {
       await reply.code(403).send({
         error: "Tenant context missing",
-        message: "JWT must include tenant_id for tenant-scoped operations."
+        message: apiMessage(request.locale, "tenantContextMissing")
       });
       return;
     }
@@ -45,7 +46,7 @@ export async function verifyTenant(request: FastifyRequest, reply: FastifyReply)
   } catch {
     await reply.code(401).send({
       error: "Unauthorized",
-      message: "A valid bearer token is required."
+      message: apiMessage(request.locale, "tenantTokenRequired")
     });
   }
 }
@@ -64,7 +65,7 @@ export async function verifyTenantAdmin(request: FastifyRequest, reply: FastifyR
   if (tenant.role !== "tenant_admin") {
     await reply.code(403).send({
       error: "Read-only tenant",
-      message: "User read-only hanya dapat melihat Dashboard, Weather Station, Grafik, dan Report."
+      message: apiMessage(request.locale, "readOnlyTenant")
     });
   }
 }

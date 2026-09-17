@@ -3,6 +3,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { db } from "../db/client.js";
 import type { JsonValue } from "../db/schema.js";
+import { apiMessage, fieldLabels } from "../i18n/messages.js";
 import { requireTenantContext, verifyTenant, verifyTenantAdmin } from "../middleware/verifyTenant.js";
 
 const plotPayloadSchema = z.object({
@@ -55,7 +56,9 @@ export const plotRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "Invalid plot payload",
-        issues: parsed.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, plotFieldLabels),
+        issues: parsed.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidPlotPayload")
       });
     }
 
@@ -64,7 +67,7 @@ export const plotRoutes: FastifyPluginAsync = async (app) => {
     if (cropId === undefined) {
       return reply.code(404).send({
         error: "Crop not found",
-        message: "Crop yang dipilih tidak tersedia untuk tenant ini."
+        message: apiMessage(request.locale, "plotCropNotFound")
       });
     }
 
@@ -98,10 +101,12 @@ export const plotRoutes: FastifyPluginAsync = async (app) => {
     if (!params.success || !body.success) {
       return reply.code(400).send({
         error: "Invalid plot update",
+        fieldLabels: fieldLabels(request.locale, plotFieldLabels),
         issues: {
           body: body.success ? undefined : body.error.flatten().fieldErrors,
           params: params.success ? undefined : params.error.flatten().fieldErrors
-        }
+        },
+        message: apiMessage(request.locale, "invalidPlotUpdate")
       });
     }
 
@@ -111,7 +116,7 @@ export const plotRoutes: FastifyPluginAsync = async (app) => {
     if (cropId === undefined) {
       return reply.code(404).send({
         error: "Crop not found",
-        message: "Crop yang dipilih tidak tersedia untuk tenant ini."
+        message: apiMessage(request.locale, "plotCropNotFound")
       });
     }
 
@@ -119,7 +124,7 @@ export const plotRoutes: FastifyPluginAsync = async (app) => {
     if (Object.keys(updateValues).length === 0) {
       return reply.code(400).send({
         error: "Empty update",
-        message: "Minimal satu field zona/area harus dikirim."
+        message: apiMessage(request.locale, "plotEmptyUpdate")
       });
     }
 
@@ -133,7 +138,7 @@ export const plotRoutes: FastifyPluginAsync = async (app) => {
     if (result.numUpdatedRows === 0n) {
       return reply.code(404).send({
         error: "Plot not found",
-        message: "Zona/area tidak tersedia untuk tenant ini."
+        message: apiMessage(request.locale, "plotNotFound")
       });
     }
 
@@ -151,7 +156,9 @@ export const plotRoutes: FastifyPluginAsync = async (app) => {
     if (!params.success) {
       return reply.code(400).send({
         error: "Invalid route params",
-        issues: params.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, plotFieldLabels),
+        issues: params.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidRouteParams")
       });
     }
 
@@ -165,7 +172,7 @@ export const plotRoutes: FastifyPluginAsync = async (app) => {
     if (device) {
       return reply.code(409).send({
         error: "Plot has devices",
-        message: "Hapus atau pindahkan perangkat pada zona ini sebelum menghapus area."
+        message: apiMessage(request.locale, "plotHasDevices")
       });
     }
 
@@ -178,7 +185,7 @@ export const plotRoutes: FastifyPluginAsync = async (app) => {
     if (result.numDeletedRows === 0n) {
       return reply.code(404).send({
         error: "Plot not found",
-        message: "Zona/area tidak tersedia untuk tenant ini."
+        message: apiMessage(request.locale, "plotNotFound")
       });
     }
 
@@ -279,6 +286,7 @@ function toPlotDto(row: PlotRow) {
     name: row.name,
     polygonGeojson: parseJson(row.polygon_geojson),
     regionLabel: row.bmkg_adm4_code ? `ADM4 ${row.bmkg_adm4_code}` : "BMKG belum diatur",
+    regionLabelEn: row.bmkg_adm4_code ? `ADM4 ${row.bmkg_adm4_code}` : "BMKG not configured",
     updatedAt: serializeDate(row.updated_at)
   };
 }
@@ -342,3 +350,12 @@ function serializeDateOnly(value: Date | string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toISOString().slice(0, 10);
 }
+
+const plotFieldLabels = {
+  areaHectares: { en: "Area (ha)", id: "Luas (ha)" },
+  bmkgAdm4Code: { en: "BMKG ADM4", id: "BMKG ADM4" },
+  cropId: { en: "Crop", id: "Tanaman" },
+  name: { en: "Zone or Area Name", id: "Nama Zona atau Area" },
+  plotId: { en: "Plot ID", id: "ID Plot" },
+  polygonGeojson: { en: "Location Polygon", id: "Poligon Lokasi" }
+};

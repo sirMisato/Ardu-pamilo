@@ -3,8 +3,8 @@
     <section class="rounded-lg border border-white/10 bg-white/5 p-5">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 class="text-xl font-semibold tracking-normal text-white">License Management</h2>
-          <p class="mt-1 text-sm text-slate-400">Create, update, and revoke tenant SaaS accounts.</p>
+          <h2 class="text-xl font-semibold tracking-normal text-white">{{ t("superadmin.licenses.title") }}</h2>
+          <p class="mt-1 text-sm text-slate-400">{{ t("superadmin.licenses.description") }}</p>
         </div>
 
         <div class="flex flex-col gap-3 sm:flex-row">
@@ -13,14 +13,15 @@
             <input
               v-model.trim="searchQuery"
               class="min-h-11 w-full rounded-lg border border-white/10 bg-[#0b1626] pl-10 pr-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25"
-              placeholder="Search tenant"
+              :aria-label="t('superadmin.licenses.searchAria')"
+              :placeholder="t('superadmin.licenses.searchPlaceholder')"
               type="search"
             />
           </label>
 
           <button class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-amber-300 px-5 text-sm font-semibold text-slate-950 transition hover:bg-amber-200" type="button" @click="openCreateModal">
             <Plus class="h-4 w-4" />
-            Create New Tenant License
+            {{ t("superadmin.licenses.createNew") }}
           </button>
         </div>
       </div>
@@ -48,12 +49,12 @@
         <table class="min-w-[1120px] w-full text-left text-sm">
           <thead class="border-b border-white/10 bg-white/5 text-xs uppercase tracking-wide text-slate-400">
             <tr>
-              <th class="px-5 py-4 font-semibold">Tenant</th>
-              <th class="px-5 py-4 font-semibold">License</th>
-              <th class="px-5 py-4 font-semibold">Max Plots</th>
-              <th class="px-5 py-4 font-semibold">Max Devices</th>
-              <th class="px-5 py-4 font-semibold">Expiry</th>
-              <th class="px-5 py-4 text-right font-semibold">Actions</th>
+              <th class="px-5 py-4 font-semibold">{{ t("superadmin.columns.tenant") }}</th>
+              <th class="px-5 py-4 font-semibold">{{ t("superadmin.columns.license") }}</th>
+              <th class="px-5 py-4 font-semibold">{{ t("superadmin.columns.maxPlots") }}</th>
+              <th class="px-5 py-4 font-semibold">{{ t("superadmin.columns.maxDevices") }}</th>
+              <th class="px-5 py-4 font-semibold">{{ t("superadmin.columns.expiry") }}</th>
+              <th class="px-5 py-4 text-right font-semibold">{{ t("common.actions") }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-white/10">
@@ -78,10 +79,10 @@
                   v-model="row.draft.licenseStatus"
                   class="min-h-10 rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25"
                 >
-                  <option value="trial">Trial</option>
-                  <option value="active">Active</option>
-                  <option value="suspended">Suspended</option>
-                  <option value="revoked">Revoked</option>
+                  <option value="trial">{{ statusLabel("trial") }}</option>
+                  <option value="active">{{ statusLabel("active") }}</option>
+                  <option value="suspended">{{ statusLabel("suspended") }}</option>
+                  <option value="revoked">{{ statusLabel("revoked") }}</option>
                 </select>
                 <span class="mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="statusClass(row.tenant.licenseStatus)">
                   {{ statusLabel(row.tenant.licenseStatus) }}
@@ -107,19 +108,20 @@
                 <input
                   v-model="row.draft.expiresDate"
                   class="min-h-10 rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25"
+                  :lang="displayLocale"
                   type="date"
                 />
-                <p class="mt-2 text-xs text-slate-500">Created {{ formatDate(row.tenant.createdAt) }}</p>
+                <p class="mt-2 text-xs text-slate-500">{{ t("superadmin.licenses.createdAt", { date: formatDate(row.tenant.createdAt) }) }}</p>
               </td>
               <td class="px-5 py-4 align-top">
                 <div class="flex justify-end gap-2">
                   <button class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-field-green px-4 text-sm font-semibold text-[#102016] hover:bg-field-mint disabled:opacity-60" :disabled="isSaving" type="button" @click="saveTenant(row.tenant.id)">
                     <Save class="h-4 w-4" />
-                    Save
+                    {{ t("common.save") }}
                   </button>
                   <button class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-rose-300/30 px-4 text-sm font-semibold text-rose-100 hover:bg-rose-300/10 disabled:opacity-60" :disabled="isSaving || row.tenant.licenseStatus === 'revoked'" type="button" @click="revokeTenant(row.tenant.id)">
                     <Ban class="h-4 w-4" />
-                    Revoke
+                    {{ t("superadmin.licenses.revoke") }}
                   </button>
                 </div>
               </td>
@@ -129,10 +131,10 @@
       </div>
 
       <div v-if="isLoading" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
-        Loading tenant licenses.
+        {{ t("superadmin.loadingLicenses") }}
       </div>
       <div v-else-if="filteredRows.length === 0" class="border-t border-white/10 p-8 text-center text-sm text-slate-400">
-        No tenant license matches the current filter.
+        {{ t("superadmin.empty.noFilterResults") }}
       </div>
     </section>
 
@@ -140,10 +142,10 @@
       <form class="w-full max-w-2xl rounded-lg border border-amber-300/20 bg-[#0d1624] p-5 shadow-field" @submit.prevent="submitTenant">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold tracking-normal text-white">Create New Tenant License</h2>
-            <p class="mt-1 text-sm text-slate-400">Tenant owner can sign in after this account is created.</p>
+            <h2 class="text-lg font-semibold tracking-normal text-white">{{ t("superadmin.licenses.createNew") }}</h2>
+            <p class="mt-1 text-sm text-slate-400">{{ t("superadmin.licenses.createDescription") }}</p>
           </div>
-          <button class="icon-button" type="button" aria-label="Close modal" @click="closeCreateModal">
+          <button class="icon-button" type="button" :aria-label="t('superadmin.licenses.closeModal')" @click="closeCreateModal">
             <X class="h-4 w-4" />
           </button>
         </div>
@@ -151,41 +153,41 @@
         <div class="mt-5 grid gap-4">
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="space-y-2">
-              <span class="text-sm font-medium text-slate-300">Account Name</span>
+              <span class="text-sm font-medium text-slate-300">{{ t("superadmin.fields.accountName") }}</span>
               <input v-model.trim="createForm.accountName" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25" required type="text" />
             </label>
             <label class="space-y-2">
-              <span class="text-sm font-medium text-slate-300">Owner Email</span>
+              <span class="text-sm font-medium text-slate-300">{{ t("superadmin.fields.ownerEmail") }}</span>
               <input v-model.trim="createForm.ownerEmail" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25" required type="email" />
             </label>
           </div>
 
           <div class="grid gap-4 sm:grid-cols-3">
             <label class="space-y-2">
-              <span class="text-sm font-medium text-slate-300">Status</span>
+              <span class="text-sm font-medium text-slate-300">{{ t("common.status") }}</span>
               <select v-model="createForm.licenseStatus" class="min-h-11 w-full rounded-lg border border-white/10 bg-[#0b1626] px-3 text-sm text-white outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25">
-                <option value="trial">Trial</option>
-                <option value="active">Active</option>
-                <option value="suspended">Suspended</option>
+                <option value="trial">{{ statusLabel("trial") }}</option>
+                <option value="active">{{ statusLabel("active") }}</option>
+                <option value="suspended">{{ statusLabel("suspended") }}</option>
               </select>
             </label>
             <label class="space-y-2">
-              <span class="text-sm font-medium text-slate-300">Max Plots</span>
+              <span class="text-sm font-medium text-slate-300">{{ t("superadmin.fields.maxPlots") }}</span>
               <input v-model.number="createForm.maxPlots" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25" min="1" required type="number" />
             </label>
             <label class="space-y-2">
-              <span class="text-sm font-medium text-slate-300">Max Devices</span>
+              <span class="text-sm font-medium text-slate-300">{{ t("superadmin.fields.maxDevices") }}</span>
               <input v-model.number="createForm.maxDevices" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25" min="1" required type="number" />
             </label>
           </div>
 
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="space-y-2">
-              <span class="text-sm font-medium text-slate-300">Expiry Date</span>
-              <input v-model="createForm.expiresDate" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25" type="date" />
+              <span class="text-sm font-medium text-slate-300">{{ t("superadmin.fields.expiryDate") }}</span>
+              <input v-model="createForm.expiresDate" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25" :lang="displayLocale" type="date" />
             </label>
             <label class="space-y-2">
-              <span class="text-sm font-medium text-slate-300">Temporary Password</span>
+              <span class="text-sm font-medium text-slate-300">{{ t("superadmin.fields.temporaryPassword") }}</span>
               <input v-model="createForm.password" class="min-h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-300/25" minlength="8" required type="password" />
             </label>
           </div>
@@ -193,11 +195,11 @@
 
         <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button class="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-slate-300 hover:bg-white/5" type="button" @click="closeCreateModal">
-            Cancel
+            {{ t("common.cancel") }}
           </button>
           <button class="inline-flex min-h-11 items-center gap-2 rounded-lg bg-amber-300 px-5 text-sm font-semibold text-slate-950 hover:bg-amber-200 disabled:opacity-60" :disabled="isSaving" type="submit">
             <Save class="h-4 w-4" />
-            {{ isSaving ? "Creating" : "Create License" }}
+            {{ isSaving ? t("superadmin.licenses.creating") : t("superadmin.licenses.createLicense") }}
           </button>
         </div>
       </form>
@@ -209,6 +211,8 @@
 import { Ban, Plus, Save, Search, X } from "@lucide/vue";
 import { storeToRefs } from "pinia";
 import { computed, onMounted, reactive, ref, watch } from "vue";
+import { useI18n } from "../../i18n";
+import { formatDateTime } from "../../i18n/formatters";
 import { useAdminStore, type AdminTenantLicense, type TenantLicenseStatus } from "../../stores/adminStore";
 
 type StatusFilter = "all" | TenantLicenseStatus;
@@ -224,6 +228,7 @@ interface TenantDraft {
 
 const adminStore = useAdminStore();
 const { errorMessage, isLoading, isSaving, tenants } = storeToRefs(adminStore);
+const { displayLocale, t } = useI18n();
 const searchQuery = ref("");
 const statusFilter = ref<StatusFilter>("all");
 const isCreateModalOpen = ref(false);
@@ -238,13 +243,13 @@ const createForm = reactive({
   password: ""
 });
 
-const statusFilters = [
-  { label: "All", value: "all" as const },
-  { label: "Trial", value: "trial" as const },
-  { label: "Active", value: "active" as const },
-  { label: "Suspended", value: "suspended" as const },
-  { label: "Revoked", value: "revoked" as const }
-];
+const statusFilters = computed(() => [
+  { label: t("common.allStatuses"), value: "all" as const },
+  { label: statusLabel("trial"), value: "trial" as const },
+  { label: statusLabel("active"), value: "active" as const },
+  { label: statusLabel("suspended"), value: "suspended" as const },
+  { label: statusLabel("revoked"), value: "revoked" as const }
+]);
 
 const filteredTenants = computed(() => {
   const query = searchQuery.value.toLowerCase();
@@ -364,10 +369,10 @@ function dateInputToIso(value: string): string | null {
 }
 
 function statusLabel(status: TenantLicenseStatus): string {
-  if (status === "active") return "Active";
-  if (status === "trial") return "Trial";
-  if (status === "suspended") return "Suspended";
-  return "Revoked";
+  if (status === "active") return t("superadmin.status.active");
+  if (status === "trial") return t("superadmin.status.trial");
+  if (status === "suspended") return t("superadmin.status.suspended");
+  return t("superadmin.status.revoked");
 }
 
 function statusClass(status: TenantLicenseStatus): string {
@@ -378,8 +383,8 @@ function statusClass(status: TenantLicenseStatus): string {
 }
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("id-ID", {
+  return formatDateTime(value, {
     dateStyle: "medium"
-  }).format(new Date(value));
+  });
 }
 </script>

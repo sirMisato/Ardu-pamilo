@@ -6,8 +6,8 @@
           <ShieldCheck class="h-6 w-6" />
         </div>
         <div>
-          <p class="text-base font-semibold tracking-normal text-slate-800">Super Admin</p>
-          <p class="text-xs text-amber-700">License Control</p>
+          <p class="text-base font-semibold tracking-normal text-slate-800">{{ t("roles.superAdmin") }}</p>
+          <p class="text-xs text-amber-700">{{ t("layout.licenseControl") }}</p>
         </div>
       </div>
       <nav class="space-y-1 px-3 py-4" :aria-label="t('layout.superAdminNav')">

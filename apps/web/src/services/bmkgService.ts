@@ -1,4 +1,5 @@
 import { appEnvironment } from "../config/environment";
+import { formatDateTime } from "../i18n/formatters";
 import { getBmkgWeatherCodeLabel } from "../i18n/weather";
 
 const defaultForecastBaseUrl = "https://api.bmkg.go.id/publik/prakiraan-cuaca";
@@ -401,11 +402,11 @@ function formatDateLabel(date: string): string {
     return date;
   }
 
-  return new Intl.DateTimeFormat("id-ID", {
+  return formatDateTime(parsedDate, {
     day: "2-digit",
     month: "short",
     weekday: "short"
-  }).format(parsedDate);
+  });
 }
 
 function toLocalDateTime(value: Date): string {

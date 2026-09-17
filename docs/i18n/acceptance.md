@@ -98,3 +98,11 @@ Skenario ini menjadi acuan implementasi Batch 01-15. Batch 00 hanya mendokumenta
 3. `error` code, enum tersimpan, JSON key, table/column, ID, and tenant isolation tetap kompatibel.
 4. Tidak ada global mutable locale di server.
 5. Locale tidak memengaruhi otorisasi atau tenant context.
+
+## Batch 15 Verification Closeout
+
+1. Katalog ID/EN, placeholder, nilai kosong, dan key literal terpakai diverifikasi dengan `npm run i18n:check`.
+2. Dropdown global diverifikasi dari kode untuk urutan, value, label tetap, persistensi, invalid locale, dan fallback storage; trigger mobile/desktop sekarang menampilkan label aktif penuh.
+3. Pemeriksaan build/typecheck web dan API lulus; tidak ada script lint/test di manifest aktif.
+4. Browser E2E lintas semua menu belum diverifikasi di lingkungan ini karena tidak tersedia Playwright/Chrome/Edge/Chromium dan tidak ada fixture DB. Status ini dicatat sebagai blocked, bukan passed.
+5. PWA manifest bilingual dan riwayat AI tetap blocked/not_applicable sesuai `exceptions.md`.

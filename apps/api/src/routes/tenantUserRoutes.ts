@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "../db/client.js";
 import type { TenantUser, TenantUserStatus, TenantUserUpdate } from "../db/schema.js";
 import type { LocaleCode } from "../i18n/locale.js";
+import { apiMessage, fieldLabels } from "../i18n/messages.js";
 import { requireTenantContext, verifyTenant, verifyTenantAdmin } from "../middleware/verifyTenant.js";
 
 const tenantUserStatusSchema = z.enum(["active", "inactive"]);
@@ -56,7 +57,9 @@ export const tenantUserRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "Invalid tenant user payload",
-        issues: parsed.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, tenantUserFieldLabels),
+        issues: parsed.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidTenantUserPayload")
       });
     }
 
@@ -110,10 +113,12 @@ export const tenantUserRoutes: FastifyPluginAsync = async (app) => {
     if (!params.success || !body.success) {
       return reply.code(400).send({
         error: "Invalid tenant user update",
+        fieldLabels: fieldLabels(request.locale, tenantUserFieldLabels),
         issues: {
           body: body.success ? undefined : body.error.flatten().fieldErrors,
           params: params.success ? undefined : params.error.flatten().fieldErrors
-        }
+        },
+        message: apiMessage(request.locale, "invalidTenantUserUpdate")
       });
     }
 
@@ -171,7 +176,9 @@ export const tenantUserRoutes: FastifyPluginAsync = async (app) => {
     if (!params.success) {
       return reply.code(400).send({
         error: "Invalid route params",
-        issues: params.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, tenantUserFieldLabels),
+        issues: params.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidRouteParams")
       });
     }
 
@@ -245,6 +252,15 @@ function isDuplicateEntryError(error: unknown): boolean {
 function serializeDate(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : value;
 }
+
+const tenantUserFieldLabels = {
+  email: { en: "Email", id: "Email" },
+  name: { en: "Name", id: "Nama" },
+  password: { en: "Password", id: "Password" },
+  role: { en: "Role", id: "Role" },
+  status: { en: "Status", id: "Status" },
+  userId: { en: "User ID", id: "ID User" }
+};
 
 function tenantUserMessage(locale: LocaleCode, key: "emptyUpdate" | "notFound" | "ownerEmailExists" | "userEmailExists"): string {
   const messages: Record<LocaleCode, Record<typeof key, string>> = {

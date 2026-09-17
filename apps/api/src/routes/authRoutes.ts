@@ -4,6 +4,8 @@ import { z } from "zod";
 import { env } from "../config/env.js";
 import { db } from "../db/client.js";
 import type { Tenant, TenantUser } from "../db/schema.js";
+import type { LocaleCode } from "../i18n/locale.js";
+import { apiMessage, fieldLabels } from "../i18n/messages.js";
 
 const tenantLoginSchema = z.object({
   emailOrUsername: z.string().trim().min(1).max(255),
@@ -21,11 +23,11 @@ type AdminLoginBody = z.infer<typeof adminLoginSchema>;
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   app.post<{ Body: TenantLoginBody }>("/api/auth/login", async (request, reply) => {
-    return handleTenantLogin(app, request.body, reply);
+    return handleTenantLogin(app, request.body, reply, request.locale);
   });
 
   app.post<{ Body: TenantLoginBody }>("/api/v1/auth/login", async (request, reply) => {
-    return handleTenantLogin(app, request.body, reply);
+    return handleTenantLogin(app, request.body, reply, request.locale);
   });
 
   app.post<{ Body: AdminLoginBody }>("/api/auth/admin", async (request, reply) => {
@@ -34,14 +36,16 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "Invalid admin login payload",
-        issues: parsed.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, authFieldLabels),
+        issues: parsed.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidAdminLoginPayload")
       });
     }
 
     if (!env.superAdmin.email || !env.superAdmin.passwordHash) {
       return reply.code(503).send({
         error: "Super admin auth is not configured",
-        message: "Set SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD_HASH in the API environment."
+        message: apiMessage(request.locale, "adminAuthNotConfigured")
       });
     }
 
@@ -51,7 +55,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     if (!emailMatches || !passwordMatches) {
       return reply.code(401).send({
         error: "Invalid credentials",
-        message: "Email atau kata sandi admin tidak sesuai."
+        message: apiMessage(request.locale, "adminInvalidCredentials")
       });
     }
 
@@ -76,19 +80,21 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   });
 };
 
-async function handleTenantLogin(app: FastifyInstance, body: TenantLoginBody, reply: FastifyReply) {
+async function handleTenantLogin(app: FastifyInstance, body: TenantLoginBody, reply: FastifyReply, locale: LocaleCode) {
   const parsed = tenantLoginSchema.safeParse(body);
 
   if (!parsed.success) {
     return reply.code(400).send({
       error: "Invalid login payload",
-      issues: parsed.error.flatten().fieldErrors
+      fieldLabels: fieldLabels(locale, authFieldLabels),
+      issues: parsed.error.flatten().fieldErrors,
+      message: apiMessage(locale, "invalidLoginPayload")
     });
   }
 
   const tenant = await findTenantForLogin(parsed.data);
   if (tenant && await bcrypt.compare(parsed.data.password, tenant.password_hash)) {
-    const licenseError = validateTenantLicense(tenant);
+    const licenseError = validateTenantLicense(tenant, locale);
     if (licenseError) {
       return reply.code(403).send(licenseError);
     }
@@ -118,18 +124,18 @@ async function handleTenantLogin(app: FastifyInstance, body: TenantLoginBody, re
   if (!tenantUserLogin || !(await bcrypt.compare(parsed.data.password, tenantUserLogin.user.password_hash))) {
     return reply.code(401).send({
       error: "Invalid credentials",
-      message: "Email/username atau kata sandi tidak sesuai."
+      message: apiMessage(locale, "loginInvalidCredentials")
     });
   }
 
   if (tenantUserLogin.user.status !== "active") {
     return reply.code(403).send({
       error: "User inactive",
-      message: "User tenant sedang tidak aktif."
+      message: apiMessage(locale, "tenantUserInactive")
     });
   }
 
-  const licenseError = validateTenantLicense(tenantUserLogin.tenant);
+  const licenseError = validateTenantLicense(tenantUserLogin.tenant, locale);
   if (licenseError) {
     return reply.code(403).send(licenseError);
   }
@@ -196,25 +202,25 @@ async function findTenantUserForLogin(credentials: TenantLoginBody): Promise<{ t
   return tenant ? { tenant, user } : undefined;
 }
 
-function validateTenantLicense(tenant: Tenant): { error: string; message: string } | null {
+function validateTenantLicense(tenant: Tenant, locale: LocaleCode): { error: string; message: string } | null {
   if (tenant.license_status === "revoked") {
     return {
       error: "License revoked",
-      message: "Lisensi tenant sudah dicabut."
+      message: apiMessage(locale, "licenseRevoked")
     };
   }
 
   if (tenant.license_status === "suspended") {
     return {
       error: "License suspended",
-      message: "Lisensi tenant sedang ditangguhkan."
+      message: apiMessage(locale, "licenseSuspended")
     };
   }
 
   if (tenant.license_expires_at && new Date(tenant.license_expires_at).getTime() < Date.now()) {
     return {
       error: "License expired",
-      message: "Lisensi tenant sudah kedaluwarsa."
+      message: apiMessage(locale, "licenseExpired")
     };
   }
 
@@ -237,3 +243,10 @@ function toTenantSessionDto(tenant: Tenant, role: "tenant_admin" | "tenant_user"
 function serializeDate(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : value;
 }
+
+const authFieldLabels = {
+  email: { en: "Email", id: "Email" },
+  emailOrUsername: { en: "Email or Username", id: "Email atau Username" },
+  password: { en: "Password", id: "Kata Sandi" },
+  tenantId: { en: "Tenant ID", id: "ID Tenant" }
+};

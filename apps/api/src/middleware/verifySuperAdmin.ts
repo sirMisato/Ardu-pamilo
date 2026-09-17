@@ -1,4 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { apiMessage } from "../i18n/messages.js";
 import type { JwtTenantPayload } from "./verifyTenant.js";
 
 export async function verifySuperAdmin(request: FastifyRequest, reply: FastifyReply): Promise<void> {
@@ -8,7 +9,7 @@ export async function verifySuperAdmin(request: FastifyRequest, reply: FastifyRe
     if (payload.role !== "super_admin") {
       await reply.code(403).send({
         error: "Forbidden",
-        message: "Super admin privileges are required."
+        message: apiMessage(request.locale, "adminForbidden")
       });
       return;
     }
@@ -21,7 +22,7 @@ export async function verifySuperAdmin(request: FastifyRequest, reply: FastifyRe
   } catch {
     await reply.code(401).send({
       error: "Unauthorized",
-      message: "A valid super admin bearer token is required."
+      message: apiMessage(request.locale, "adminTokenRequired")
     });
   }
 }

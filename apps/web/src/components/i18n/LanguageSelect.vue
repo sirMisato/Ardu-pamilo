@@ -2,7 +2,7 @@
   <div ref="rootElement" class="relative inline-flex">
     <button
       type="button"
-      class="inline-flex h-10 min-w-16 items-center justify-between gap-2 rounded-xl border border-white/70 bg-white/70 px-3 text-sm font-semibold text-slate-700 shadow-sm outline-none transition hover:bg-white/90 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/40 sm:min-w-40"
+      class="inline-flex h-10 min-w-36 items-center justify-between gap-2 rounded-xl border border-white/70 bg-white/70 px-3 text-sm font-semibold text-slate-700 shadow-sm outline-none transition hover:bg-white/90 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/40 sm:min-w-40"
       :aria-activedescendant="activeOptionId"
       :aria-expanded="isOpen"
       :aria-label="t('i18n.ariaLabel')"
@@ -11,8 +11,7 @@
       @click="toggleOpen"
       @keydown="handleTriggerKeydown"
     >
-      <span class="uppercase sm:hidden">{{ locale }}</span>
-      <span class="hidden sm:inline">{{ activeOption.label }}</span>
+      <span class="truncate">{{ activeOption.label }}</span>
       <ChevronDown class="h-4 w-4 shrink-0 text-slate-500 transition" :class="isOpen ? 'rotate-180' : ''" />
     </button>
 

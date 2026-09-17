@@ -103,7 +103,9 @@
     "passwordPlaceholder": "Password",
     "showPassword": "Show password",
     "superAdminPortal": "Super Admin Portal",
+    "superAdminLoginTitle": "Super Admin Login",
     "tenantLoginSubtitle": "Sign in to your tenant account",
+    "tenantLoginTitle": "Tenant Login",
     "userInactive": "This tenant user is inactive.",
     "verifying": "Verifying..."
   },
@@ -767,7 +769,89 @@
     "title": "Settings"
   },
   "superadmin": {
+    "columns": {
+      "expires": "Expires",
+      "expiry": "Expiry",
+      "license": "License",
+      "maxDevices": "Max Devices",
+      "maxPlots": "Max Plots",
+      "quotas": "Quotas",
+      "tenant": "Tenant"
+    },
+    "dashboard": {
+      "activeLicenses": "Active Licenses",
+      "controlPlaneStatus": "Local backend control plane status.",
+      "latestAccounts": "Latest registered farming accounts.",
+      "licenseWatch": "License Watch",
+      "quotaValue": "{plots} plots / {devices} devices",
+      "revokedCount": "{count} revoked",
+      "suspendedCount": "{count} suspended",
+      "systemHealth": "System Health",
+      "tenantLicenses": "Tenant Licenses",
+      "totalTenants": "Total Tenants",
+      "trialActiveAccounts": "Trial and active accounts"
+    },
+    "empty": {
+      "noFilterResults": "No tenant license matches the current filter.",
+      "noLicenses": "No tenant licenses yet."
+    },
+    "errors": {
+      "apiUnavailable": "The backend API cannot be reached yet. Make sure the local Fastify server is running.",
+      "createFailed": "Failed to create the tenant license.",
+      "licensesFailed": "Failed to load tenant licenses.",
+      "overviewFailed": "Failed to load the system overview.",
+      "revokeFailed": "Failed to revoke the tenant license.",
+      "sessionExpired": "The admin session has ended. Please sign in again.",
+      "updateFailed": "Failed to update the tenant license."
+    },
+    "fields": {
+      "accountName": "Account Name",
+      "expiryDate": "Expiry Date",
+      "maxDevices": "Max Devices",
+      "maxPlots": "Max Plots",
+      "ownerEmail": "Owner Email",
+      "temporaryPassword": "Temporary Password"
+    },
+    "health": {
+      "checking": "Checking",
+      "connected": "Connected",
+      "localOptIn": "Local opt-in",
+      "nominal": "Nominal"
+    },
+    "licenses": {
+      "closeModal": "Close tenant license modal",
+      "createDescription": "The tenant owner can sign in after this account is created.",
+      "createLicense": "Create License",
+      "createNew": "Create New Tenant License",
+      "createdAt": "Created {date}",
+      "creating": "Creating",
+      "description": "Create, update, and revoke tenant SaaS accounts.",
+      "revoke": "Revoke",
+      "searchAria": "Search tenants",
+      "searchPlaceholder": "Search tenant",
+      "title": "License Management"
+    },
+    "loadingLicenses": "Loading tenant licenses.",
+    "noExpiry": "No expiry",
+    "status": {
+      "active": "Active",
+      "revoked": "Revoked",
+      "suspended": "Suspended",
+      "trial": "Trial"
+    },
     "title": "Super Admin"
+  },
+  "telemetry": {
+    "errors": {
+      "historyFailed": "Failed to load telemetry history.",
+      "invalidStreamPayload": "The realtime telemetry stream sent an invalid payload.",
+      "payloadMustBeObject": "The received MQTT payload must be a JSON object.",
+      "sessionExpired": "The login session has ended. Please sign in again.",
+      "sessionRequired": "A login session is required to open the realtime telemetry stream.",
+      "streamClosed": "The realtime telemetry stream was closed by the server.",
+      "streamDisconnected": "The realtime telemetry stream disconnected.",
+      "streamOpenFailed": "Failed to open the realtime telemetry stream ({status})."
+    }
   },
   "tenantUsers": {
     "actions": {

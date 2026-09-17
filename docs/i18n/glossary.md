@@ -117,7 +117,7 @@ Catatan Perangkat: kartu ringkasan memakai `Terhubung` / `Online` untuk jumlah p
 | Masuk | Sign In |
 | Masuk Admin | Admin Sign In |
 | Logout | Log Out |
-| Refresh | Refresh |
+| Segarkan | Refresh |
 | Tambah | Add |
 | Simpan | Save |
 | Batal | Cancel |
@@ -134,6 +134,11 @@ Catatan Perangkat: kartu ringkasan memakai `Terhubung` / `Online` untuk jumlah p
 | Menghapus | Deleting |
 | Gagal | Failed |
 | Berhasil | Success |
+| Ubah | Edit |
+| Peran | Role |
+| Kontrol Lisensi | License Control |
+| Manajemen Lisensi | License Management |
+| Ikhtisar Sistem | System Overview |
 
 ## Istilah yang Tidak Diterjemahkan
 

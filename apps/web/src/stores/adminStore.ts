@@ -1,5 +1,6 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
+import { t } from "../i18n";
 import { ApiClientError, apiDelete, apiGet, apiPost, apiPut } from "../services/apiClient";
 
 export type TenantLicenseStatus = "trial" | "active" | "suspended" | "revoked";
@@ -65,7 +66,7 @@ export const useAdminStore = defineStore("admin", () => {
     try {
       overview.value = await apiGet<AdminOverview>("/api/admin/overview");
     } catch (error) {
-      errorMessage.value = normalizeApiError(error, "Gagal mengambil ringkasan sistem.");
+      errorMessage.value = normalizeApiError(error, t("superadmin.errors.overviewFailed"));
       overview.value = null;
     }
   }
@@ -77,7 +78,7 @@ export const useAdminStore = defineStore("admin", () => {
     try {
       tenants.value = await apiGet<AdminTenantLicense[]>("/api/admin/tenants");
     } catch (error) {
-      errorMessage.value = normalizeApiError(error, "Gagal mengambil lisensi tenant.");
+      errorMessage.value = normalizeApiError(error, t("superadmin.errors.licensesFailed"));
       tenants.value = [];
     } finally {
       isLoading.value = false;
@@ -94,7 +95,7 @@ export const useAdminStore = defineStore("admin", () => {
       void fetchOverview();
       return created;
     } catch (error) {
-      errorMessage.value = normalizeApiError(error, "Gagal membuat lisensi tenant.");
+      errorMessage.value = normalizeApiError(error, t("superadmin.errors.createFailed"));
       return null;
     } finally {
       isSaving.value = false;
@@ -111,7 +112,7 @@ export const useAdminStore = defineStore("admin", () => {
       void fetchOverview();
       return updated;
     } catch (error) {
-      errorMessage.value = normalizeApiError(error, "Gagal memperbarui lisensi tenant.");
+      errorMessage.value = normalizeApiError(error, t("superadmin.errors.updateFailed"));
       return null;
     } finally {
       isSaving.value = false;
@@ -128,7 +129,7 @@ export const useAdminStore = defineStore("admin", () => {
       void fetchOverview();
       return revoked;
     } catch (error) {
-      errorMessage.value = normalizeApiError(error, "Gagal mencabut lisensi tenant.");
+      errorMessage.value = normalizeApiError(error, t("superadmin.errors.revokeFailed"));
       return null;
     } finally {
       isSaving.value = false;
@@ -159,11 +160,11 @@ export const useAdminStore = defineStore("admin", () => {
 
 function normalizeApiError(error: unknown, fallback: string): string {
   if (error instanceof ApiClientError) {
-    return error.status === 401 ? "Sesi admin berakhir. Silakan login ulang." : error.message;
+    return error.status === 401 ? t("superadmin.errors.sessionExpired") : error.message;
   }
 
   if (error instanceof TypeError) {
-    return "API backend belum dapat dihubungi. Pastikan Fastify lokal sedang berjalan.";
+    return t("superadmin.errors.apiUnavailable");
   }
 
   return fallback;

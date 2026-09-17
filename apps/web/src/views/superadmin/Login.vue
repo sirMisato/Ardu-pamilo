@@ -6,20 +6,20 @@
           <ShieldCheck class="h-8 w-8" />
         </div>
         <h1 class="mb-2 text-center text-3xl font-extrabold tracking-normal text-emerald-600">PAMILO Admin</h1>
-        <p class="text-center text-sm text-slate-500">Silakan masuk ke control plane PAMILO</p>
+        <p class="text-center text-sm text-slate-500">{{ t("auth.adminLoginSubtitle") }}</p>
       </div>
 
       <form class="grid gap-4" @submit.prevent="goToAdmin">
         <label class="block">
-          <span class="mb-1.5 block text-sm font-semibold text-slate-700">Admin Email</span>
+          <span class="mb-1.5 block text-sm font-semibold text-slate-700">{{ t("auth.adminEmail") }}</span>
           <input class="w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-3 text-slate-700 outline-none transition-all focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" type="email" autocomplete="username" />
         </label>
         <label class="block">
-          <span class="mb-1.5 block text-sm font-semibold text-slate-700">Password</span>
+          <span class="mb-1.5 block text-sm font-semibold text-slate-700">{{ t("auth.password") }}</span>
           <input class="w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-3 text-slate-700 outline-none transition-all focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" type="password" autocomplete="current-password" />
         </label>
         <button class="mt-4 w-full rounded-xl bg-emerald-400 px-6 py-3.5 text-lg font-bold text-emerald-950 shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-500" type="submit">
-          Masuk Admin
+          {{ t("auth.adminSignIn") }}
         </button>
       </form>
     </section>
@@ -29,8 +29,10 @@
 <script setup lang="ts">
 import { ShieldCheck } from "@lucide/vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "../../i18n";
 
 const router = useRouter();
+const { t } = useI18n();
 
 function goToAdmin(): void {
   void router.push("/superadmin/dashboard");

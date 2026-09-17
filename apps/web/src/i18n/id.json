@@ -81,7 +81,7 @@
     "requestFailed": "Permintaan API gagal dengan status HTTP {status}."
   },
   "auth": {
-    "adminEmail": "Admin Email",
+    "adminEmail": "Email Admin",
     "adminAuthNotConfigured": "Autentikasi admin belum dikonfigurasi di API.",
     "adminLoginFailed": "Login admin gagal. Periksa kembali akun dan kata sandi.",
     "adminLoginSubtitle": "Silakan masuk ke control plane PAMILO",
@@ -103,7 +103,9 @@
     "passwordPlaceholder": "Kata sandi",
     "showPassword": "Tampilkan password",
     "superAdminPortal": "Portal Super Admin",
+    "superAdminLoginTitle": "Login Super Admin",
     "tenantLoginSubtitle": "Silakan masuk ke akun tenant Anda",
+    "tenantLoginTitle": "Login Tenant",
     "userInactive": "User tenant sedang tidak aktif.",
     "verifying": "Memverifikasi..."
   },
@@ -147,12 +149,12 @@
     "cancel": "Batal",
     "delete": "Hapus",
     "deleting": "Menghapus",
-    "edit": "Edit",
+    "edit": "Ubah",
     "failed": "Gagal",
     "loading": "Memuat",
     "logout": "Logout",
     "noData": "Belum ada data",
-    "refresh": "Refresh",
+    "refresh": "Segarkan",
     "save": "Simpan",
     "saving": "Menyimpan",
     "search": "Cari",
@@ -194,7 +196,7 @@
     "reproductive": "Generatif",
     "sensorRealtime": "Sensor Realtime",
     "statusConnecting": "Menghubungkan",
-    "statusError": "Error",
+    "statusError": "Gangguan",
     "statusOffline": "Offline",
     "statusReconnecting": "Menyambung ulang",
     "statusStandby": "Standby",
@@ -313,7 +315,7 @@
   "layout": {
     "accountMenu": "Menu akun",
     "collapseSidebar": "Sembunyikan sidebar",
-    "licenseControl": "License Control",
+    "licenseControl": "Kontrol Lisensi",
     "notifications": "Notifikasi",
     "openNavigation": "Buka navigasi",
     "profileSettings": "Profil & Pengaturan",
@@ -321,15 +323,15 @@
     "showSidebar": "Tampilkan sidebar",
     "superAdminNav": "Navigasi super admin",
     "tenantNav": "Navigasi utama",
-    "tenantOwner": "Tenant Owner",
-    "tenantPortal": "Tenant Portal"
+    "tenantOwner": "Pemilik Tenant",
+    "tenantPortal": "Portal Tenant"
   },
   "masterData": {
     "actions": {
       "deleteCrop": "Hapus {name}",
       "deleteArea": "Hapus {name}",
-      "editArea": "Edit {name}",
-      "editCrop": "Edit {name}"
+      "editArea": "Ubah {name}",
+      "editCrop": "Ubah {name}"
     },
     "area": {
       "addArea": "Tambah Area",
@@ -471,7 +473,7 @@
       "history": "Telemetry tersinkron",
       "offline": "Stream backend offline",
       "reconnecting": "Stream backend menyambung ulang",
-      "standby": "Realtime standby",
+      "standby": "Realtime siaga",
       "waiting": "Menunggu telemetry"
     },
     "details": "Detail",
@@ -585,7 +587,7 @@
     "dashboardShort": "Dasbor",
     "devices": "Perangkat",
     "devicesShort": "Perangkat",
-    "licenses": "License Management",
+    "licenses": "Manajemen Lisensi",
     "masterData": "Data Induk",
     "masterDataShort": "Induk",
     "mqtt": "MQTT",
@@ -680,8 +682,8 @@
     "reportSubtitle": "Telemetry dan log lahan yang siap diekspor",
     "settingsSubtitle": "Profil, tampilan, notifikasi, keamanan",
     "superadminLicenseSubtitle": "Buat, cabut, dan atur kuota SaaS",
-    "superadminDashboardSubtitle": "Total tenants, active licenses, system health",
-    "superadminDashboardTitle": "System Overview",
+    "superadminDashboardSubtitle": "Total tenant, lisensi aktif, dan kesehatan sistem",
+    "superadminDashboardTitle": "Ikhtisar Sistem",
     "tenantUsersSubtitle": "Buat user read-only untuk akses dasbor dan laporan",
     "weatherSubtitle": "Prakiraan cuaca, laporan bulanan, konfigurasi"
   },
@@ -767,7 +769,89 @@
     "title": "Pengaturan"
   },
   "superadmin": {
+    "columns": {
+      "expires": "Berakhir",
+      "expiry": "Kedaluwarsa",
+      "license": "Lisensi",
+      "maxDevices": "Maks Perangkat",
+      "maxPlots": "Maks Plot",
+      "quotas": "Kuota",
+      "tenant": "Tenant"
+    },
+    "dashboard": {
+      "activeLicenses": "Lisensi Aktif",
+      "controlPlaneStatus": "Status control plane backend lokal.",
+      "latestAccounts": "Akun pertanian terbaru yang terdaftar.",
+      "licenseWatch": "Pantauan Lisensi",
+      "quotaValue": "{plots} plot / {devices} perangkat",
+      "revokedCount": "{count} dicabut",
+      "suspendedCount": "{count} ditangguhkan",
+      "systemHealth": "Kesehatan Sistem",
+      "tenantLicenses": "Lisensi Tenant",
+      "totalTenants": "Total Tenant",
+      "trialActiveAccounts": "Akun trial dan aktif"
+    },
+    "empty": {
+      "noFilterResults": "Tidak ada lisensi tenant sesuai filter saat ini.",
+      "noLicenses": "Belum ada lisensi tenant."
+    },
+    "errors": {
+      "apiUnavailable": "API backend belum dapat dihubungi. Pastikan Fastify lokal sedang berjalan.",
+      "createFailed": "Gagal membuat lisensi tenant.",
+      "licensesFailed": "Gagal mengambil lisensi tenant.",
+      "overviewFailed": "Gagal mengambil ringkasan sistem.",
+      "revokeFailed": "Gagal mencabut lisensi tenant.",
+      "sessionExpired": "Sesi admin berakhir. Silakan login ulang.",
+      "updateFailed": "Gagal memperbarui lisensi tenant."
+    },
+    "fields": {
+      "accountName": "Nama Akun",
+      "expiryDate": "Tanggal Kedaluwarsa",
+      "maxDevices": "Maks Perangkat",
+      "maxPlots": "Maks Plot",
+      "ownerEmail": "Email Owner",
+      "temporaryPassword": "Password Sementara"
+    },
+    "health": {
+      "checking": "Memeriksa",
+      "connected": "Terhubung",
+      "localOptIn": "Opsional lokal",
+      "nominal": "Normal"
+    },
+    "licenses": {
+      "closeModal": "Tutup modal lisensi tenant",
+      "createDescription": "Owner tenant dapat login setelah akun ini dibuat.",
+      "createLicense": "Buat Lisensi",
+      "createNew": "Buat Lisensi Tenant Baru",
+      "createdAt": "Dibuat {date}",
+      "creating": "Membuat",
+      "description": "Buat, perbarui, dan cabut akun SaaS tenant.",
+      "revoke": "Cabut",
+      "searchAria": "Cari tenant",
+      "searchPlaceholder": "Cari tenant",
+      "title": "Manajemen Lisensi"
+    },
+    "loadingLicenses": "Memuat lisensi tenant.",
+    "noExpiry": "Tanpa kedaluwarsa",
+    "status": {
+      "active": "Aktif",
+      "revoked": "Dicabut",
+      "suspended": "Ditangguhkan",
+      "trial": "Trial"
+    },
     "title": "Super Admin"
+  },
+  "telemetry": {
+    "errors": {
+      "historyFailed": "Gagal mengambil histori telemetry.",
+      "invalidStreamPayload": "Realtime telemetry stream mengirim payload yang tidak valid.",
+      "payloadMustBeObject": "Payload MQTT yang diterima harus berupa objek JSON.",
+      "sessionExpired": "Sesi login berakhir. Silakan login ulang.",
+      "sessionRequired": "Sesi login dibutuhkan untuk membuka realtime telemetry stream.",
+      "streamClosed": "Realtime telemetry stream ditutup oleh server.",
+      "streamDisconnected": "Realtime telemetry stream terputus.",
+      "streamOpenFailed": "Realtime telemetry stream gagal dibuka ({status})."
+    }
   },
   "tenantUsers": {
     "actions": {
@@ -777,7 +861,7 @@
     "addUser": "Tambah User Tenant",
     "columns": {
       "created": "Dibuat",
-      "role": "Role",
+      "role": "Peran",
       "status": "Status",
       "user": "User"
     },
@@ -807,14 +891,14 @@
       "editTitle": "Edit User Tenant",
       "email": "Email",
       "name": "Nama",
-      "password": "Password",
+      "password": "Kata Sandi",
       "passwordCreatePlaceholder": "Minimal 8 karakter",
       "passwordEditPlaceholder": "Kosongkan jika tidak diubah",
-      "role": "Role",
+      "role": "Peran",
       "roleNote": "Role ini hanya bisa melihat Dashboard, Weather Station, Grafik, dan Report.",
       "saveUser": "Simpan User",
       "status": "Status",
-      "updateUser": "Update User"
+      "updateUser": "Perbarui User"
     },
     "roles": {
       "tenantUser": "User Tenant Read-only"
@@ -827,7 +911,7 @@
     },
     "summary": {
       "active": "Aktif",
-      "role": "Role",
+      "role": "Peran",
       "total": "Total User"
     },
     "validation": {
@@ -877,9 +961,9 @@
     "deleteConfigConfirm": "Hapus konfigurasi {name}?",
     "deleteConfigLabel": "Hapus {name}",
     "editConfig": "Edit Konfigurasi",
-    "editConfigLabel": "Edit {name}",
+    "editConfigLabel": "Ubah {name}",
     "emptyForecast": "Belum ada prakiraan cuaca untuk lokasi ini.",
-    "field": "Field",
+    "field": "Lahan",
     "forecastGrid": "Prakiraan 3 Hari",
     "forecastGridDescription": "Ringkasan harian dari bucket prakiraan BMKG.",
     "forecastLocationFallback": "Lokasi prakiraan BMKG",
@@ -919,7 +1003,7 @@
     "updatedAt": "Diperbarui {time}",
     "visibility": "Jarak pandang",
     "weatherCodeDetail": "Kode cuaca {code}",
-    "weatherSourceFallback": "Fallback",
+    "weatherSourceFallback": "Cadangan",
     "weatherSourceMock": "Fallback BMKG",
     "sessionExpired": "Sesi login berakhir. Silakan login ulang.",
     "wind": "Angin"

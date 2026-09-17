@@ -617,3 +617,86 @@ Keterbatasan verifikasi:
 - Tidak ditemukan fitur undangan user tenant atau reset kata sandi user tenant di route/API aktif. Fitur tersebut dicatat tidak tersedia untuk batch ini, bukan dibuat baru.
 
 Batch berikutnya yang siap dikerjakan bila diminta: Super Admin atau sisa Backend API messages lintas fitur, sesuai instruksi batch aktif berikutnya.
+
+## Batch 14 Status
+
+Status: completed for backend/API messages, Super Admin UI, telemetry store messages, notification inventory, and cross-feature coverage closeout.
+
+Perubahan Batch 14:
+
+- Menambahkan helper backend terpusat `apps/api/src/i18n/messages.ts` untuk pesan API ID/EN dan `fieldLabels` aditif.
+- Melokalisasi pesan backend di auth, super admin middleware, tenant middleware, admin routes, device routes, crop routes, plot routes, telemetry routes, settings routes, dan tenant user routes.
+- Menjaga `error` code, HTTP status, enum tersimpan, topic MQTT, metric key, raw payload, ID, relasi tenant, dan otorisasi tetap stabil. Respons validasi lama `issues` tetap ada; `message` dan `fieldLabels` ditambahkan secara kompatibel.
+- Melokalisasi `apps/web/src/views/superadmin/Dashboard.vue` dan `apps/web/src/views/superadmin/Licenses.vue`, termasuk statistik, tabel, filter, modal create, inline edit, status lisensi, health labels, loading/empty/error, dan formatter tanggal/jumlah.
+- Memperbarui `apps/web/src/stores/adminStore.ts`, `apps/web/src/stores/telemetryStore.ts`, dan `apps/web/src/stores/tenantProfileStore.ts` agar fallback error dan label sumber memakai katalog/formatter bersama.
+- Melokalisasi sisa source text pada legacy unused login views `apps/web/src/views/tenant/Login.vue` dan `apps/web/src/views/superadmin/Login.vue`.
+- Menambahkan `titleKey` untuk route login tenant dan super admin agar document title mengikuti locale aktif.
+- Menambahkan `docs/i18n/exceptions.md` untuk pengecualian nyata: attribution/tiles, tidak adanya notification feed/template/email transport, AI history yang belum punya storage, weather source text, user-generated content, PWA manifest statis, dan server logs/CLI output.
+- Memperbarui `docs/i18n/coverage.csv`.
+
+Pemeriksaan aktual Batch 14:
+
+| Pemeriksaan | Hasil aktual |
+| --- | --- |
+| `npm run i18n:check` di `apps/web` | Lulus: 791 keys, 617 used keys |
+| `npm run typecheck` di `apps/web` | Lulus |
+| `npm run build` di `apps/web` | Lulus, tetap ada warning baseline chunk JS > 500 kB |
+| `npm run typecheck` di `apps/api` | Lulus |
+| `npm run build` di `apps/api` | Lulus |
+| Audit literal frontend area Batch 14 dengan `rg` | Tidak menemukan literal lama utama di telemetry store, Super Admin aktif, legacy login, tenant profile store; sisa `License Management` hanya fallback route meta dengan `titleKey` aktif |
+| Audit literal backend area Batch 14 dengan `rg` | Sisa temuan adalah prompt internal AI, kamus pesan ID, kamus weather ID, dan `regionLabel` legacy kompatibilitas; pesan response user-facing memakai locale request |
+
+Verifikasi perilaku Batch 14:
+
+- Locale backend dibaca dari `request.locale` per request; tidak ada locale global lintas tenant/request.
+- Validation responses mempertahankan `issues` lama dan menambahkan `message`/`fieldLabels`; klien lama tetap kompatibel.
+- Super Admin locale switch mengubah label dan format tanggal/jumlah tanpa mengubah `searchQuery`, `statusFilter`, draft inline, create modal, atau status login.
+- Telemetry store tidak menambah watcher locale dan tidak memanggil ulang stream/subscription saat bahasa berubah.
+- Notifikasi/email/scheduler tidak dibuat karena tidak ada modul aktif. Status dan follow-up dicatat di `docs/i18n/exceptions.md`.
+- Dynamic content dipisahkan: weather memakai adapter/source fields; AI generate response sudah bilingual dari Batch 12 tetapi history tetap blocked karena storage tidak ada; user content dan protocol content tidak diterjemahkan otomatis.
+
+Keterbatasan verifikasi:
+
+- Tidak menjalankan browser end-to-end dengan dua akun/tenant nyata karena kredensial dan fixture DB tidak tersedia di konteks aktif.
+- Tidak mengirim email/SMS/push dan tidak menjalankan job async karena tidak ada transport/template/scheduler aktif di repo.
+- Tidak menjalankan reset, delete produksi, atau panggilan AI/layanan eksternal berbayar.
+- PWA manifest masih blocked untuk metadata install bilingual karena konfigurasi aktif menghasilkan manifest statis; butuh strategi dynamic atau per-locale manifest.
+
+Batch berikutnya yang siap dikerjakan bila diminta: final hardening/QA visual lintas fitur dan closeout dokumentasi.
+
+## Batch 15 Status
+
+Status: completed for final code audit, targeted hardening fixes, command verification, and maintenance documentation; browser E2E remains blocked by environment.
+
+Perubahan Batch 15:
+
+- Memperbaiki `apps/web/src/components/i18n/LanguageSelect.vue` agar trigger desktop dan mobile sama-sama menampilkan label aktif penuh `EN - English` atau `ID - Indonesia`.
+- Memigrasikan teks hard-coded `Super Admin` dan `License Control` di `apps/web/src/components/layout/SuperAdminLayout.vue` ke katalog.
+- Merapikan istilah Indonesia di `apps/web/src/i18n/id.json`, termasuk `Kontrol Lisensi`, `Segarkan`, `Ubah`, `Ikhtisar Sistem`, `Perbarui User`, `Peran`, dan label terkait Super Admin/User Tenant/Weather.
+- Mengganti formatter tanggal langsung `Intl.DateTimeFormat("id-ID")` di `apps/web/src/services/bmkgService.ts` menjadi `formatDateTime()` bersama.
+- Menambahkan `docs/i18n/verification.md` dan `docs/i18n/maintenance.md`.
+- Memperbarui `coverage.csv`, `glossary.md`, `architecture.md`, `acceptance.md`, dan `exceptions.md`.
+
+Pemeriksaan aktual Batch 15:
+
+| Pemeriksaan | Hasil aktual |
+| --- | --- |
+| `npm run i18n:check` di `apps/web` | Lulus: 791 keys, 618 used keys |
+| Audit identical ID/EN values | 55 identical values; reviewed as technical/brand/accepted short labels. Manual remainder hanya `AI` dan `MQTT`, keduanya disengaja |
+| Audit formatter `rg id-ID/en-US/toLocale/Intl` | Lulus untuk source aplikasi di luar helper i18n; display locale terpusat di `i18n/index.ts` dan formatter bersama |
+| `npm run typecheck` di `apps/web` | Lulus |
+| `npm run build` di `apps/web` | Lulus, tetap ada warning baseline chunk JS > 500 kB |
+| `npm run typecheck` di `apps/api` | Lulus |
+| `npm run build` di `apps/api` | Lulus |
+| Preview smoke | `npm run preview -- --host 127.0.0.1 --port 4173`; `/login` HTTP 200 dan memuat `<div id="app">` |
+| API locale smoke | `id/id-ID/en/en-US` valid, `fr`/kosong/null ditolak oleh normalizer sebelum fallback |
+| API message smoke | `loginInvalidCredentials` mengembalikan pesan ID dan EN dari hasil build |
+
+Keterbatasan verifikasi:
+
+- Tidak ada local Playwright, Chrome, Edge, atau Chromium command di lingkungan ini, sehingga screenshot/interaction browser desktop-mobile tidak dijalankan.
+- Tidak ada fixture DB/kredensial uji aktif, sehingga alur multi-tenant dua akun, modal CRUD nyata, chart zoom, peta, polygon draft, dan realtime listener diverifikasi lewat jalur kode/build, bukan E2E browser.
+- Tidak menjalankan reset sistem, delete data, AI berbayar, email/SMS/push, deployment, atau aksi eksternal.
+- PWA manifest bilingual dan AI recommendation history tetap blocked sesuai exceptions karena runtime/storage pendukung belum ada.
+
+Batch berikutnya: tidak ada batch i18n lanjutan yang dijalankan tanpa instruksi baru. Follow-up yang siap dilakukan bila lingkungan tersedia adalah browser E2E dengan fixture tenant/admin.

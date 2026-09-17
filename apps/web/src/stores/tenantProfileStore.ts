@@ -1,5 +1,6 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
+import { t } from "../i18n";
 import { ApiClientError, apiGet } from "../services/apiClient";
 
 export interface TenantFieldProfile {
@@ -45,7 +46,7 @@ export const useTenantProfileStore = defineStore("tenantProfile", () => {
   const activeBmkgAdm4Code = computed(() => activeField.value?.bmkgAdm4Code ?? "");
   const activeFieldLabel = computed(() => {
     if (!activeField.value) {
-      return "Zona belum diatur";
+      return t("masterData.area.empty");
     }
 
     return `${activeField.value.name} / ${activeField.value.areaLabel}`;
@@ -59,7 +60,7 @@ export const useTenantProfileStore = defineStore("tenantProfile", () => {
       const plots = await apiGet<ApiPlotProfile[]>("/api/v1/plots");
       syncFieldsFromPlots(plots);
     } catch (error) {
-      errorMessage.value = normalizeApiError(error, "Gagal mengambil zona tenant.");
+      errorMessage.value = normalizeApiError(error, t("masterData.errors.loadAreasFailed"));
       fields.value = [];
       activeFieldId.value = "";
     } finally {
@@ -88,7 +89,7 @@ export const useTenantProfileStore = defineStore("tenantProfile", () => {
     };
   }
 
-  return {
+    return {
     activeBmkgAdm4Code,
     activeField,
     activeFieldId,
@@ -110,23 +111,23 @@ function toTenantFieldProfile(plot: ApiPlotProfile): TenantFieldProfile {
     areaLabel: plot.areaLabel,
     bmkgAdm4Code: plot.bmkgAdm4Code ?? "",
     cropId: plot.cropId,
-    cropLabel: plot.cropName ?? "Crop belum dipilih",
+    cropLabel: plot.cropName ?? t("masterData.area.cropUnselected"),
     cropPlantingDate: plot.cropPlantingDate,
     cropPlantingPeriodDays: plot.cropPlantingPeriodDays,
     id: plot.id,
     name: plot.name,
     polygonGeojson: plot.polygonGeojson,
-    regionLabel: plot.bmkgAdm4Code ? `ADM4 ${plot.bmkgAdm4Code}` : "BMKG belum diatur"
+    regionLabel: plot.bmkgAdm4Code ? `ADM4 ${plot.bmkgAdm4Code}` : t("weather.sourceNotConfigured")
   };
 }
 
 function normalizeApiError(error: unknown, fallback: string): string {
   if (error instanceof ApiClientError) {
-    return error.status === 401 ? "Sesi login berakhir. Silakan login ulang." : error.message;
+    return error.status === 401 ? t("masterData.errors.sessionExpired") : error.message;
   }
 
   if (error instanceof TypeError) {
-    return "API backend belum dapat dihubungi. Pastikan Fastify lokal sedang berjalan.";
+    return t("masterData.errors.apiUnavailable");
   }
 
   return fallback;

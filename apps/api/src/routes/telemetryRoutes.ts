@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { db } from "../db/client.js";
 import type { JsonValue } from "../db/schema.js";
+import { apiMessage, fieldLabels } from "../i18n/messages.js";
 import { requireTenantContext, verifyTenant } from "../middleware/verifyTenant.js";
 import { ingestTelemetryMessage, parseTelemetryTopic } from "../services/mqttService.js";
 import { subscribeTelemetryEvents, type TelemetryStreamEvent } from "../services/telemetryEventBus.js";
@@ -38,7 +39,9 @@ export const telemetryRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "Invalid telemetry ingest payload",
-        issues: parsed.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, telemetryFieldLabels),
+        issues: parsed.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidTelemetryIngestPayload")
       });
     }
 
@@ -46,14 +49,14 @@ export const telemetryRoutes: FastifyPluginAsync = async (app) => {
     if (!topicParts) {
       return reply.code(400).send({
         error: "Invalid telemetry topic",
-        message: "Topic harus memakai format pamilo/v1/tenants/{tenant_id}/devices/{device_uid}/telemetry."
+        message: apiMessage(request.locale, "invalidTelemetryTopic")
       });
     }
 
     if (topicParts.tenantId !== tenant.tenantId) {
       return reply.code(403).send({
         error: "Telemetry topic forbidden",
-        message: "Tenant pada topic telemetry tidak sesuai dengan tenant login."
+        message: apiMessage(request.locale, "telemetryTopicForbidden")
       });
     }
 
@@ -77,7 +80,9 @@ export const telemetryRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "Invalid telemetry query",
-        issues: parsed.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, telemetryFieldLabels),
+        issues: parsed.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidTelemetryQuery")
       });
     }
 
@@ -288,3 +293,14 @@ function toTelemetryStreamItem(event: TelemetryStreamEvent) {
     topic: event.topic
   };
 }
+
+const telemetryFieldLabels = {
+  deviceId: { en: "Device ID", id: "ID Perangkat" },
+  end: { en: "End Date", id: "Tanggal Akhir" },
+  limit: { en: "Limit", id: "Limit" },
+  metricKey: { en: "Metric Key", id: "Metric Key" },
+  offset: { en: "Offset", id: "Offset" },
+  payload: { en: "Payload", id: "Payload" },
+  start: { en: "Start Date", id: "Tanggal Mulai" },
+  topic: { en: "Topic", id: "Topic" }
+};

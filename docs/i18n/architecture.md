@@ -262,6 +262,15 @@ Pergantian bahasa harus reaktif dan tidak melakukan remount route. State yang di
 - Leaflet map tidak boleh direcreate hanya karena label berubah; update tooltip/popup jika perlu.
 - PWA cache mengikuti build normal; tidak ada cache bahasa server-side.
 
+## Batch 15 Final Architecture Notes
+
+- Final audit confirmed the active frontend i18n source remains `apps/web/src/i18n/index.ts` with `id` and `en` only. `id-ID` and `en-US` are centralized there and consumed by shared formatters.
+- `LanguageSelect.vue` is the single dropdown implementation for header/auth/settings surfaces. It keeps fixed option order `EN - English` then `ID - Indonesia`, and now shows the full active label on mobile and desktop.
+- Backend locale remains per request via `apps/api/src/i18n/locale.ts`; `apiMessage()` in `apps/api/src/i18n/messages.ts` localizes user-facing messages while stable `error` codes stay unchanged.
+- Weather date labels now use shared `formatDateTime()` instead of a direct `id-ID` formatter in `bmkgService.ts`.
+- No SSR/hydration architecture exists in this repo. Browser/server initial-locale consistency is therefore handled by SPA initialization plus request headers, not SSR state transfer.
+- Rollback for Batch 15 is code-only: revert the touched frontend files and docs. No migration or deployment step was added.
+
 ## Risiko Awal
 
 - Banyak teks campuran ID/EN dan formatter `id-ID` tersebar di komponen.

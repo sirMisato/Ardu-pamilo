@@ -28,6 +28,7 @@ const routes: RouteRecordRaw[] = [
     name: "tenant-login",
     component: TenantLogin,
     meta: {
+      titleKey: "auth.tenantLoginTitle",
       title: "Tenant Login"
     }
   },
@@ -156,6 +157,7 @@ const routes: RouteRecordRaw[] = [
     name: "superadmin-login",
     component: SuperAdminLogin,
     meta: {
+      titleKey: "auth.superAdminLoginTitle",
       title: "Super Admin Login"
     }
   },

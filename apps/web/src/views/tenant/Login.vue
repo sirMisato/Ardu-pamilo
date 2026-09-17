@@ -6,23 +6,23 @@
           <Sprout class="h-8 w-8" />
         </div>
         <h1 class="mb-2 text-center text-3xl font-extrabold tracking-normal text-emerald-600">PAMILO Smart Farming</h1>
-        <p class="text-center text-sm text-slate-500">Silakan masuk ke akun Anda</p>
+        <p class="text-center text-sm text-slate-500">{{ t("auth.tenantLoginSubtitle") }}</p>
       </div>
 
       <form class="grid gap-4" @submit.prevent="goToDashboard">
         <label class="block">
-          <span class="mb-1.5 block text-sm font-semibold text-slate-700">Email atau Username</span>
+          <span class="mb-1.5 block text-sm font-semibold text-slate-700">{{ t("auth.emailOrUsername") }}</span>
           <input v-model.trim="form.emailOrUsername" class="w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-3 text-slate-700 outline-none transition-all focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" type="text" autocomplete="username" />
         </label>
         <label class="block">
-          <span class="mb-1.5 block text-sm font-semibold text-slate-700">Kata Sandi</span>
+          <span class="mb-1.5 block text-sm font-semibold text-slate-700">{{ t("auth.password") }}</span>
           <input v-model="form.password" class="w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-3 text-slate-700 outline-none transition-all focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400" type="password" autocomplete="current-password" />
         </label>
         <div v-if="errorMessage" class="rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-sm font-medium text-amber-700">
           {{ errorMessage }}
         </div>
         <button class="mt-4 w-full rounded-xl bg-emerald-400 px-6 py-3.5 text-lg font-bold text-emerald-950 shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-500 disabled:opacity-60" :disabled="isLoading" type="submit">
-          {{ isLoading ? "Masuk..." : "Masuk" }}
+          {{ isLoading ? t("common.signingIn") : t("common.signIn") }}
         </button>
       </form>
     </section>
@@ -33,9 +33,11 @@
 import { Sprout } from "@lucide/vue";
 import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "../../i18n";
 import { ApiClientError, loginTenant } from "../../services/apiClient";
 
 const router = useRouter();
+const { t } = useI18n();
 const isLoading = ref(false);
 const errorMessage = ref<string | null>(null);
 const form = reactive({
@@ -56,7 +58,7 @@ async function goToDashboard(): Promise<void> {
   } catch (error) {
     errorMessage.value = error instanceof ApiClientError
       ? error.message
-      : "API backend belum dapat dihubungi. Jalankan Fastify lokal atau periksa VITE_API_BASE_URL.";
+      : t("auth.apiUnavailable", { target: "API" });
   } finally {
     isLoading.value = false;
   }

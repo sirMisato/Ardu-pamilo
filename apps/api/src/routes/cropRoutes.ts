@@ -3,12 +3,13 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { db } from "../db/client.js";
 import type { CropStatus, JsonValue, MasterCrop } from "../db/schema.js";
+import { apiMessage, fieldLabels } from "../i18n/messages.js";
 import { requireTenantContext, verifyTenant, verifyTenantAdmin } from "../middleware/verifyTenant.js";
 
 const cropStatusSchema = z.enum(["active", "draft", "archived"]);
 const plantingDateSchema = z.preprocess(
   (value) => value === "" || value === undefined ? null : value,
-  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal tanam harus memakai format YYYY-MM-DD.").nullable()
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Planting date must use the format YYYY-MM-DD.").nullable()
 ).optional();
 const thresholdValueSchema = z.preprocess(
   (value) => value === "" || value === undefined ? null : value,
@@ -62,7 +63,9 @@ export const cropRoutes: FastifyPluginAsync = async (app) => {
     if (!params.success) {
       return reply.code(400).send({
         error: "Invalid route params",
-        issues: params.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, cropFieldLabels),
+        issues: params.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidRouteParams")
       });
     }
 
@@ -71,7 +74,7 @@ export const cropRoutes: FastifyPluginAsync = async (app) => {
     if (!crop) {
       return reply.code(404).send({
         error: "Crop not found",
-        message: "The crop type does not exist for this tenant."
+        message: apiMessage(request.locale, "cropNotFound")
       });
     }
 
@@ -85,7 +88,9 @@ export const cropRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.code(400).send({
         error: "Invalid crop payload",
-        issues: parsed.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, cropFieldLabels),
+        issues: parsed.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidCropPayload")
       });
     }
 
@@ -112,10 +117,12 @@ export const cropRoutes: FastifyPluginAsync = async (app) => {
     if (!params.success || !body.success) {
       return reply.code(400).send({
         error: "Invalid crop update",
+        fieldLabels: fieldLabels(request.locale, cropFieldLabels),
         issues: {
           body: body.success ? undefined : body.error.flatten().fieldErrors,
           params: params.success ? undefined : params.error.flatten().fieldErrors
-        }
+        },
+        message: apiMessage(request.locale, "invalidCropUpdate")
       });
     }
 
@@ -123,7 +130,7 @@ export const cropRoutes: FastifyPluginAsync = async (app) => {
     if (Object.keys(updateValues).length === 0) {
       return reply.code(400).send({
         error: "Empty update",
-        message: "At least one crop field must be supplied."
+        message: apiMessage(request.locale, "cropEmptyUpdate")
       });
     }
 
@@ -137,7 +144,7 @@ export const cropRoutes: FastifyPluginAsync = async (app) => {
     if (result.numUpdatedRows === 0n) {
       return reply.code(404).send({
         error: "Crop not found",
-        message: "The crop type does not exist for this tenant."
+        message: apiMessage(request.locale, "cropNotFound")
       });
     }
 
@@ -155,7 +162,9 @@ export const cropRoutes: FastifyPluginAsync = async (app) => {
     if (!params.success) {
       return reply.code(400).send({
         error: "Invalid route params",
-        issues: params.error.flatten().fieldErrors
+        fieldLabels: fieldLabels(request.locale, cropFieldLabels),
+        issues: params.error.flatten().fieldErrors,
+        message: apiMessage(request.locale, "invalidRouteParams")
       });
     }
 
@@ -168,7 +177,7 @@ export const cropRoutes: FastifyPluginAsync = async (app) => {
     if (result.numDeletedRows === 0n) {
       return reply.code(404).send({
         error: "Crop not found",
-        message: "The crop type does not exist for this tenant."
+        message: apiMessage(request.locale, "cropNotFound")
       });
     }
 
@@ -305,3 +314,16 @@ function serializeDateOnly(value: Date | string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toISOString().slice(0, 10);
 }
+
+const cropFieldLabels = {
+  cropId: { en: "Crop ID", id: "ID Tanaman" },
+  description: { en: "Description", id: "Deskripsi" },
+  latinName: { en: "Scientific Name", id: "Nama Ilmiah" },
+  name: { en: "Name", id: "Nama" },
+  plantingDate: { en: "Planting Date", id: "Tanggal Tanam" },
+  plantingPeriodDays: { en: "Cultivation Duration", id: "Durasi Budidaya" },
+  status: { en: "Status", id: "Status" },
+  thresholdSource: { en: "Threshold Source", id: "Sumber Ambang Batas" },
+  thresholds: { en: "Thresholds", id: "Ambang Batas" },
+  varieties: { en: "Varieties", id: "Varietas" }
+};
