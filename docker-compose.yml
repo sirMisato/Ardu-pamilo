@@ -97,6 +97,9 @@ services:
       PORT: 3000
       SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-}
       SUPER_ADMIN_PASSWORD_HASH: ${SUPER_ADMIN_PASSWORD_HASH:-}
+      WEB_PUSH_CONTACT: ${WEB_PUSH_CONTACT:-mailto:admin@pamilo.local}
+      WEB_PUSH_PRIVATE_KEY: ${WEB_PUSH_PRIVATE_KEY:-}
+      WEB_PUSH_PUBLIC_KEY: ${WEB_PUSH_PUBLIC_KEY:-}
     expose:
       - "3000"
     networks:

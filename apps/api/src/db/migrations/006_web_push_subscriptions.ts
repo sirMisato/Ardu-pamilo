@@ -18,14 +18,29 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn("last_seen_at", "timestamp", (column) => column.notNull().defaultTo(sql`CURRENT_TIMESTAMP`))
     .execute();
 
-  await db.schema
-    .createIndex("web_push_subscriptions_tenant_idx")
-    .ifNotExists()
-    .on("web_push_subscriptions")
-    .columns(["tenant_id"])
-    .execute();
+  await createIndexIfMissing(db, "web_push_subscriptions_tenant_idx", "web_push_subscriptions", ["tenant_id"]);
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
   await db.schema.dropTable("web_push_subscriptions").ifExists().execute();
+}
+
+async function createIndexIfMissing(
+  db: Kysely<unknown>,
+  indexName: string,
+  tableName: string,
+  columns: string[]
+): Promise<void> {
+  const existingIndex = await sql<{ index_exists: number }>`
+    select 1 as index_exists
+    from information_schema.statistics
+    where table_schema = database()
+      and table_name = ${tableName}
+      and index_name = ${indexName}
+    limit 1
+  `.execute(db);
+
+  if (existingIndex.rows.length > 0) return;
+
+  await db.schema.createIndex(indexName).on(tableName).columns(columns).execute();
 }

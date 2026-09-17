@@ -175,13 +175,16 @@ jobs:
           VITE_MQTT_WEBSOCKET_URL: ${{ vars.VITE_MQTT_WEBSOCKET_URL }}
           VITE_WEB_BASE_URL: ${{ vars.VITE_WEB_BASE_URL }}
           WEB_HOST: ${{ vars.WEB_HOST }}
+          WEB_PUSH_CONTACT: ${{ vars.WEB_PUSH_CONTACT }}
+          WEB_PUSH_PRIVATE_KEY: ${{ secrets.WEB_PUSH_PRIVATE_KEY }}
+          WEB_PUSH_PUBLIC_KEY: ${{ secrets.WEB_PUSH_PUBLIC_KEY }}
         with:
           host: ${{ secrets.VPS_HOST || env.VPS_HOST_DEFAULT }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT || 22 }}
           command_timeout: 30m
-          envs: AI_RECOMMENDATION_API_KEY,AI_RECOMMENDATION_BASE_URL,AI_RECOMMENDATION_MAX_TOKENS,AI_RECOMMENDATION_MODEL,AI_RECOMMENDATION_OPENAI_API_KEY,AI_RECOMMENDATION_PROVIDER,AI_RECOMMENDATION_TEMPERATURE,AI_RECOMMENDATION_TENCENT_API_KEY,AI_RECOMMENDATION_TIMEOUT_MS,APP_DIR,DATABASE_SSL,DATABASE_URL,DEMO_TENANT_EMAIL,DEMO_TENANT_ENABLED,DEMO_TENANT_ID,DEMO_TENANT_NAME,DEMO_TENANT_PASSWORD,DEMO_TENANT_RESET_DATA,EMQX_DASHBOARD_PASSWORD_B64,EMQX_DASHBOARD_USERNAME,FRONTEND_ORIGIN,JWT_EXPIRES_IN,JWT_SECRET,LETSENCRYPT_EMAIL,LOG_LEVEL,MQTT_BROKER_URL,MQTT_CLIENT_ID,MQTT_DEMO_PASSWORD,MQTT_HOST,MQTT_INGEST_ENABLED,MQTT_PASSWORD,MQTT_TELEMETRY_TOPIC,MQTT_USERNAME,REF_NAME,REPOSITORY,REPO_TOKEN,SUPER_ADMIN_EMAIL,SUPER_ADMIN_PASSWORD_HASH,SUDO_PASSWORD,VITE_API_BASE_URL,VITE_BMKG_FORECAST_BASE_URL,VITE_MQTT_BROWSER_ENABLED,VITE_MQTT_BROKER_URL,VITE_MQTT_WEBSOCKET_URL,VITE_WEB_BASE_URL,WEB_HOST
+          envs: AI_RECOMMENDATION_API_KEY,AI_RECOMMENDATION_BASE_URL,AI_RECOMMENDATION_MAX_TOKENS,AI_RECOMMENDATION_MODEL,AI_RECOMMENDATION_OPENAI_API_KEY,AI_RECOMMENDATION_PROVIDER,AI_RECOMMENDATION_TEMPERATURE,AI_RECOMMENDATION_TENCENT_API_KEY,AI_RECOMMENDATION_TIMEOUT_MS,APP_DIR,DATABASE_SSL,DATABASE_URL,DEMO_TENANT_EMAIL,DEMO_TENANT_ENABLED,DEMO_TENANT_ID,DEMO_TENANT_NAME,DEMO_TENANT_PASSWORD,DEMO_TENANT_RESET_DATA,EMQX_DASHBOARD_PASSWORD_B64,EMQX_DASHBOARD_USERNAME,FRONTEND_ORIGIN,JWT_EXPIRES_IN,JWT_SECRET,LETSENCRYPT_EMAIL,LOG_LEVEL,MQTT_BROKER_URL,MQTT_CLIENT_ID,MQTT_DEMO_PASSWORD,MQTT_HOST,MQTT_INGEST_ENABLED,MQTT_PASSWORD,MQTT_TELEMETRY_TOPIC,MQTT_USERNAME,REF_NAME,REPOSITORY,REPO_TOKEN,SUPER_ADMIN_EMAIL,SUPER_ADMIN_PASSWORD_HASH,SUDO_PASSWORD,VITE_API_BASE_URL,VITE_BMKG_FORECAST_BASE_URL,VITE_MQTT_BROWSER_ENABLED,VITE_MQTT_BROKER_URL,VITE_MQTT_WEBSOCKET_URL,VITE_WEB_BASE_URL,WEB_HOST,WEB_PUSH_CONTACT,WEB_PUSH_PRIVATE_KEY,WEB_PUSH_PUBLIC_KEY
           script: |
             set -euo pipefail
 
@@ -229,6 +232,7 @@ jobs:
             VITE_MQTT_WEBSOCKET_URL="${VITE_MQTT_WEBSOCKET_URL:-wss://mqtt.keycloud.id:8084/mqtt}"
             VITE_BMKG_FORECAST_BASE_URL="${VITE_BMKG_FORECAST_BASE_URL:-https://api.bmkg.go.id/publik/prakiraan-cuaca}"
             WEB_HOST="${WEB_HOST:-sedayafarm.keycloud.id}"
+            WEB_PUSH_CONTACT="${WEB_PUSH_CONTACT:-mailto:admin@sedayafarm.keycloud.id}"
             unset VITE_MQTT_PASSWORD
             unset VITE_MQTT_USERNAME
 
@@ -420,6 +424,9 @@ jobs:
                 VITE_MQTT_WEBSOCKET_URL="$VITE_MQTT_WEBSOCKET_URL" \
                 VITE_WEB_BASE_URL="$VITE_WEB_BASE_URL" \
                 WEB_HOST="$WEB_HOST" \
+                WEB_PUSH_CONTACT="$WEB_PUSH_CONTACT" \
+                WEB_PUSH_PRIVATE_KEY="$WEB_PUSH_PRIVATE_KEY" \
+                WEB_PUSH_PUBLIC_KEY="$WEB_PUSH_PUBLIC_KEY" \
                 docker compose -f docker-compose.yml "$@"
             }
 
@@ -468,6 +475,38 @@ jobs:
               exit 1
             }
 
+            configure_web_push_keys() {
+              if [ -n "${WEB_PUSH_PUBLIC_KEY:-}" ] && [ -n "${WEB_PUSH_PRIVATE_KEY:-}" ]; then
+                echo "Using WEB_PUSH_PUBLIC_KEY and WEB_PUSH_PRIVATE_KEY from GitHub secrets."
+                return
+              fi
+
+              public_key_file="$SECRETS_DIR/web-push-public-key"
+              private_key_file="$SECRETS_DIR/web-push-private-key"
+
+              if [ -s "$public_key_file" ] && [ -s "$private_key_file" ]; then
+                WEB_PUSH_PUBLIC_KEY="$(cat "$public_key_file")"
+                WEB_PUSH_PRIVATE_KEY="$(cat "$private_key_file")"
+                export WEB_PUSH_PUBLIC_KEY WEB_PUSH_PRIVATE_KEY
+                echo "Using persisted Web Push VAPID keys from VPS."
+                return
+              fi
+
+              echo "Generating Web Push VAPID keys on VPS."
+              key_env="$(sudo_run docker run --rm node:24-alpine sh -lc "tmpdir=\$(mktemp -d) && cd \$tmpdir && npm init -y >/dev/null 2>&1 && npm install web-push >/dev/null 2>&1 && node -e 'const webpush=require(\"web-push\"); const keys=webpush.generateVAPIDKeys(); console.log(\"WEB_PUSH_PUBLIC_KEY=\"+keys.publicKey); console.log(\"WEB_PUSH_PRIVATE_KEY=\"+keys.privateKey);'")"
+              eval "$key_env"
+
+              if [ -z "$WEB_PUSH_PUBLIC_KEY" ] || [ -z "$WEB_PUSH_PRIVATE_KEY" ]; then
+                echo "Failed to generate Web Push VAPID keys."
+                exit 1
+              fi
+
+              printf '%s' "$WEB_PUSH_PUBLIC_KEY" > "$public_key_file"
+              printf '%s' "$WEB_PUSH_PRIVATE_KEY" > "$private_key_file"
+              chmod 600 "$public_key_file" "$private_key_file"
+              export WEB_PUSH_PUBLIC_KEY WEB_PUSH_PRIVATE_KEY
+            }
+
             test -f apps/web/Dockerfile
             test -f apps/api/Dockerfile
             test -f apps/web/package-lock.json
@@ -479,6 +518,7 @@ jobs:
             test -f infra/emqx/auth-built-in-db-bootstrap.csv
 
             install_docker_if_missing
+            configure_web_push_keys
             compose config --quiet
             compose down --remove-orphans || true
             sudo_run docker volume rm pamilo-saas_emqx-data pamilo-saas_emqx-log >/dev/null 2>&1 || true
@@ -494,6 +534,7 @@ jobs:
             wait_for_compose_command "emqx mqtt users sync" backend env EMQX_DASHBOARD_USERNAME="$EMQX_DASHBOARD_USERNAME" EMQX_DASHBOARD_PASSWORD="$EMQX_DASHBOARD_PASSWORD" MQTT_DEMO_PASSWORD="$MQTT_DEMO_PASSWORD" MQTT_PASSWORD="$MQTT_PASSWORD" MQTT_USERNAME="$MQTT_USERNAME" node -e "const users=[[process.env.MQTT_USERNAME,process.env.MQTT_PASSWORD],['pamilo_device_demo',process.env.MQTT_DEMO_PASSWORD]].filter(([user,password])=>user&&password); const authId='password_based%3Abuilt_in_database'; const headers={'content-type':'application/json'}; async function api(path,options={}){const response=await fetch('http://emqx:18083'+path,options); if(!response.ok){throw new Error(await response.text())} return response.json().catch(()=>({}))} async function upsert(token,userId,password){const userPath='/api/v5/authentication/'+authId+'/users/'+encodeURIComponent(userId); const body=JSON.stringify({password,is_superuser:false}); const opts={method:'PUT',headers:{...headers,authorization:'Bearer '+token},body}; const put=await fetch('http://emqx:18083'+userPath,opts); if(put.ok)return; if(put.status!==404){throw new Error(await put.text())} const post=await fetch('http://emqx:18083/api/v5/authentication/'+authId+'/users',{method:'POST',headers:{...headers,authorization:'Bearer '+token},body:JSON.stringify({user_id:userId,password,is_superuser:false})}); if(!post.ok){throw new Error(await post.text())}} (async()=>{const login=await api('/api/v5/login',{method:'POST',headers,body:JSON.stringify({username:process.env.EMQX_DASHBOARD_USERNAME,password:process.env.EMQX_DASHBOARD_PASSWORD})}); for(const [user,password] of users){await upsert(login.token,user,password)} })().catch((error)=>{console.error(error);process.exit(1)})"
             wait_for_compose_command "frontend health" frontend wget -qO- http://127.0.0.1/health
             wait_for_compose_command "backend health" backend node -e "fetch('http://127.0.0.1:3000/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"
+            wait_for_compose_command "web push config" backend node -e "import('./dist/config/env.js').then(({env})=>process.exit(env.webPush.publicKey&&env.webPush.privateKey?0:1)).catch((error)=>{console.error(error);process.exit(1)})"
             if [ "$RESET_LOGIN_SEED" = "true" ]; then
               wait_for_compose_command "login-only tenant data reset" backend env DEMO_TENANT_RESET_DATA=true node dist/db/seedDemo.js
               wait_for_compose_command "login-only database shape" backend node -e "import('./dist/db/client.js').then(async({db,closeDatabase})=>{const count=async(table)=>{const row=await db.selectFrom(table).select(({fn})=>fn.countAll().as('count')).executeTakeFirst(); return Number(row?.count ?? 0)}; const counts={tenants:await count('tenants'),settings:await count('tenant_settings'),crops:await count('master_crops'),plots:await count('plots'),devices:await count('devices'),telemetry:await count('telemetry_data')}; console.log(JSON.stringify(counts)); await closeDatabase(); process.exit(counts.tenants===1&&counts.settings===1&&counts.crops===0&&counts.plots===0&&counts.devices===0&&counts.telemetry===0?0:1)}).catch((error)=>{console.error(error);process.exit(1)})"
